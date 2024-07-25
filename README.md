@@ -13,9 +13,9 @@ npm install prompt-manager
 ```typescript
 import { getPromptManager } from 'prompt-manager';
 
-async function example() {
-  const promptManager = await getPromptManager();
-  const summarizationPrompt = promptManager.Summarization.getPrompt('ARTICLE_SUMMARIZATION_PROMPT');
+function example() {
+  const promptManager = getPromptManager();
+  const summarizationPrompt = promptManager.Summarization.ARTICLE_SUMMARIZATION_PROMPT;
   const formattedPrompt = summarizationPrompt.format({ articleContent: 'Your article content here' });
   // Use the formatted prompt with your AI service
 }
@@ -27,6 +27,15 @@ async function example() {
 - Type-safe prompt access and formatting
 - Easy integration with AI services
 - Customizable prompt structure
+- Auto-generated types and implementation based on prompt definitions
+
+## Development
+
+To update the prompt library:
+
+1. Modify or add prompt JSON files in the `.prompts` directory
+2. Run `npm run generate` to update the generated code
+3. Build the project with `npm run build`
 
 ## Contributing
 

@@ -9,9 +9,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "rollup -c",
-    "generate": "ts-node src/scripts/generatePromptManager.ts",
-    "prepublishOnly": "npm run generate && npm run build",
+    "build": "npm run generate && rollup -c",
+    "generate": "ts-node scripts/generate.ts",
+    "prepublishOnly": "npm run build",
     "test": "jest",
     "start": "ts-node src/index.ts"
   },
