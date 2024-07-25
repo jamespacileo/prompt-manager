@@ -29,7 +29,7 @@ describe('commands', () => {
   });
 
   test('listPrompts lists all prompts', async () => {
-    (PromptManager.listPrompts as jest.Mock<string[]>).mockResolvedValue(['PROMPT1', 'PROMPT2']);
+    (PromptManager.listPrompts as unknown as jest.Mock<Promise<string[]>>).mockResolvedValue(['PROMPT1', 'PROMPT2']);
     await listPrompts();
     expect(PromptManager.listPrompts).toHaveBeenCalled();
     expect(console.log).toHaveBeenCalledWith('Available prompts:');
@@ -45,12 +45,12 @@ describe('commands', () => {
 
   test('generateTypes generates type definitions', async () => {
     (PromptManager.listPrompts as jest.Mock).mockResolvedValue(['PROMPT1', 'PROMPT2']);
-    (PromptManager.getPrompt as jest.Mock<{ category: string; name: string; parameters: string[] }>).mockResolvedValue({
+    (PromptManager.getPrompt as unknown as jest.Mock<Promise<{ category: string; name: string; parameters: string[] }>>).mockResolvedValue({
       category: 'Test',
       name: 'PROMPT1',
       parameters: ['param1', 'param2'],
     });
-    await generateTypes(['PROMPT1', 'PROMPT2']);
+    await generateTypes();
     expect(fs.writeFile).toHaveBeenCalledWith('prompts.d.ts', expect.any(String));
     expect(console.log).toHaveBeenCalledWith('Type definitions generated successfully.');
   });
