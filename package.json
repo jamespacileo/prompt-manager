@@ -9,14 +9,15 @@
     "dist"
   ],
   "scripts": {
-    "build": "npm run generate && rollup -c",
-    "generate": "ts-node scripts/generate.ts",
-    "prepublishOnly": "npm run build",
-    "test": "jest",
-    "start": "ts-node src/index.ts",
-    "test:coverage": "jest --coverage",
-    "tsc": "tsc"
-    "prompt-manager": "ts-node scripts/cli.ts"
+    "build": "bun run generate && bun run rollup -c",
+    "generate": "bun run scripts/generate.ts",
+    "prepublishOnly": "bun run build",
+    "test": "bun test",
+    "start": "bun run src/index.ts",
+    "test:coverage": "bun test --coverage",
+    "tsc": "bun run tsc",
+    "prompt-manager": "bun run scripts/cli.ts",
+    "publish": "npm publish"
   },
   "jest": {
     "preset": "ts-jest",
