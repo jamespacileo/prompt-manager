@@ -15,6 +15,7 @@
     "test": "jest",
     "start": "ts-node src/index.ts",
     "test:coverage": "jest --coverage",
+    "tsc": "tsc"
     "prompt-manager": "ts-node scripts/cli.ts"
   },
   "jest": {
