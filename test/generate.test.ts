@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { discoverPrompts, generateTypes, generateImplementation, generate } from '../scripts/generate';
+import { jest } from '@jest/globals';
 
 jest.mock('fs-extra');
 

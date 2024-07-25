@@ -1,5 +1,6 @@
 import { PromptManager } from '../src/promptManager';
 import { promptManager } from '../src/generated';
+import { jest } from '@jest/globals';
 
 jest.mock('../src/generated', () => ({
   promptManager: {

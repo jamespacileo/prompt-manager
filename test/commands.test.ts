@@ -1,6 +1,7 @@
 import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/commands';
 import { PromptManager } from '../src/promptManager';
 import fs from 'fs-extra';
+import { jest } from '@jest/globals';
 
 jest.mock('../src/promptManager');
 jest.mock('fs-extra');
