@@ -84,18 +84,23 @@ function generateImplementation(prompts: PromptData[]): string {
 }
 
 async function generate() {
-  const prompts = await discoverPrompts();
-  const types = generateTypes(prompts);
-  const implementation = generateImplementation(prompts);
-  
-  await fs.ensureDir(OUTPUT_DIR);
-  await fs.writeFile(path.join(OUTPUT_DIR, 'types.ts'), types);
-  await fs.writeFile(path.join(OUTPUT_DIR, 'promptManager.ts'), implementation);
-  
-  const indexContent = `export * from './types';\nexport { default as promptManager } from './promptManager';\n`;
-  await fs.writeFile(path.join(OUTPUT_DIR, 'index.ts'), indexContent);
-  
-  console.log('Generation complete.');
+  try {
+    const prompts = await discoverPrompts();
+    const types = generateTypes(prompts);
+    const implementation = generateImplementation(prompts);
+    
+    await fs.ensureDir(OUTPUT_DIR);
+    await fs.writeFile(path.join(OUTPUT_DIR, 'types.ts'), types);
+    await fs.writeFile(path.join(OUTPUT_DIR, 'promptManager.ts'), implementation);
+    
+    const indexContent = `export * from './types';\nexport { default as promptManager } from './promptManager';\n`;
+    await fs.writeFile(path.join(OUTPUT_DIR, 'index.ts'), indexContent);
+    
+    console.log('Generation complete.');
+  } catch (error) {
+    console.error('Error during generation:', error);
+    process.exit(1);
+  }
 }
 
-generate().catch(console.error);
+generate();

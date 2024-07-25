@@ -1,11 +1,13 @@
 import { promptManager, PromptManager as GeneratedPromptManager } from './generated';
 
 export class PromptManager implements GeneratedPromptManager {
-  constructor() {
+  private constructor() {}
+
+  static getInstance(): PromptManager {
     return promptManager as unknown as PromptManager;
   }
 }
 
 export function getPromptManager(): PromptManager {
-  return new PromptManager();
+  return PromptManager.getInstance();
 }

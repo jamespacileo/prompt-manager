@@ -51,4 +51,14 @@ describe('PromptManager', () => {
   test('Accessing non-existent prompt throws an error', () => {
     expect(() => (manager.Category1 as any).NON_EXISTENT_PROMPT).toThrow();
   });
+
+  test('Prompt format function handles missing parameters', () => {
+    const formattedPrompt = manager.Category1.PROMPT1.format({});
+    expect(formattedPrompt).toBe('Formatted: undefined');
+  });
+
+  test('Prompt format function ignores extra parameters', () => {
+    const formattedPrompt = manager.Category1.PROMPT1.format({ param1: 'test', extraParam: 'ignored' });
+    expect(formattedPrompt).toBe('Formatted: test');
+  });
 });

@@ -10,14 +10,61 @@ npm install prompt-manager
 
 ## Usage
 
+### Basic Usage
+
 ```typescript
 import { getPromptManager } from 'prompt-manager';
 
-function example() {
+async function example() {
   const promptManager = getPromptManager();
   const summarizationPrompt = promptManager.Summarization.ARTICLE_SUMMARIZATION_PROMPT;
   const formattedPrompt = summarizationPrompt.format({ articleContent: 'Your article content here' });
   // Use the formatted prompt with your AI service
+}
+```
+
+### Creating a New Prompt
+
+```typescript
+import { createPrompt } from 'prompt-manager';
+
+async function createNewPrompt() {
+  await createPrompt('NEW_PROMPT', {
+    category: 'CustomCategory',
+    content: 'This is a {{customParam}} prompt.',
+  });
+}
+```
+
+### Updating an Existing Prompt
+
+```typescript
+import { updatePrompt } from 'prompt-manager';
+
+async function updateExistingPrompt() {
+  await updatePrompt('EXISTING_PROMPT', {
+    content: 'This is the updated {{param}} content.',
+  });
+}
+```
+
+### Listing Available Prompts
+
+```typescript
+import { listPrompts } from 'prompt-manager';
+
+async function listAvailablePrompts() {
+  await listPrompts();
+}
+```
+
+### Generating Type Definitions
+
+```typescript
+import { generateTypes } from 'prompt-manager';
+
+async function generateTypeDefinitions() {
+  await generateTypes();
 }
 ```
 
