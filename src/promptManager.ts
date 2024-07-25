@@ -4,7 +4,7 @@ export class PromptManager implements GeneratedPromptManager {
   constructor() {
     return new Proxy(this, {
       get(target, prop) {
-        if (prop in target) {
+        if (prop in target || typeof prop === 'symbol') {
           return target[prop];
         } else {
           throw new Error(`Category or prompt "${String(prop)}" does not exist`);

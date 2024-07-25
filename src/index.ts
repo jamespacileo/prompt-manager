@@ -1,3 +1,3 @@
 export * from './generated';
-export { PromptManager, getPromptManager } from './promptManager';
+export { PromptManager } from './promptManager';
 export { getPromptManager } from './generated';
