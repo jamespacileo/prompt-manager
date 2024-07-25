@@ -12,41 +12,41 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x]
+        bun-version: [1.0.x]
 
     steps:
     - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+    - name: Use Bun ${{ matrix.bun-version }}
+      uses: oven-sh/setup-bun@v1
       with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+        bun-version: ${{ matrix.bun-version }}
+    - run: bun install
+    - run: bun run build --if-present
+    - run: bun test
 
   lint:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
-    - name: Use Node.js
-      uses: actions/setup-node@v3
+    - name: Use Bun
+      uses: oven-sh/setup-bun@v1
       with:
-        node-version: '18.x'
-    - run: npm ci
-    - run: npm run lint
+        bun-version: 1.0.x
+    - run: bun install
+    - run: bun run lint
 
   coverage:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
-    - name: Use Node.js
-      uses: actions/setup-node@v3
+    - name: Use Bun
+      uses: oven-sh/setup-bun@v1
       with:
-        node-version: '18.x'
-    - run: npm ci
-    - run: npm run test:coverage
+        bun-version: 1.0.x
+    - run: bun install
+    - run: bun run test:coverage
     - uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
