@@ -1,9 +1,15 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { discoverPrompts, generateTypes, generateImplementation, generate } from '../scripts/generate';
+import * as generateModule from '../scripts/generate';
 import { jest } from '@jest/globals';
 
 jest.mock('fs-extra');
+jest.mock('../scripts/generate', () => ({
+  discoverPrompts: jest.fn(),
+  generateTypes: jest.fn(),
+  generateImplementation: jest.fn(),
+  generate: jest.fn(),
+}));
 
 describe('generate script', () => {
   const mockPrompts = [

@@ -1,9 +1,8 @@
-import { PromptManager } from '../src/promptManager';
-import { promptManager } from '../src/generated';
+import { PromptManager, getPromptManager } from '../src/promptManager';
 import { jest } from '@jest/globals';
 
-jest.mock('../src/generated', () => ({
-  promptManager: {
+jest.mock('../src/promptManager', () => ({
+  getPromptManager: jest.fn(() => ({
     Category1: {
       PROMPT1: {
         name: 'PROMPT1',
@@ -11,7 +10,7 @@ jest.mock('../src/generated', () => ({
         version: '1.0.0',
         content: 'This is prompt 1: {{param1}}',
         parameters: ['param1'],
-        format: jest.fn((inputs) => `Formatted: ${inputs.param1}`),
+        format: jest.fn((inputs: { param1: string }) => `Formatted: ${inputs.param1}`),
       },
     },
     Category2: {
@@ -21,10 +20,11 @@ jest.mock('../src/generated', () => ({
         version: '1.0.0',
         content: 'This is prompt 2: {{param2}}',
         parameters: ['param2'],
-        format: jest.fn((inputs) => `Formatted: ${inputs.param2}`),
+        format: jest.fn((inputs: { param2: string }) => `Formatted: ${inputs.param2}`),
       },
     },
-  },
+  })),
+  PromptManager: jest.fn().mockImplementation(() => getPromptManager()),
 }));
 
 describe('PromptManager', () => {
