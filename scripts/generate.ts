@@ -14,7 +14,7 @@ interface PromptData {
   parameters: string[];
 }
 
-async function discoverPrompts(): Promise<PromptData[]> {
+export async function discoverPrompts(): Promise<PromptData[]> {
   const prompts: PromptData[] = [];
   const categories = await fs.readdir(PROMPTS_DIR);
   for (const category of categories) {
@@ -31,7 +31,7 @@ async function discoverPrompts(): Promise<PromptData[]> {
   return prompts;
 }
 
-function generateTypes(prompts: PromptData[]): string {
+export function generateTypes(prompts: PromptData[]): string {
   let output = 'export interface PromptManager {\n';
   const categories = new Set(prompts.map(p => p.category));
   
@@ -55,7 +55,7 @@ function generateTypes(prompts: PromptData[]): string {
   return output;
 }
 
-function generateImplementation(prompts: PromptData[]): string {
+export function generateImplementation(prompts: PromptData[]): string {
   let output = 'const promptManager: PromptManager = {\n';
   const categories = new Set(prompts.map(p => p.category));
   
@@ -85,7 +85,7 @@ function generateImplementation(prompts: PromptData[]): string {
   return output;
 }
 
-async function generate() {
+export async function generate() {
   try {
     const prompts = await discoverPrompts();
     const types = generateTypes(prompts);

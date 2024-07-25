@@ -7,6 +7,6 @@ describe('index', () => {
   });
 
   test('exports generated content', () => {
-    expect(index.promptManager).toBeDefined();
+    expect(index.PromptManager).toBeDefined();
   });
 });

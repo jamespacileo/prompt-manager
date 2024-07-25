@@ -28,9 +28,9 @@ describe('generate script', () => {
   });
 
   test('discoverPrompts discovers prompts correctly', async () => {
-    (fs.readdir as jest.Mock).mockResolvedValueOnce(['Category1', 'Category2']);
-    (fs.readdir as jest.Mock).mockResolvedValue(['prompt.json']);
-    (fs.readJson as jest.Mock).mockResolvedValueOnce(mockPrompts[0]).mockResolvedValueOnce(mockPrompts[1]);
+    (fs.readdir as unknown as jest.Mock).mockResolvedValueOnce(['Category1', 'Category2']);
+    (fs.readdir as unknown as jest.Mock).mockResolvedValue(['prompt.json']);
+    (fs.readJson as unknown as jest.Mock).mockResolvedValueOnce(mockPrompts[0]).mockResolvedValueOnce(mockPrompts[1]);
 
     const result = await discoverPrompts();
     expect(result).toEqual(mockPrompts);
@@ -56,9 +56,9 @@ describe('generate script', () => {
   });
 
   test('generate function runs the entire process', async () => {
-    (fs.readdir as jest.Mock).mockResolvedValueOnce(['Category1', 'Category2']);
-    (fs.readdir as jest.Mock).mockResolvedValue(['prompt.json']);
-    (fs.readJson as jest.Mock).mockResolvedValueOnce(mockPrompts[0]).mockResolvedValueOnce(mockPrompts[1]);
+    (fs.readdir as unknown as jest.Mock).mockResolvedValueOnce(['Category1', 'Category2']);
+    (fs.readdir as unknown as jest.Mock).mockResolvedValue(['prompt.json']);
+    (fs.readJson as unknown as jest.Mock).mockResolvedValueOnce(mockPrompts[0]).mockResolvedValueOnce(mockPrompts[1]);
 
     await generate();
 
