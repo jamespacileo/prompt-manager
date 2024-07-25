@@ -10,17 +10,51 @@ npm install prompt-manager
 
 ## Usage
 
-### Basic Usage
+### Initializing a Project
+
+```bash
+npx prompt-manager init
+```
+
+This will create a `prompt-manager.config.js` file in your project root.
+
+### Creating a Prompt
+
+```bash
+npx prompt-manager create MY_PROMPT -c MyCategory -t "This is a {{param}} prompt."
+```
+
+### Using Prompts in Your Code
 
 ```typescript
 import { getPromptManager } from 'prompt-manager';
 
 async function example() {
   const promptManager = getPromptManager();
-  const summarizationPrompt = promptManager.Summarization.ARTICLE_SUMMARIZATION_PROMPT;
-  const formattedPrompt = summarizationPrompt.format({ articleContent: 'Your article content here' });
+  const myPrompt = promptManager.MyCategory.MY_PROMPT;
+  const formattedPrompt = myPrompt.format({ param: 'custom' });
   // Use the formatted prompt with your AI service
 }
+```
+
+### Generating Types
+
+```bash
+npx prompt-manager generate
+```
+
+This will generate TypeScript types based on your prompts.
+
+## Configuration
+
+You can customize Prompt Manager by editing the `prompt-manager.config.js` file:
+
+```javascript
+module.exports = {
+  promptsDir: '.prompts',
+  outputDir: 'src/generated',
+  typescript: true,
+};
 ```
 
 ### Creating a New Prompt

@@ -14,7 +14,11 @@
     "prepublishOnly": "npm run build",
     "test": "jest",
     "start": "ts-node src/index.ts",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "prompt-manager": "ts-node scripts/cli.ts"
+  },
+  "bin": {
+    "prompt-manager": "./dist/cli.js"
   },
   "keywords": ["prompt", "management", "AI"],
   "author": "Your Name",

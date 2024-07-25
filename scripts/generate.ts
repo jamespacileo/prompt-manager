@@ -1,8 +1,10 @@
 import fs from 'fs-extra';
 import path from 'path';
 
-const PROMPTS_DIR = path.join(__dirname, '..', '.prompts');
-const OUTPUT_DIR = path.join(__dirname, '..', 'src', 'generated');
+const config = require('../prompt-manager.config.js');
+
+const PROMPTS_DIR = path.resolve(process.cwd(), config.promptsDir);
+const OUTPUT_DIR = path.resolve(process.cwd(), config.outputDir);
 
 interface PromptData {
   name: string;
