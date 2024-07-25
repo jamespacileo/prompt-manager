@@ -1,0 +1,39 @@
+{
+  "name": "prompt-manager",
+  "version": "1.0.0",
+  "description": "A prompt management library for AI applications",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "generate": "ts-node src/scripts/generatePromptManager.ts",
+    "prepublishOnly": "npm run generate && npm run build",
+    "test": "jest"
+  },
+  "keywords": ["prompt", "management", "AI"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^10.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^13.0.6",
+    "@rollup/plugin-typescript": "^8.3.0",
+    "@types/fs-extra": "^9.0.13",
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.6",
+    "jest": "^27.3.1",
+    "rollup": "^2.58.0",
+    "rollup-plugin-dts": "^4.0.0",
+    "ts-jest": "^27.0.7",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.4.4"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.0.0"
+  }
+}
