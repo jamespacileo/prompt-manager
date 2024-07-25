@@ -1,5 +1,5 @@
 import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/commands';
-import * as PromptManagerModule from '../src/promptManager';
+import { PromptManager } from '../src/promptManager';
 import fs from 'fs-extra';
 import { jest } from '@jest/globals';
 
