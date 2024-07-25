@@ -11,21 +11,6 @@
  */
 
 /**
- * Represents the configuration options for the PromptManager.
- */
-interface PromptManagerConfig {
-  /**
-   * The directory path where prompt files are stored.
-   */
-  promptsDir: string;
-
-  /**
-   * Optional custom file extension for prompt files (default is '.txt').
-   */
-  fileExtension?: string;
-}
-
-/**
  * Represents the structure of a single prompt.
  */
 interface Prompt {
@@ -50,12 +35,6 @@ interface Prompt {
   };
   /** List of all available versions for this prompt */
   versions: string[];
-  /**
-   * A function to format the prompt with given parameters.
-   * @param params - An object containing key-value pairs for formatting the prompt.
-   * @returns The formatted prompt string.
-   */
-  format: (params: Record<string, any>) => string;
 }
 
 /**
@@ -117,13 +96,6 @@ interface PromptManagerCLI {
    * Performs a consistency check on all prompts.
    */
   check(): Promise<void>;
-
-  /**
-   * Initializes a new project with prompt management capabilities.
-   * @param projectName - The name of the project to create.
-   * @param options - Additional options for project initialization.
-   */
-  init(projectName: string, options: { template?: string }): void;
 }
 
 /**
@@ -152,9 +124,6 @@ interface PromptManagerLibrary {
    * This must be called before using any other methods.
    */
   initialize(): Promise<void>;
-
-  /** Contains all available prompt categories */
-  [category: string]: PromptCategory<Record<string, Prompt>>;
 
   /**
    * Retrieves a specific prompt.
@@ -198,18 +167,23 @@ interface PromptManagerLibrary {
 
   /**
    * Formats a prompt with given parameters.
-   * @param category - The category of the prompt.
-   * @param promptName - The name of the prompt.
-   * @param params - An object containing key-value pairs for formatting the prompt.
-   * @returns The formatted prompt string.
-   * @throws An error if the prompt doesn't exist.
+   * @param category Category of the prompt
+   * @param promptName Name of the prompt
+   * @param params Object containing the required parameters
    */
   formatPrompt(category: string, promptName: string, params: Record<string, any>): string;
+
+  /**
+   * Access to prompt categories.
+   * This allows for dynamic access to categories and prompts.
+   */
+  categories: {
+    [category: string]: PromptCategory<Record<string, Prompt>>;
+  };
 }
 
 // Export the interfaces so they can be imported and used in other parts of the project
 export {
-  PromptManagerConfig,
   Prompt,
   PromptManagerCLI,
   PromptCategory,
