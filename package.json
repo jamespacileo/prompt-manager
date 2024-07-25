@@ -12,13 +12,15 @@
     "build": "rollup -c",
     "generate": "ts-node src/scripts/generatePromptManager.ts",
     "prepublishOnly": "npm run generate && npm run build",
-    "test": "jest"
+    "test": "jest",
+    "start": "ts-node src/index.ts"
   },
   "keywords": ["prompt", "management", "AI"],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "fs-extra": "^10.0.0"
+    "fs-extra": "^10.0.0",
+    "commander": "^8.3.0"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^13.0.6",
