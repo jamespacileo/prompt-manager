@@ -147,8 +147,7 @@ export class PromptManager implements PromptManagerLibrary {
   private async savePrompt(category: string, name: string): Promise<void> {
     const prompt = this.prompts[category][name];
     const filePath = path.join(this.promptsPath, category, `${name}.json`);
-    const promptData = { ...prompt };
-    delete promptData.format; // Remove the format function before saving
+    const { format, ...promptData } = prompt; // Exclude the format function
     await fs.writeFile(filePath, JSON.stringify(promptData, null, 2));
   }
 
