@@ -3,15 +3,25 @@ import { IPromptInput, IPromptOutput, Prompt } from '../types/interfaces';
 import fs from 'fs-extra';
 import path from 'path';
 
+const getConfig = async () => {
+  try {
+    const config = await fs.readJSON('prompt-manager.json');
+    return config;
+  } catch (error) {
+    throw new Error('Failed to read configuration. Please run "init" command first.');
+  }
+};
+
 export async function createPrompt(name: string, options: any) {
+  const config = await getConfig();
   const prompt: Prompt<IPromptInput, IPromptOutput> = {
     name,
     category: options.category || 'General',
     version: '1.0.0',
-    content: options.ai ? await generateAIPrompt(options.ai) : '',
+    content: options.content || '',
     parameters: [],
     metadata: {
-      description: '',
+      description: options.description || '',
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     },
@@ -24,57 +34,44 @@ export async function createPrompt(name: string, options: any) {
     },
   };
 
-  const manager = new PromptManager('path/to/prompts');
+  const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
   await manager.createPrompt(prompt);
-  console.log(`Prompt "${name}" created successfully.`);
 }
 
-export async function listPrompts() {
-  const manager = new PromptManager('path/to/prompts');
+export async function listPrompts(): Promise<string[]> {
+  const config = await getConfig();
+  const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
   const prompts = await manager.listPrompts();
-  console.log('Available prompts:');
-  prompts.forEach((prompt) => console.log(`- ${prompt}`));
+  return prompts.map(prompt => `${prompt.category}/${prompt.name}`);
 }
 
 export async function updatePrompt(name: string, options: any) {
+  const config = await getConfig();
   const updates: Partial<Prompt<IPromptInput, IPromptOutput>> = {};
   if (options.content) updates.content = options.content;
-  const manager = new PromptManager('path/to/prompts');
+  const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
   await manager.updatePrompt(name, updates);
-  console.log(`Prompt "${name}" updated successfully.`);
 }
 
 export async function generateTypes() {
-  const manager = new PromptManager('path/to/prompts');
+  const config = await getConfig();
+  const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
   const prompts = await manager.listPrompts();
   let typeDefs = 'declare module "prompt-manager" {\n';
 
-  for (const storedPrompt of prompts) {
-    const manager = new PromptManager('path/to/prompts');
-    await manager.initialize();
-    const name = storedPrompt.name
-    const category = storedPrompt.category
-    const prompt = await manager.getPrompt(category, name);
-    if (prompt) {
-      typeDefs += `  export namespace ${prompt.category} {\n`;
-      typeDefs += `    export const ${prompt.name}: {\n`;
-      typeDefs += `      format: (inputs: { ${prompt.parameters.map(p => `${p}: string`).join('; ')} }) => string;\n`;
-      typeDefs += `    };\n`;
-      typeDefs += `  }\n\n`;
-    }
+  for (const prompt of prompts) {
+    typeDefs += `  export namespace ${prompt.category} {\n`;
+    typeDefs += `    export const ${prompt.name}: {\n`;
+    typeDefs += `      format: (inputs: { ${prompt.parameters.map(p => `${p}: string`).join('; ')} }) => string;\n`;
+    typeDefs += `    };\n`;
+    typeDefs += `  }\n\n`;
   }
 
   typeDefs += '}\n';
 
-  await fs.writeFile('prompts.d.ts', typeDefs);
-  console.log('Type definitions generated successfully.');
-}
-
-async function generateAIPrompt(instruction: string): Promise<string> {
-  // TODO: Implement AI prompt generation
-  return `AI-generated prompt based on: ${instruction}`;
+  await fs.writeFile(path.join(config.outputDir, 'prompts.d.ts'), typeDefs);
 }
