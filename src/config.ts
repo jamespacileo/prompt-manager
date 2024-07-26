@@ -11,7 +11,7 @@ const defaultConfig: PromptManagerConfig = {
   outputDir: 'src/generated',
 };
 
-export function loadConfig(): PromptManagerConfig {
+export async function loadConfig(): Promise<PromptManagerConfig> {
   const explorer = cosmiconfig('prompt-manager', {
     searchPlaces: [
       'package.json',
@@ -25,13 +25,14 @@ export function loadConfig(): PromptManagerConfig {
   });
 
   try {
-    const result = explorer.searchSync();
+    const result = explorer.search();
     if (result && !result.isEmpty) {
+      const config = await result;
       return {
         ...defaultConfig,
-        ...result.config,
-        promptsDir: path.resolve(process.cwd(), result.config.promptsDir || defaultConfig.promptsDir),
-        outputDir: path.resolve(process.cwd(), result.config.outputDir || defaultConfig.outputDir),
+        ...config.config,
+        promptsDir: path.resolve(process.cwd(), config.config.promptsDir || defaultConfig.promptsDir),
+        outputDir: path.resolve(process.cwd(), config.config.outputDir || defaultConfig.outputDir),
       };
     }
   } catch (error) {
@@ -45,4 +46,4 @@ export function loadConfig(): PromptManagerConfig {
   };
 }
 
-export const config = loadConfig();
+export const config = await loadConfig();
