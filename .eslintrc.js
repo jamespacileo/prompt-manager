@@ -27,3 +27,8 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
   },
 };
+
+// Specify the file extensions to lint
+module.exports.overrides.push({
+  files: ['*.ts', '*.tsx', '*.js', '*.jsx'],
+});
