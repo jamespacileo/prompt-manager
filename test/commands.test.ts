@@ -1,18 +1,14 @@
-import { expect, test, describe, beforeEach } from "@jest/globals";
-import { jest } from '@jest/globals';
+import { expect, test, describe, beforeEach, jest } from "@jest/globals";
 import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/commands';
 import { PromptManager } from '../src/promptManager';
 import fs from 'fs-extra';
 
 jest.mock('../src/promptManager');
-jest.mock('fs-extra', () => ({}));
+jest.mock('fs-extra', () => ({
+  writeFile: jest.fn(),
+}));
 
-const mockPromptManager = {
-  createPrompt: jest.fn(),
-  listPrompts: jest.fn(),
-  updatePrompt: jest.fn(),
-  getPrompt: jest.fn(),
-};
+const mockPromptManager = PromptManager as jest.Mocked<typeof PromptManager>;
 
 describe('commands', () => {
   beforeEach(() => {

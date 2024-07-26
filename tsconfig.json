@@ -13,6 +13,7 @@
       "node_modules/.pnpm/@types",
       "node_modules/@types"
     ],
+    "types": ["jest"],
     // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
