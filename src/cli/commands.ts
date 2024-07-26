@@ -3,7 +3,7 @@ import { IPromptInput, IPromptOutput, Prompt } from '../types/interfaces';
 import fs from 'fs-extra';
 import path from 'path';
 import { input, confirm } from '@inquirer/prompts';
-import { generatePromptWithAI, updatePromptWithAI } from './aiHelpers';
+import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './aiHelpers';
 
 const getConfig = async () => {
   try {
@@ -23,13 +23,12 @@ export async function createPrompt() {
 
   while (!accepted) {
     promptData = await generatePromptWithAI(description);
-    console.log('Generated Prompt:');
-    console.log(JSON.stringify(promptData, null, 2));
+    prettyPrintPrompt(promptData);
 
     accepted = await confirm({ message: 'Do you accept this prompt?' });
 
     if (!accepted) {
-      const instruction = await input({ message: 'What changes would you like to make?' });
+      const instruction = await input({ message: 'What changes would you like to make? (Type "quit" to cancel)' });
       if (instruction.toLowerCase() === 'quit') {
         console.log('Prompt creation cancelled.');
         return;
