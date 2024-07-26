@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { Command } from 'commander';
-import { createPrompt, listPrompts, updatePrompt, generateTypes, initializeProject } from '../commands';
+import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../commands';
 
 const program = new Command();
 
