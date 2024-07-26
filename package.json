@@ -8,6 +8,9 @@
   "files": [
     "dist"
   ],
+  "bin": {
+    "prompt-manager": "./dist/cli/cli.js"
+  },
   "scripts": {
     "generate": "bun run scripts/generate.ts",
     "build": "tsup",
