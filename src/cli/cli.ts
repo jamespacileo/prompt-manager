@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 import { Command } from 'commander';
 import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../commands.js';
