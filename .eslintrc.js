@@ -14,6 +14,12 @@ module.exports = {
     ecmaVersion: 2020,
     sourceType: 'module',
   },
+  overrides: [
+    {
+      files: ['*.js', '*.ts'],
+      // ... any specific rules for JS and TS files
+    },
+  ],
   rules: {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
