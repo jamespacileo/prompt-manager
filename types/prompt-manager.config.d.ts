@@ -1,5 +1,3 @@
-import { PromptManagerConfig } from '../src/types';
+import { PromptManagerConfig } from '../src/config';
 
-declare const config: PromptManagerConfig;
-export default config;
 export { PromptManagerConfig };

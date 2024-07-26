@@ -1,9 +1,9 @@
-import { expect, test, describe, mock } from "bun:test";
+import { expect, test, describe, mock, jest } from "bun:test";
 import fs from 'fs-extra';
 import path from 'path';
-import { discoverPrompts, generateTypes, generateImplementation, generate } from '../scripts/generate';
+import { beforeEach } from "node:test";
 
-mock.module('fs-extra');
+mock.module('fs-extra', () => ({})); 
 
 describe('generate script', () => {
   const mockPrompts = [
@@ -11,6 +11,7 @@ describe('generate script', () => {
       name: 'PROMPT1',
       category: 'Category1',
       version: '1.0.0',
+      description: '', // Add this property
       content: 'This is prompt 1: {{param1}}',
       parameters: ['param1'],
     },
@@ -18,21 +19,22 @@ describe('generate script', () => {
       name: 'PROMPT2',
       category: 'Category2',
       version: '1.0.0',
+      description: '', // Add this property
       content: 'This is prompt 2: {{param2}}',
       parameters: ['param2'],
     },
   ];
 
   beforeEach(() => {
-    mock.restoreAll();
+    mock.restore();
   });
 
   test('discoverPrompts discovers prompts correctly', async () => {
     mock.module('fs-extra', () => ({
-      readdir: mock.fn()
+      readdir: jest.fn()
         .mockResolvedValueOnce(['Category1', 'Category2'])
         .mockResolvedValue(['prompt.json']),
-      readJson: mock.fn()
+      readJson: jest.fn()
         .mockResolvedValueOnce(mockPrompts[0])
         .mockResolvedValueOnce(mockPrompts[1]),
     }));
@@ -62,14 +64,14 @@ describe('generate script', () => {
 
   test('generate function runs the entire process', async () => {
     mock.module('fs-extra', () => ({
-      readdir: mock.fn()
+      readdir: jest.fn()
         .mockResolvedValueOnce(['Category1', 'Category2'])
         .mockResolvedValue(['prompt.json']),
-      readJson: mock.fn()
+      readJson: jest.fn()
         .mockResolvedValueOnce(mockPrompts[0])
         .mockResolvedValueOnce(mockPrompts[1]),
-      ensureDir: mock.fn(),
-      writeFile: mock.fn(),
+      ensureDir: jest.fn(),
+      writeFile: jest.fn(),
     }));
 
     await generate();

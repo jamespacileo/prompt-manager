@@ -3,20 +3,19 @@
   "version": "1.0.0",
   "description": "A prompt management library for AI applications",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "bin": {
-    "prompt-manager": "./src/cli/cli.ts"
+    "prompt-manager": "dist/cli/cli.js"
   },
   "scripts": {
     "generate": "bun run scripts/generate.ts",
     "build": "tsup",
     "prepublishOnly": "tsup",
-    "prepare": "bun run build",
+    "ex-prepare": "bun run build",
     "test": "bun test",
     "start": "bun run src/index.ts",
     "test:coverage": "bun test --coverage",
@@ -28,7 +27,6 @@
     "legacy-prepublishOnly": "bun run build",
     "docs:build": "typedoc --out docs src",
     "build:all": "npm run build && npm run docs:build",
-    "prepare": "pre-commit install",
     "dev": "tsup --watch",
     "install-global": "npm install -g .",
     "dev:watch": "concurrently \"bun run dev\" \"bun run install-global\" \"bun run install-example\"",
@@ -36,10 +34,6 @@
     "lint": "oxlint . --ext .ts",
     "lint:fix": "oxlint --quiet --fix ."
   },
-  "bin": {
-    "prompt-manager": "./dist/cli/cli.js"
-  },
-  "type": "module",
   "keywords": [
     "prompt",
     "management",
@@ -61,7 +55,7 @@
     "pre-commit": "^1.2.2",
     "ts-node": "^10.9.2",
     "tsup": "^8.2.3",
-    "typescript": "^5.5.4"
+    "typescript": ">=4.0.0"
   },
   "peerDependencies": {
     "typescript": ">=4.0.0"

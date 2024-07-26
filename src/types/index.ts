@@ -5,7 +5,7 @@ import {
   PromptManagerLibrary
 } from './interfaces';
 
-export {
+export type {
   Prompt,
   PromptManagerCLI,
   PromptCategory,

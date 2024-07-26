@@ -74,7 +74,7 @@ export function generateImplementation(prompts: PromptData[]): string {
       output += `      format: (inputs) => {\n`;
       output += `        let formatted = ${JSON.stringify(prompt.content)};\n`;
       output += `        for (const [key, value] of Object.entries(inputs)) {\n`;
-      output += `          formatted = formatted.replace(new RegExp(\`{{${key}}}\`, 'g'), value);\n`;
+      output += `          formatted = formatted.replace(new RegExp(\`{{$\{key}}}\`, 'g'), value);\n`;
       output += `        }\n`;
       output += `        return formatted;\n`;
       output += `      },\n`;

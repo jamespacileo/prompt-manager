@@ -203,7 +203,7 @@ interface IPromptManagerLibrary {
 }
 
 // Export the interfaces so they can be imported and used in other parts of the project
-export {
+export type {
   IPromptInput,
   IPromptOutput,
   IPrompt as Prompt,

@@ -25,14 +25,13 @@ export async function loadConfig(): Promise<PromptManagerConfig> {
   });
 
   try {
-    const result = explorer.search();
-    if (result && !result.isEmpty) {
-      const config = await result;
+    const result = await explorer.search();
+    if (result) {
       return {
         ...defaultConfig,
-        ...config.config,
-        promptsDir: path.resolve(process.cwd(), config.config.promptsDir || defaultConfig.promptsDir),
-        outputDir: path.resolve(process.cwd(), config.config.outputDir || defaultConfig.outputDir),
+        ...result.config,
+        promptsDir: path.resolve(process.cwd(), result.config?.promptsDir || defaultConfig.promptsDir),
+        outputDir: path.resolve(process.cwd(), result.config?.outputDir || defaultConfig.outputDir),
       };
     }
   } catch (error) {

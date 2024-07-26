@@ -1,18 +1,23 @@
-import { expect, test, describe, beforeEach, jest } from "@jest/globals";
+import { expect, test, describe, beforeEach, jest } from "bun:test";
 import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/commands';
 import { PromptManager } from '../src/promptManager';
 import fs from 'fs-extra';
+import { mock } from "node:test";
 
-jest.mock('../src/promptManager');
-jest.mock('fs-extra', () => ({
-  writeFile: jest.fn(),
-}));
-
-const mockPromptManager = PromptManager as jest.Mocked<typeof PromptManager>;
+mock.module('../src/promptManager', {
+  defaultExport: jest.fn(),
+  namedExports: {
+    PromptManager: jest.fn(),
+  },
+});
+mock.module('fs-extra', {
+  defaultExport: jest.fn(),
+});
+const mockPromptManager = jest.fn();
 
 describe('commands', () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.restoreAllMocks();
     console.log = jest.fn();
   });
 
