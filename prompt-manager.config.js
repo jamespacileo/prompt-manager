@@ -7,3 +7,4 @@ const config: PromptManagerConfig = {
 };
 
 export default config;
+export type { PromptManagerConfig };

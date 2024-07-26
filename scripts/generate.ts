@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import config from '../prompt-manager.config';
+import config, { PromptManagerConfig } from '../prompt-manager.config';
 
 const PROMPTS_DIR = path.resolve(process.cwd(), config.promptsDir);
 const OUTPUT_DIR = path.resolve(process.cwd(), config.outputDir);
@@ -73,8 +73,8 @@ export function generateImplementation(prompts: PromptData[]): string {
       output += `      description: ${JSON.stringify(prompt.description)},\n`;
       output += `      format: (inputs) => {\n`;
       output += `        let formatted = ${JSON.stringify(prompt.content)};\n`;
-      output += `        for (const [key, value] of Object.entries(inputs)) {\n`;
-      output += `          formatted = formatted.replace(new RegExp(\`{{${key}}}\`, 'g'), value);\n`;
+      output += `        for (const [k, value] of Object.entries(inputs)) {\n`;
+      output += `          formatted = formatted.replace(new RegExp(\`{{${k}}}\`, 'g'), value);\n`;
       output += `        }\n`;
       output += `        return formatted;\n`;
       output += `      },\n`;
