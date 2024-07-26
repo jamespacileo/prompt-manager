@@ -1,4 +1,4 @@
-import { PromptManagerCLI } from '../types/interfaces';
+import { PromptManagerCLI } from './types/interfaces';
 import { PromptManager } from './promptManager';
 
 export class CLI implements PromptManagerCLI {

@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import fs from 'fs-extra';
 import path from 'path';
 
 const config = await import('../prompt-manager.config.js');

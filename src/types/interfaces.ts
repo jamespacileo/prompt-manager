@@ -13,7 +13,7 @@
 /**
  * Represents the structure of a single prompt.
  */
-interface Prompt {
+interface Prompt<PromptInput, PromptOutput> {
   /** Unique identifier for the prompt */
   name: string;
   /** Category the prompt belongs to */
@@ -35,6 +35,22 @@ interface Prompt {
   };
   /** List of all available versions for this prompt */
   versions: string[];
+
+  /** Type of output expected from the model (structured or plain text) */
+  outputType: 'structured' | 'plain';
+  /** Default model name to use for this prompt */
+  defaultModelName?: string;
+  /** Optional list of models that can be used with this prompt */
+  compatibleModels?: string[];
+  /** Optional list of tags or keywords associated with this prompt */
+  tags?: string[];
+
+  /** Type of input expected by the prompt */
+  input: PromptInput;
+  /** Type of output expected by the prompt */
+  output: PromptOutput;
+  /** Function to format the prompt with given inputs */
+  format: (inputs: PromptInput) => string;
 }
 
 /**
@@ -100,6 +116,7 @@ interface PromptManagerCLI {
 
 /**
  * Represents a category of prompts in the importable library.
+ * NOTE: DO NOT DELETE THESE COMMENTS. THEY ARE USED BY THE DOCUMENTATION GENERATOR.
  */
 interface PromptCategory<T extends Record<string, Prompt>> {
   [K: string]: {
