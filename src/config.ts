@@ -1,6 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import { cosmiconfig } from 'cosmiconfig';
+import path from 'path';
 
 export interface PromptManagerConfig {
   promptsDir: string;
@@ -13,14 +12,37 @@ const defaultConfig: PromptManagerConfig = {
 };
 
 export function loadConfig(): PromptManagerConfig {
-  const explorer = cosmiconfig('prompt-manager');
-  const result = explorer.searchSync();
+  const explorer = cosmiconfig('prompt-manager', {
+    searchPlaces: [
+      'package.json',
+      '.prompt-managerrc',
+      '.prompt-managerrc.json',
+      '.prompt-managerrc.yaml',
+      '.prompt-managerrc.yml',
+      '.prompt-managerrc.js',
+      'prompt-manager.config.js',
+    ],
+  });
 
-  if (result && !result.isEmpty) {
-    return { ...defaultConfig, ...result.config };
+  try {
+    const result = explorer.searchSync();
+    if (result && !result.isEmpty) {
+      return {
+        ...defaultConfig,
+        ...result.config,
+        promptsDir: path.resolve(process.cwd(), result.config.promptsDir || defaultConfig.promptsDir),
+        outputDir: path.resolve(process.cwd(), result.config.outputDir || defaultConfig.outputDir),
+      };
+    }
+  } catch (error) {
+    console.warn('Error loading config:', error);
   }
 
-  return defaultConfig;
+  return {
+    ...defaultConfig,
+    promptsDir: path.resolve(process.cwd(), defaultConfig.promptsDir),
+    outputDir: path.resolve(process.cwd(), defaultConfig.outputDir),
+  };
 }
 
 export const config = loadConfig();
