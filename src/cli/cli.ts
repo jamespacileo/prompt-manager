@@ -12,7 +12,10 @@ program
 program
   .command('init')
   .description('Initialize a new Prompt Manager project')
-  .action(initializeProject);
+  .action(() => {
+    console.log('Initializing a new Prompt Manager project...');
+    // Add initialization logic here
+  });
 
 program
   .command('create <name>')
