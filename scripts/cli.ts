@@ -19,6 +19,7 @@ program
   .description('Create a new prompt')
   .option('-c, --category <category>', 'Prompt category')
   .option('-t, --content <content>', 'Prompt content')
+  .option('-d, --description <description>', 'Prompt description')
   .action(createPrompt);
 
 program

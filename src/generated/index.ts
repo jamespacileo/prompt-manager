@@ -1,2 +1,2 @@
-export { getPromptManager } from './promptManager';
-export type { GeneratedPromptManager } from './promptManager';
+export { PromptManagerBase } from './promptManagerBase';
+export { promptManager, type GeneratedPromptManager } from './promptManager';

@@ -1,0 +1,17 @@
+{
+  "name": "prompt-manager-test-project",
+  "version": "1.0.0",
+  "description": "Test project for Prompt Manager library",
+  "main": "index.ts",
+  "scripts": {
+    "start": "bun run index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prompt-manager": "prompt-manager"
+  },
+  "dependencies": {
+    "prompt-manager": "file:../.."
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

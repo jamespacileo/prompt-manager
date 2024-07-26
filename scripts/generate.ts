@@ -12,6 +12,7 @@ interface PromptData {
   version: string;
   content: string;
   parameters: string[];
+  description: string;
 }
 
 export async function discoverPrompts(): Promise<PromptData[]> {
@@ -34,7 +35,7 @@ export async function discoverPrompts(): Promise<PromptData[]> {
 export function generateTypes(prompts: PromptData[]): string {
   let output = 'export interface PromptManager {\n';
   const categories = new Set(prompts.map(p => p.category));
-  
+
   for (const category of categories) {
     output += `  ${category}: {\n`;
     const categoryPrompts = prompts.filter(p => p.category === category);
@@ -45,12 +46,13 @@ export function generateTypes(prompts: PromptData[]): string {
       output += `      version: string;\n`;
       output += `      content: string;\n`;
       output += `      parameters: string[];\n`;
+      output += `      description: string;\n`;
       output += `      format: (inputs: {${prompt.parameters.map(p => `${p}: string`).join('; ')}}) => string;\n`;
       output += `    };\n`;
     }
     output += `  };\n`;
   }
-  
+
   output += '}\n';
   return output;
 }
@@ -58,7 +60,7 @@ export function generateTypes(prompts: PromptData[]): string {
 export function generateImplementation(prompts: PromptData[]): string {
   let output = 'const promptManager: PromptManager = {\n';
   const categories = new Set(prompts.map(p => p.category));
-  
+
   for (const category of categories) {
     output += `  ${category}: {\n`;
     const categoryPrompts = prompts.filter(p => p.category === category);
@@ -69,6 +71,7 @@ export function generateImplementation(prompts: PromptData[]): string {
       output += `      version: "${prompt.version}",\n`;
       output += `      content: ${JSON.stringify(prompt.content)},\n`;
       output += `      parameters: ${JSON.stringify(prompt.parameters)},\n`;
+      output += `      description: ${JSON.stringify(prompt.description)},\n`;
       output += `      format: (inputs) => {\n`;
       output += `        let formatted = ${JSON.stringify(prompt.content)};\n`;
       output += `        for (const [key, value] of Object.entries(inputs)) {\n`;
@@ -80,7 +83,7 @@ export function generateImplementation(prompts: PromptData[]): string {
     }
     output += `  },\n`;
   }
-  
+
   output += '};\n\nexport default promptManager;\n';
   return output;
 }
@@ -90,14 +93,14 @@ export async function generate() {
     const prompts = await discoverPrompts();
     const types = generateTypes(prompts);
     const implementation = generateImplementation(prompts);
-    
+
     await fs.ensureDir(OUTPUT_DIR);
     await fs.writeFile(path.join(OUTPUT_DIR, 'types.ts'), types);
     await fs.writeFile(path.join(OUTPUT_DIR, 'promptManager.ts'), implementation);
-    
+
     const indexContent = `export * from './types';\nexport { default as promptManager } from './promptManager';\n`;
     await fs.writeFile(path.join(OUTPUT_DIR, 'index.ts'), indexContent);
-    
+
     console.log('Generation complete.');
   } catch (error) {
     console.error('Error during generation:', error);

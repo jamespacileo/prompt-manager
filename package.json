@@ -22,7 +22,11 @@
     "legacy-prepublishOnly": "bun run build",
     "docs:build": "typedoc --out docs src",
     "build:all": "npm run build && npm run docs:build",
-    "prepare": "pre-commit install"
+    "prepare": "pre-commit install",
+    "dev": "tsup --watch",
+    "install-global": "npm install -g .",
+    "dev:watch": "concurrently \"npm run dev\" \"npm run install-global\" \"npm run install-example\"",
+    "install-example": "cd examples/test-project && npm install"
   },
   "jest": {
     "preset": "ts-jest",
