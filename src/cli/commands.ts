@@ -161,8 +161,7 @@ export async function getStatus() {
   };
 }
 
-export async function getDetailedStatus(): Promise<Partial<Prompt<IProm
-ptInput, IPromptOutput>>[]> {
+export async function getDetailedStatus(): Promise<Partial<Prompt<IPromptInput, IPromptOutput>>[]> {
   const config = await getConfig();
   const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
