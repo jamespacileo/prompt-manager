@@ -1,22 +1,23 @@
-import { expect, test, describe, mock } from "bun:test";
+import { expect, test, describe, mock, jest } from "bun:test";
 import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/commands';
 import { PromptManager } from '../src/promptManager';
 import fs from 'fs-extra';
+import { beforeEach } from "node:test";
 
 mock.module('../src/promptManager', () => ({
   PromptManager: {
-    createPrompt: mock.fn(),
-    listPrompts: mock.fn(),
-    updatePrompt: mock.fn(),
-    getPrompt: mock.fn(),
+    createPrompt: jest.fn(),
+    listPrompts: jest.fn(),
+    updatePrompt: jest.fn(),
+    getPrompt: jest.fn(),
   },
 }));
-mock.module('fs-extra');
+mock.module('fs-extra', () => ({}));
 
 describe('commands', () => {
   beforeEach(() => {
-    mock.restoreAll();
-    console.log = mock.fn();
+    mock.restore();
+    console.log = jest.fn();
   });
 
   test('createPrompt creates a new prompt', async () => {
