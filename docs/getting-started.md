@@ -1,32 +1,40 @@
-# Getting Started with Prompt Manager
+# Installation
 
-This guide will help you get started with using the Prompt Manager library in your project.
+This guide will help you get started with installing the Prompt Manager library in your project.
 
-## Installation
+## Prerequisites
 
-To install Prompt Manager, run the following command in your project directory:
+Before installing Prompt Manager, ensure you have the following:
 
-```bash
-npm install prompt-manager
-```
+- Node.js (version 12 or higher)
+- npm (usually comes with Node.js)
 
-## Basic Usage
+## Installation Steps
 
-Here's a simple example of how to use Prompt Manager:
+1. Open your terminal or command prompt.
 
-```typescript
-import { getPromptManager } from 'prompt-manager';
+2. Navigate to your project directory:
 
-async function example() {
-  const promptManager = getPromptManager();
-  const summarizationPrompt = promptManager.Summarization.ARTICLE_SUMMARIZATION_PROMPT;
-  const formattedPrompt = summarizationPrompt.format({ articleContent: 'Your article content here' });
-  // Use the formatted prompt with your AI service
-}
-```
+   ```bash
+   cd path/to/your/project
+   ```
+
+3. Run the following command to install Prompt Manager:
+
+   ```bash
+   npm install prompt-manager
+   ```
+
+4. Wait for npm to finish installing the package and its dependencies.
+
+5. Verify the installation by checking your `package.json` file. You should see "prompt-manager" listed in the dependencies.
 
 ## Next Steps
 
-- Learn about [Creating Prompts](./creating-prompts.md)
-- Explore [Advanced Usage](./advanced-usage.md)
-- Check out the [API Reference](./api-reference.md)
+Now that you have installed Prompt Manager, you can:
+
+- Check out the [CLI Quickstart Guide](./cli-quickstart.md) to learn how to use the command-line interface.
+- Read the [Library Quickstart Guide](./library-quickstart.md) to start using Prompt Manager in your code.
+- Explore the [User Guide](../user-guide/managing-prompts.md) for more detailed information on managing prompts.
+
+If you encounter any issues during installation, please refer to our [Troubleshooting Guide](../misc/troubleshooting.md).

@@ -1,8 +1,9 @@
 import fs from 'fs-extra';
 import path from 'path';
 
-export interface Prompt {
-  content: string;
+import { Prompt as IPrompt } from '../../types/interfaces';
+
+export interface Prompt extends IPrompt {
   format: (params: Record<string, any>) => string;
 }
 
