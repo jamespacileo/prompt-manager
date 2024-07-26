@@ -2,10 +2,10 @@
  * This file contains the core interfaces for the Prompt Manager project.
  * It serves as a single source of truth for the expected behavior of both
  * the CLI tool and the importable library.
- * 
+ *
  * These interfaces should be used to guide the implementation of the project.
  * Any changes to the project's core functionality should be reflected here first.
- * 
+ *
  * IMPORTANT: Do not delete the comments in this file. They provide crucial
  * information about the purpose and usage of each interface and type.
  */
@@ -124,7 +124,7 @@ interface PromptCategory<T extends Record<string, Prompt>> {
     raw: string;
     /** Returns the current version of the prompt */
     version: string;
-    /** 
+    /**
      * Formats the prompt with given inputs
      * @param inputs Object containing the required parameters
      */
