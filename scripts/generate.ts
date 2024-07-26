@@ -1,10 +1,9 @@
 import fs from 'fs-extra';
 import path from 'path';
+import config from '../prompt-manager.config';
 
-const config = await import('../prompt-manager.config.js');
-
-const PROMPTS_DIR = path.resolve(process.cwd(), config.default.promptsDir);
-const OUTPUT_DIR = path.resolve(process.cwd(), config.default.outputDir);
+const PROMPTS_DIR = path.resolve(process.cwd(), config.promptsDir);
+const OUTPUT_DIR = path.resolve(process.cwd(), config.outputDir);
 
 interface PromptData {
   name: string;
@@ -47,7 +46,7 @@ export function generateTypes(prompts: PromptData[]): string {
       output += `      content: string;\n`;
       output += `      parameters: string[];\n`;
       output += `      description: string;\n`;
-      output += `      format: (inputs: {${prompt.parameters.map(p => `${p}: string`).join('; ')}}) => string;\n`;
+      output += `      format: (inputs: {${prompt.parameters.map((p: string) => `${p}: string`).join('; ')}}) => string;\n`;
       output += `    };\n`;
     }
     output += `  };\n`;

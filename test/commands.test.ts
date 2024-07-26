@@ -1,10 +1,9 @@
-import { expect, test, describe, mock, jest } from "bun:test";
+import { expect, test, describe, jest, beforeEach } from "@jest/globals";
 import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/commands';
 import { PromptManager } from '../src/promptManager';
 import fs from 'fs-extra';
-import { beforeEach } from "node:test";
 
-mock.module('../src/promptManager', () => ({
+jest.mock('../src/promptManager', () => ({
   PromptManager: {
     createPrompt: jest.fn(),
     listPrompts: jest.fn(),
@@ -12,7 +11,7 @@ mock.module('../src/promptManager', () => ({
     getPrompt: jest.fn(),
   },
 }));
-mock.module('fs-extra', () => ({}));
+jest.mock('fs-extra', () => ({}));
 
 describe('commands', () => {
   beforeEach(() => {
