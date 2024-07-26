@@ -1,5 +1,5 @@
+import { expect, test, describe, mock } from "bun:test";
 import { PromptManager, getPromptManager } from '../src/promptManager';
-import { jest } from '@jest/globals';
 
 const mockPromptManager = {
   Category1: {
@@ -9,7 +9,7 @@ const mockPromptManager = {
       version: '1.0.0',
       content: 'This is prompt 1: {{param1}}',
       parameters: ['param1'],
-      format: jest.fn((inputs: { param1: string }) => `Formatted: ${inputs.param1}`),
+      format: mock.fn((inputs: { param1: string }) => `Formatted: ${inputs.param1}`),
     },
   },
   Category2: {
@@ -19,14 +19,14 @@ const mockPromptManager = {
       version: '1.0.0',
       content: 'This is prompt 2: {{param2}}',
       parameters: ['param2'],
-      format: jest.fn((inputs: { param2: string }) => `Formatted: ${inputs.param2}`),
+      format: mock.fn((inputs: { param2: string }) => `Formatted: ${inputs.param2}`),
     },
   },
 };
 
-jest.mock('../src/promptManager', () => ({
-  getPromptManager: jest.fn(() => mockPromptManager),
-  PromptManager: jest.fn().mockImplementation(() => mockPromptManager),
+mock.module('../src/promptManager', () => ({
+  getPromptManager: () => mockPromptManager,
+  PromptManager: mock.fn().mockImplementation(() => mockPromptManager),
 }));
 
 describe('PromptManager', () => {

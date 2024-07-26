@@ -1,9 +1,9 @@
+import { expect, test, describe, mock } from "bun:test";
 import fs from 'fs-extra';
 import path from 'path';
-import { jest } from '@jest/globals';
 import { discoverPrompts, generateTypes, generateImplementation, generate } from '../scripts/generate';
 
-jest.mock('fs-extra');
+mock.module('fs-extra');
 
 describe('generate script', () => {
   const mockPrompts = [
@@ -24,13 +24,18 @@ describe('generate script', () => {
   ];
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.restoreAll();
   });
 
   test('discoverPrompts discovers prompts correctly', async () => {
-    (fs.readdir as unknown as jest.Mock<Promise<string[]>>).mockResolvedValueOnce(['Category1', 'Category2']);
-    (fs.readdir as unknown as jest.Mock<Promise<string[]>>).mockResolvedValue(['prompt.json']);
-    (fs.readJson as unknown as jest.Mock<Promise<PromptData>>).mockResolvedValueOnce(mockPrompts[0]).mockResolvedValueOnce(mockPrompts[1]);
+    mock.module('fs-extra', () => ({
+      readdir: mock.fn()
+        .mockResolvedValueOnce(['Category1', 'Category2'])
+        .mockResolvedValue(['prompt.json']),
+      readJson: mock.fn()
+        .mockResolvedValueOnce(mockPrompts[0])
+        .mockResolvedValueOnce(mockPrompts[1]),
+    }));
 
     const result = await discoverPrompts();
     expect(result).toEqual(mockPrompts);
@@ -56,9 +61,16 @@ describe('generate script', () => {
   });
 
   test('generate function runs the entire process', async () => {
-    (fs.readdir as unknown as jest.Mock<Promise<string[]>>).mockResolvedValueOnce(['Category1', 'Category2']);
-    (fs.readdir as unknown as jest.Mock<Promise<string[]>>).mockResolvedValue(['prompt.json']);
-    (fs.readJson as unknown as jest.Mock<Promise<PromptData>>).mockResolvedValueOnce(mockPrompts[0]).mockResolvedValueOnce(mockPrompts[1]);
+    mock.module('fs-extra', () => ({
+      readdir: mock.fn()
+        .mockResolvedValueOnce(['Category1', 'Category2'])
+        .mockResolvedValue(['prompt.json']),
+      readJson: mock.fn()
+        .mockResolvedValueOnce(mockPrompts[0])
+        .mockResolvedValueOnce(mockPrompts[1]),
+      ensureDir: mock.fn(),
+      writeFile: mock.fn(),
+    }));
 
     await generate();
 

@@ -1,22 +1,22 @@
+import { expect, test, describe, mock } from "bun:test";
 import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/commands';
 import { PromptManager } from '../src/promptManager';
 import fs from 'fs-extra';
-import { jest } from '@jest/globals';
 
-jest.mock('../src/promptManager', () => ({
+mock.module('../src/promptManager', () => ({
   PromptManager: {
-    createPrompt: jest.fn(),
-    listPrompts: jest.fn(),
-    updatePrompt: jest.fn(),
-    getPrompt: jest.fn(),
+    createPrompt: mock.fn(),
+    listPrompts: mock.fn(),
+    updatePrompt: mock.fn(),
+    getPrompt: mock.fn(),
   },
 }));
-jest.mock('fs-extra');
+mock.module('fs-extra');
 
 describe('commands', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    console.log = jest.fn();
+    mock.restoreAll();
+    console.log = mock.fn();
   });
 
   test('createPrompt creates a new prompt', async () => {
@@ -29,7 +29,11 @@ describe('commands', () => {
   });
 
   test('listPrompts lists all prompts', async () => {
-    (PromptManager.listPrompts as unknown as jest.Mock<Promise<string[]>>).mockResolvedValue(['PROMPT1', 'PROMPT2']);
+    mock.module('../src/promptManager', () => ({
+      PromptManager: {
+        listPrompts: () => Promise.resolve(['PROMPT1', 'PROMPT2']),
+      },
+    }));
     await listPrompts();
     expect(PromptManager.listPrompts).toHaveBeenCalled();
     expect(console.log).toHaveBeenCalledWith('Available prompts:');
@@ -44,12 +48,16 @@ describe('commands', () => {
   });
 
   test('generateTypes generates type definitions', async () => {
-    (PromptManager.listPrompts as jest.Mock).mockResolvedValue(['PROMPT1', 'PROMPT2']);
-    (PromptManager.getPrompt as unknown as jest.Mock<Promise<{ category: string; name: string; parameters: string[] }>>).mockResolvedValue({
-      category: 'Test',
-      name: 'PROMPT1',
-      parameters: ['param1', 'param2'],
-    });
+    mock.module('../src/promptManager', () => ({
+      PromptManager: {
+        listPrompts: () => Promise.resolve(['PROMPT1', 'PROMPT2']),
+        getPrompt: () => Promise.resolve({
+          category: 'Test',
+          name: 'PROMPT1',
+          parameters: ['param1', 'param2'],
+        }),
+      },
+    }));
     await generateTypes();
     expect(fs.writeFile).toHaveBeenCalledWith('prompts.d.ts', expect.any(String));
     expect(console.log).toHaveBeenCalledWith('Type definitions generated successfully.');

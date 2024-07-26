@@ -1,3 +1,4 @@
+import { expect, test, describe } from "bun:test";
 import * as index from '../src/index';
 import { PromptManager } from '../src/promptManager';
 
