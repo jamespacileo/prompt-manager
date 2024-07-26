@@ -34,6 +34,7 @@
   "bin": {
     "prompt-manager": "./dist/cli/cli.js"
   },
+  "type": "module",
   "keywords": [
     "prompt",
     "management",
