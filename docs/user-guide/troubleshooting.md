@@ -8,7 +8,7 @@ This guide provides solutions to common issues you might encounter while using t
 
 **Problem**: You're trying to access a prompt that doesn't exist.
 
-**Solution**: 
+**Solution**:
 - Double-check the prompt name and category.
 - Ensure that the prompt has been created and added to the library.
 - Use the `prompt-manager list` command or `listPrompts()` function to see all available prompts.

@@ -4,6 +4,15 @@ This guide provides a quick overview of how to use the Prompt Manager as an impo
 
 ## Basic Usage
 
+## Installation
+
+First, install the package using npm:
+
+```bash
+npm install prompt-manager
+```
+
+
 ### Initializing the Prompt Manager
 
 ```typescript
