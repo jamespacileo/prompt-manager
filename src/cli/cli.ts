@@ -63,15 +63,9 @@ program
     log.title(`Creating new prompt: ${name}`);
     log.info('Please provide the following information for your new prompt:');
 
-    const category = await input({ message: 'Enter prompt category:', default: 'General' });
-    const content = await input({ message: 'Enter prompt content:' });
-    const description = await input({ message: 'Enter prompt description:' });
-
     try {
-      await createPrompt(name, { category, content, description });
+      await createPrompt(name, {});
       log.success(`Prompt "${name}" created successfully.`);
-      log.info(`Category: ${category}`);
-      log.info(`Description: ${description}`);
       log.info('You can now use this prompt in your project.');
     } catch (error) {
       log.error('Failed to create prompt:');
@@ -106,10 +100,8 @@ program
     log.title(`Updating prompt: ${name}`);
     log.info('You can update the content of the prompt. Other fields can be updated in future versions.');
 
-    const content = await input({ message: 'Enter new prompt content:' });
-
     try {
-      await updatePrompt(name, { content });
+      await updatePrompt(name, {});
       log.success(`Prompt "${name}" updated successfully.`);
       log.info('The new content has been saved and is ready to use.');
     } catch (error) {

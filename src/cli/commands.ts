@@ -2,6 +2,8 @@ import { PromptManager } from '../promptManager';
 import { IPromptInput, IPromptOutput, Prompt } from '../types/interfaces';
 import fs from 'fs-extra';
 import path from 'path';
+import { input } from '@inquirer/prompts';
+import { generateWithAI } from './aiHelpers';
 
 const getConfig = async () => {
   try {
@@ -14,14 +16,41 @@ const getConfig = async () => {
 
 export async function createPrompt(name: string, options: any) {
   const config = await getConfig();
+  let category = options.category;
+  let content = options.content;
+  let description = options.description;
+
+  if (!category) {
+    category = await input({ message: 'Enter prompt category:', default: 'General' });
+  }
+
+  if (!content) {
+    const useAI = await input({ message: 'Do you want to use AI to generate the content? (y/n)', default: 'n' });
+    if (useAI.toLowerCase() === 'y') {
+      const query = await input({ message: 'What kind of prompt do you want to generate?' });
+      content = await generateWithAI(query, 'content');
+    } else {
+      content = await input({ message: 'Enter prompt content:' });
+    }
+  }
+
+  if (!description) {
+    const useAI = await input({ message: 'Do you want to use AI to generate the description? (y/n)', default: 'n' });
+    if (useAI.toLowerCase() === 'y') {
+      description = await generateWithAI(content, 'description');
+    } else {
+      description = await input({ message: 'Enter prompt description:' });
+    }
+  }
+
   const prompt: Prompt<IPromptInput, IPromptOutput> = {
     name,
-    category: options.category || 'General',
+    category,
     version: '1.0.0',
-    content: options.content || '',
+    content,
     parameters: [],
     metadata: {
-      description: options.description || '',
+      description,
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     },
@@ -50,7 +79,19 @@ export async function listPrompts(): Promise<string[]> {
 export async function updatePrompt(name: string, options: any) {
   const config = await getConfig();
   const updates: Partial<Prompt<IPromptInput, IPromptOutput>> = {};
-  if (options.content) updates.content = options.content;
+  
+  if (!options.content) {
+    const useAI = await input({ message: 'Do you want to use AI to generate the new content? (y/n)', default: 'n' });
+    if (useAI.toLowerCase() === 'y') {
+      const query = await input({ message: 'What changes do you want to make to the prompt?' });
+      updates.content = await generateWithAI(query, 'content');
+    } else {
+      updates.content = await input({ message: 'Enter new prompt content:' });
+    }
+  } else {
+    updates.content = options.content;
+  }
+
   const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
   await manager.updatePrompt(name, updates);
