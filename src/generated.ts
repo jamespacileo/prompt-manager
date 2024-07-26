@@ -1,5 +1,7 @@
 import { Prompt as IPrompt } from './types/interfaces';
 
+import { Prompt as IPrompt } from './types/interfaces';
+
 export interface Prompt extends IPrompt {
   name: string;
   category: string;
@@ -14,6 +16,8 @@ export interface PromptManagerBase {
     [prompt: string]: Prompt;
   };
 }
+
+import { Prompt as IPrompt } from './types/interfaces';
 
 export const promptManager: PromptManagerBase = {
   Category1: {

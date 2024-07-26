@@ -1,6 +1,6 @@
 import { promptManager, PromptManager as GeneratedPromptManager } from './generated';
 
-import { Prompt, PromptManagerLibrary, PromptCategory } from '../types/interfaces';
+import { Prompt, PromptManagerLibrary, PromptCategory } from './types/interfaces';
 import fs from 'fs/promises';
 import path from 'path';
 
