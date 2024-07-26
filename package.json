@@ -44,7 +44,7 @@
     ]
   },
   "bin": {
-    "prompt-manager": "./dist/cli.js"
+    "prompt-manager": "./dist/index.js"
   },
   "keywords": [
     "prompt",
