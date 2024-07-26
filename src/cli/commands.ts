@@ -66,25 +66,38 @@ export async function listPrompts(): Promise<string[]> {
   return prompts.map(prompt => `${prompt.category}/${prompt.name}`);
 }
 
-export async function updatePrompt(name: string, options: any) {
+export async function getPromptDetails(name: string): Promise<Partial<Prompt<IPromptInput, IPromptOutput>>> {
   const config = await getConfig();
-  const updates: Partial<Prompt<IPromptInput, IPromptOutput>> = {};
-  
-  if (!options.content) {
-    const useAI = await confirm({ message: 'Do you want to use AI to generate the new content?' });
-    if (useAI) {
-      const query = await input({ message: 'What changes do you want to make to the prompt?' });
-      const updatedPrompt = await updatePromptWithAI({ name, ...options }, query);
-      updates.content = updatedPrompt.content;
-    } else {
-      updates.content = await input({ message: 'Enter new prompt content:' });
-    }
-  } else {
-    updates.content = options.content;
-  }
-
   const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
+  const [category, promptName] = name.split('/');
+  const prompt = await manager.getPrompt(category, promptName);
+  return {
+    name: prompt.name,
+    category: prompt.category,
+    description: prompt.description,
+    version: prompt.version,
+    content: prompt.content,
+    parameters: prompt.parameters,
+    'created at': prompt.metadata.created,
+    'last modified': prompt.metadata.lastModified,
+  };
+}
+
+export async function updatePrompt(name: string, updates: Partial<Prompt<IPromptInput, IPromptOutput>>) {
+  const config = await getConfig();
+  const manager = new PromptManager(config.promptsDir);
+  await manager.initialize();
+
+  if (updates.content) {
+    const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
+    if (useAI) {
+      const query = 'Refine and improve this prompt content:';
+      const refinedPrompt = await updatePromptWithAI({ name, ...updates }, query);
+      updates.content = refinedPrompt.content;
+    }
+  }
+
   await manager.updatePrompt(name, updates);
 }
 
@@ -99,6 +112,8 @@ export async function generateTypes() {
     typeDefs += `  export namespace ${prompt.category} {\n`;
     typeDefs += `    export const ${prompt.name}: {\n`;
     typeDefs += `      format: (inputs: { ${prompt.parameters.map(p => `${p}: string`).join('; ')} }) => string;\n`;
+    typeDefs += `      description: string;\n`;
+    typeDefs += `      version: string;\n`;
     typeDefs += `    };\n`;
     typeDefs += `  }\n\n`;
   }
@@ -106,6 +121,11 @@ export async function generateTypes() {
   typeDefs += '}\n';
 
   await fs.writeFile(path.join(config.outputDir, 'prompts.d.ts'), typeDefs);
+}
+
+export async function getGeneratedTypes(): Promise<string> {
+  const config = await getConfig();
+  return fs.readFile(path.join(config.outputDir, 'prompts.d.ts'), 'utf-8');
 }
 
 export async function getStatus() {
@@ -139,4 +159,23 @@ export async function getStatus() {
     lastGenerated,
     warnings
   };
+}
+
+export async function getDetailedStatus(): Promise<Partial<Prompt<IProm
+ptInput, IPromptOutput>>[]> {
+  const config = await getConfig();
+  const manager = new PromptManager(config.promptsDir);
+  await manager.initialize();
+  const prompts = await manager.listPrompts();
+  
+  return prompts.map(prompt => ({
+    name: prompt.name,
+    category: prompt.category,
+    version: prompt.version,
+    parameters: prompt.parameters,
+    metadata: {
+      created: prompt.metadata.created,
+      lastModified: prompt.metadata.lastModified,
+    },
+  }));
 }
