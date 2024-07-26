@@ -25,7 +25,7 @@
     "prepare": "pre-commit install",
     "dev": "tsup --watch",
     "install-global": "npm install -g .",
-    "dev:watch": "concurrently \"npm run dev\" \"npm run install-global\" \"npm run install-example\"",
+    "dev:watch": "concurrently \"bun run dev\" \"bun run install-global\" \"bun run install-example\"",
     "install-example": "cd examples/test-project && npm install"
   },
   "jest": {
