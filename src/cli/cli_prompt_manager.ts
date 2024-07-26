@@ -27,8 +27,8 @@ export class CLI implements PromptManagerCLI {
         lastModified: new Date().toISOString(),
       },
       outputType: 'plain', // Add default outputType
-      input: {} as IPromptInput, // Add default input
-      output: {} as IPromptOutput, // Add default output
+      inputSchema: {} as IPromptInput, // Add default input
+      outputSchema: {} as IPromptOutput, // Add default output
     });
     console.log(`Created prompt: ${name}`);
   }

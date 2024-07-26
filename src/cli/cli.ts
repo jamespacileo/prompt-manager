@@ -57,15 +57,15 @@ program
   });
 
 program
-  .command('create <name>')
+  .command('create')
   .description('Create a new prompt')
-  .action(async (name: string) => {
-    log.title(`Creating new prompt: ${name}`);
-    log.info('Please provide the following information for your new prompt:');
+  .action(async () => {
+    log.title('Creating a new prompt');
+    log.info('Please describe the prompt you want to create. AI will generate a prompt based on your description.');
 
     try {
-      await createPrompt(name, {});
-      log.success(`Prompt "${name}" created successfully.`);
+      await createPrompt();
+      log.success('Prompt created successfully.');
       log.info('You can now use this prompt in your project.');
     } catch (error) {
       log.error('Failed to create prompt:');

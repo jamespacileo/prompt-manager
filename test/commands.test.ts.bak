@@ -1,5 +1,5 @@
 import { expect, test, describe, beforeEach, jest } from "bun:test";
-import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/commands';
+import { createPrompt, listPrompts, updatePrompt, generateTypes } from '../src/cli/commands';
 import { PromptManager } from '../src/promptManager';
 import fs from 'fs-extra';
 import { mock } from "node:test";

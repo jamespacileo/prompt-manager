@@ -1,3 +1,4 @@
+import type { JSONSchema7 } from 'json-schema';
 /**
  * This file contains the core interfaces for the Prompt Manager project.
  * It serves as a single source of truth for the expected behavior of both
@@ -49,9 +50,9 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
   tags?: string[];
 
   /** Type of input expected by the prompt */
-  input: PromptInput;
+  inputSchema: JSONSchema7;
   /** Type of output expected by the prompt */
-  output: PromptOutput;
+  outputSchema: JSONSchema7;
   /** Function to format the prompt with given inputs */
   format: (inputs: PromptInput) => string;
 }
