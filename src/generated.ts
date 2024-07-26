@@ -1,6 +1,6 @@
 import { Prompt as IPrompt } from './types/interfaces';
 
-export interface Prompt extends IPrompt {
+export interface Prompt<PromptInput, PromptOutput> extends IPrompt<PromptInput, PromptOutput> {
   name: string;
   category: string;
   version: string;
@@ -11,7 +11,7 @@ export interface Prompt extends IPrompt {
 
 export interface PromptManagerBase {
   [category: string]: {
-    [prompt: string]: Prompt;
+    [prompt: string]: Prompt<any, any>;
   };
 }
 

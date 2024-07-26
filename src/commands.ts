@@ -1,4 +1,5 @@
-import { PromptManager, Prompt } from './promptManager';
+import { PromptManager } from './promptManager';
+import { Prompt } from './types/interfaces';
 import fs from 'fs-extra';
 import path from 'path';
 
@@ -17,12 +18,16 @@ export async function createPrompt(name: string, options: any) {
     versions: ['1.0.0'],
   };
 
-  await PromptManager.createPrompt(prompt);
+  const manager = new PromptManager('path/to/prompts');
+  await manager.initialize();
+  await manager.createPrompt(prompt);
   console.log(`Prompt "${name}" created successfully.`);
 }
 
 export async function listPrompts() {
-  const prompts = await PromptManager.listPrompts();
+  const manager = new PromptManager('path/to/prompts');
+  await manager.initialize();
+  const prompts = await manager.listPrompts();
   console.log('Available prompts:');
   prompts.forEach((prompt) => console.log(`- ${prompt}`));
 }
@@ -30,16 +35,23 @@ export async function listPrompts() {
 export async function updatePrompt(name: string, options: any) {
   const updates: Partial<Prompt> = {};
   if (options.content) updates.content = options.content;
-  await PromptManager.updatePrompt(name, updates);
+  const manager = new PromptManager('path/to/prompts');
+  await manager.initialize();
+  await manager.updatePrompt(name, updates);
   console.log(`Prompt "${name}" updated successfully.`);
 }
 
 export async function generateTypes() {
-  const prompts = await PromptManager.listPrompts();
+  const manager = new PromptManager('path/to/prompts');
+  await manager.initialize();
+  const prompts = await manager.listPrompts();
   let typeDefs = 'declare module "prompt-manager" {\n';
 
   for (const promptName of prompts) {
-    const prompt = await PromptManager.getPrompt(promptName);
+    const manager = new PromptManager('path/to/prompts');
+    await manager.initialize();
+    const [category, name] = promptName.split('/');
+    const prompt = await manager.getPrompt(category, name);
     if (prompt) {
       typeDefs += `  export namespace ${prompt.category} {\n`;
       typeDefs += `    export const ${prompt.name}: {\n`;

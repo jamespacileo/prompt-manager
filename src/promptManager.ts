@@ -1,4 +1,6 @@
-import { Prompt, PromptManagerLibrary, PromptCategory } from './types/interfaces';
+import { Prompt as IPrompt, PromptManagerLibrary, PromptCategory } from './types/interfaces';
+
+type Prompt = IPrompt<any, any>;
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -48,7 +50,7 @@ export class PromptManager implements PromptManagerLibrary {
     return this.prompts[category][name];
   }
 
-  async createPrompt(prompt: Omit<Prompt, 'versions'>): Promise<void> {
+  async createPrompt(prompt: Omit<Prompt, 'versions' | 'format'>): Promise<void> {
     if (!this.prompts[prompt.category]) {
       this.prompts[prompt.category] = {};
     }

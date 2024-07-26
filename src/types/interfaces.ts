@@ -118,7 +118,7 @@ interface PromptManagerCLI {
  * Represents a category of prompts in the importable library.
  * NOTE: DO NOT DELETE THESE COMMENTS. THEY ARE USED BY THE DOCUMENTATION GENERATOR.
  */
-interface PromptCategory<T extends Record<string, Prompt>> {
+interface PromptCategory<T extends Record<string, Prompt<any, any>>> {
   [K: string]: {
     /** Returns the raw content of the prompt */
     raw: string;
@@ -147,20 +147,20 @@ interface PromptManagerLibrary {
    * @param category Category of the prompt
    * @param name Name of the prompt
    */
-  getPrompt(category: string, name: string): Prompt;
+  getPrompt(category: string, name: string): Prompt<any, any>;
 
   /**
    * Creates a new prompt.
    * @param prompt The prompt to create
    */
-  createPrompt(prompt: Omit<Prompt, 'versions'>): Promise<void>;
+  createPrompt(prompt: Omit<Prompt<any, any>, 'versions'>): Promise<void>;
 
   /**
    * Updates an existing prompt.
    * @param name Name of the prompt to update
    * @param updates Partial prompt object with updates
    */
-  updatePrompt(name: string, updates: Partial<Prompt>): Promise<void>;
+  updatePrompt(name: string, updates: Partial<Prompt<any, any>>): Promise<void>;
 
   /**
    * Deletes a prompt.
@@ -172,7 +172,7 @@ interface PromptManagerLibrary {
    * Lists all available prompts.
    * @param category Optional category to filter prompts
    */
-  listPrompts(category?: string): Promise<Prompt[]>;
+  listPrompts(category?: string): Promise<Prompt<any, any>[]>;
 
   /**
    * Manages versions of a prompt.
@@ -195,7 +195,7 @@ interface PromptManagerLibrary {
    * This allows for dynamic access to categories and prompts.
    */
   categories: {
-    [category: string]: PromptCategory<Record<string, Prompt>>;
+    [category: string]: PromptCategory<Record<string, Prompt<any, any>>>;
   };
 }
 
