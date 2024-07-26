@@ -16,7 +16,7 @@ const getConfig = async () => {
 
 export async function createPrompt() {
   const config = await getConfig();
-  let promptData: any;
+  let promptData: Partial<Prompt<IPromptInput, IPromptOutput>>;
   let accepted = false;
 
   const description = await input({ message: 'Describe the prompt you want to create:' });
@@ -39,16 +39,19 @@ export async function createPrompt() {
 
   const prompt: Prompt<IPromptInput, IPromptOutput> = {
     ...promptData,
+    name: promptData.name || '',
+    category: promptData.category || '',
+    description: promptData.description || '',
+    content: promptData.content || '',
     version: '1.0.0',
-    parameters: [],
+    parameters: promptData.parameters || [],
     metadata: {
-      ...promptData.metadata,
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     },
     versions: ['1.0.0'],
     format: (inputs: IPromptInput) => {
-      return inputs.content;
+      return inputs.content || '';
     },
   };
 
@@ -93,7 +96,7 @@ export async function updatePrompt(name: string, updates: Partial<Prompt<IPrompt
     const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
     if (useAI) {
       const query = 'Refine and improve this prompt content:';
-      const refinedPrompt = await updatePromptWithAI({ name, ...updates }, query);
+      const refinedPrompt = await updatePromptWithAI({ name, ...updates } as Prompt<IPromptInput, IPromptOutput>, query);
       updates.content = refinedPrompt.content;
     }
   }
