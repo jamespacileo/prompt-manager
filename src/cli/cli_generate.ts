@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { config } from '../src/config';
+import { config } from '../config';
 
 const PROMPTS_DIR = config.promptsDir;
 const OUTPUT_DIR = config.outputDir;
