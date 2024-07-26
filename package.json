@@ -21,7 +21,8 @@
     "legacy-build": "bun run generate && bun run rollup -c",
     "legacy-prepublishOnly": "bun run build",
     "docs:build": "typedoc --out docs src",
-    "build:all": "npm run build && npm run docs:build"
+    "build:all": "npm run build && npm run docs:build",
+    "prepare": "pre-commit install"
   },
   "jest": {
     "preset": "ts-jest",
@@ -65,7 +66,8 @@
     "ts-jest": "^29.2.3",
     "ts-node": "^10.9.2",
     "tsup": "^8.2.3",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "pre-commit": "^1.2.2"
   },
   "peerDependencies": {
     "typescript": ">=4.0.0"
