@@ -2,8 +2,8 @@ import { PromptManager } from '../promptManager';
 import { IPromptInput, IPromptOutput, Prompt } from '../types/interfaces';
 import fs from 'fs-extra';
 import path from 'path';
-import { input } from '@inquirer/prompts';
-import { generateWithAI } from './aiHelpers';
+import { input, confirm } from '@inquirer/prompts';
+import { generatePromptWithAI, updatePromptWithAI } from './aiHelpers';
 
 const getConfig = async () => {
   try {
@@ -14,50 +14,40 @@ const getConfig = async () => {
   }
 };
 
-export async function createPrompt(name: string, options: any) {
+export async function createPrompt() {
   const config = await getConfig();
-  let category = options.category;
-  let content = options.content;
-  let description = options.description;
+  let promptData: any;
+  let accepted = false;
 
-  if (!category) {
-    category = await input({ message: 'Enter prompt category:', default: 'General' });
-  }
+  const description = await input({ message: 'Describe the prompt you want to create:' });
 
-  if (!content) {
-    const useAI = await input({ message: 'Do you want to use AI to generate the content? (y/n)', default: 'n' });
-    if (useAI.toLowerCase() === 'y') {
-      const query = await input({ message: 'What kind of prompt do you want to generate?' });
-      content = await generateWithAI(query, 'content');
-    } else {
-      content = await input({ message: 'Enter prompt content:' });
-    }
-  }
+  while (!accepted) {
+    promptData = await generatePromptWithAI(description);
+    console.log('Generated Prompt:');
+    console.log(JSON.stringify(promptData, null, 2));
 
-  if (!description) {
-    const useAI = await input({ message: 'Do you want to use AI to generate the description? (y/n)', default: 'n' });
-    if (useAI.toLowerCase() === 'y') {
-      description = await generateWithAI(content, 'description');
-    } else {
-      description = await input({ message: 'Enter prompt description:' });
+    accepted = await confirm({ message: 'Do you accept this prompt?' });
+
+    if (!accepted) {
+      const instruction = await input({ message: 'What changes would you like to make?' });
+      if (instruction.toLowerCase() === 'quit') {
+        console.log('Prompt creation cancelled.');
+        return;
+      }
+      promptData = await updatePromptWithAI(promptData, instruction);
     }
   }
 
   const prompt: Prompt<IPromptInput, IPromptOutput> = {
-    name,
-    category,
+    ...promptData,
     version: '1.0.0',
-    content,
     parameters: [],
     metadata: {
-      description,
+      ...promptData.metadata,
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     },
     versions: ['1.0.0'],
-    outputType: "plain",
-    input: {},
-    output: {},
     format: (inputs: IPromptInput) => {
       return inputs.content;
     },
@@ -66,6 +56,7 @@ export async function createPrompt(name: string, options: any) {
   const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
   await manager.createPrompt(prompt);
+  console.log(`Prompt "${prompt.name}" created successfully.`);
 }
 
 export async function listPrompts(): Promise<string[]> {
