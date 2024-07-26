@@ -1,4 +1,4 @@
-import { Prompt as IPrompt } from '../types/interfaces';
+import { Prompt as IPrompt } from './types/interfaces';
 
 export interface Prompt extends IPrompt {
   name: string;
