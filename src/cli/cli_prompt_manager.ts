@@ -1,5 +1,5 @@
-import { PromptManagerCLI } from '../types/interfaces';
-import { PromptManager } from './promptManager';
+import { IPromptInput, IPromptOutput, PromptManagerCLI } from '../types/interfaces';
+import { PromptManager } from '../promptManager';
 
 export class CLI implements PromptManagerCLI {
   private promptManager: PromptManager;
@@ -26,6 +26,9 @@ export class CLI implements PromptManagerCLI {
         created: new Date().toISOString(),
         lastModified: new Date().toISOString(),
       },
+      outputType: 'plain', // Add default outputType
+      inputSchema: {} as IPromptInput, // Add default input
+      outputSchema: {} as IPromptOutput, // Add default output
     });
     console.log(`Created prompt: ${name}`);
   }
@@ -55,7 +58,11 @@ export class CLI implements PromptManagerCLI {
     await this.promptManager.updatePrompt(name, {
       content: options.content,
       parameters: options.parameters,
-      metadata: options.description ? { description: options.description } : undefined,
+      // metadata: options.description ? {
+      //   description: options.description,
+      //   created: new Date().toISOString(),
+      //   lastModified: new Date().toISOString(),
+      // } : {},
     });
     console.log(`Updated prompt: ${name}`);
   }

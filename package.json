@@ -3,48 +3,36 @@
   "version": "1.0.0",
   "description": "A prompt management library for AI applications",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
+  "bin": {
+    "prompt-manager": "dist/cli/cli.js"
+  },
   "scripts": {
     "generate": "bun run scripts/generate.ts",
     "build": "tsup",
     "prepublishOnly": "tsup",
+    "ex-prepare": "bun run build",
     "test": "bun test",
     "start": "bun run src/index.ts",
     "test:coverage": "bun test --coverage",
     "tsc": "tsc",
+    "tsc:fix": "tsc --noEmit --fix",
     "prompt-manager": "bun run scripts/cli.ts",
     "publish": "npm publish",
     "legacy-build": "bun run generate && bun run rollup -c",
     "legacy-prepublishOnly": "bun run build",
     "docs:build": "typedoc --out docs src",
     "build:all": "npm run build && npm run docs:build",
-    "prepare": "pre-commit install",
     "dev": "tsup --watch",
     "install-global": "npm install -g .",
-    "dev:watch": "concurrently \"npm run dev\" \"npm run install-global\" \"npm run install-example\"",
-    "install-example": "cd examples/test-project && npm install"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "transform": {
-      "^.+\\.tsx?$": "ts-jest"
-    },
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json",
-      "node"
-    ]
-  },
-  "bin": {
-    "prompt-manager": "./dist/cli.js"
+    "dev:watch": "concurrently \"bun run dev\" \"bun run install-global\" \"bun run install-example\"",
+    "install-example": "cd examples/test-project && npm install",
+    "lint": "oxlint . --ext .ts",
+    "lint:fix": "oxlint --quiet --fix ."
   },
   "keywords": [
     "prompt",
@@ -54,24 +42,27 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
+    "@ai-sdk/anthropic": "^0.0.33",
+    "@ai-sdk/openai": "^0.0.40",
+    "@inquirer/prompts": "^5.3.2",
+    "@types/json-schema": "^7.0.15",
+    "ai": "^3.2.37",
+    "chalk": "^5.3.0",
     "commander": "^12.1.0",
-    "fs-extra": "^11.2.0"
+    "cosmiconfig": "^9.0.0",
+    "fs-extra": "^11.2.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@jest/globals": "^29.7.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@rollup/plugin-typescript": "^11.1.6",
     "@types/fs-extra": "^11.0.4",
-    "@types/jest": "^29.5.12",
     "@types/node": "^20.14.12",
-    "jest": "^29.7.0",
-    "rollup": "^4.19.0",
-    "rollup-plugin-dts": "^6.1.1",
-    "ts-jest": "^29.2.3",
+    "concurrently": "^8.2.2",
+    "@types/bun": "^1.1.6",
+    "oxlint": "^0.6.1",
+    "pre-commit": "^1.2.2",
     "ts-node": "^10.9.2",
     "tsup": "^8.2.3",
-    "typescript": "^5.5.4",
-    "pre-commit": "^1.2.2"
+    "typescript": ">=4.0.0"
   },
   "peerDependencies": {
     "typescript": ">=4.0.0"

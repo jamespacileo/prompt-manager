@@ -1,9 +1,9 @@
+import { expect, test, describe, mock, jest } from "bun:test";
 import fs from 'fs-extra';
 import path from 'path';
-import { jest } from '@jest/globals';
-import { discoverPrompts, generateTypes, generateImplementation, generate } from '../scripts/generate';
+import { beforeEach } from "node:test";
 
-jest.mock('fs-extra');
+mock.module('fs-extra', () => ({})); 
 
 describe('generate script', () => {
   const mockPrompts = [
@@ -11,6 +11,7 @@ describe('generate script', () => {
       name: 'PROMPT1',
       category: 'Category1',
       version: '1.0.0',
+      description: '', // Add this property
       content: 'This is prompt 1: {{param1}}',
       parameters: ['param1'],
     },
@@ -18,19 +19,25 @@ describe('generate script', () => {
       name: 'PROMPT2',
       category: 'Category2',
       version: '1.0.0',
+      description: '', // Add this property
       content: 'This is prompt 2: {{param2}}',
       parameters: ['param2'],
     },
   ];
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    mock.restore();
   });
 
   test('discoverPrompts discovers prompts correctly', async () => {
-    (fs.readdir as unknown as jest.Mock<Promise<string[]>>).mockResolvedValueOnce(['Category1', 'Category2']);
-    (fs.readdir as unknown as jest.Mock<Promise<string[]>>).mockResolvedValue(['prompt.json']);
-    (fs.readJson as unknown as jest.Mock<Promise<PromptData>>).mockResolvedValueOnce(mockPrompts[0]).mockResolvedValueOnce(mockPrompts[1]);
+    mock.module('fs-extra', () => ({
+      readdir: jest.fn()
+        .mockResolvedValueOnce(['Category1', 'Category2'])
+        .mockResolvedValue(['prompt.json']),
+      readJson: jest.fn()
+        .mockResolvedValueOnce(mockPrompts[0])
+        .mockResolvedValueOnce(mockPrompts[1]),
+    }));
 
     const result = await discoverPrompts();
     expect(result).toEqual(mockPrompts);
@@ -56,9 +63,16 @@ describe('generate script', () => {
   });
 
   test('generate function runs the entire process', async () => {
-    (fs.readdir as unknown as jest.Mock<Promise<string[]>>).mockResolvedValueOnce(['Category1', 'Category2']);
-    (fs.readdir as unknown as jest.Mock<Promise<string[]>>).mockResolvedValue(['prompt.json']);
-    (fs.readJson as unknown as jest.Mock<Promise<PromptData>>).mockResolvedValueOnce(mockPrompts[0]).mockResolvedValueOnce(mockPrompts[1]);
+    mock.module('fs-extra', () => ({
+      readdir: jest.fn()
+        .mockResolvedValueOnce(['Category1', 'Category2'])
+        .mockResolvedValue(['prompt.json']),
+      readJson: jest.fn()
+        .mockResolvedValueOnce(mockPrompts[0])
+        .mockResolvedValueOnce(mockPrompts[1]),
+      ensureDir: jest.fn(),
+      writeFile: jest.fn(),
+    }));
 
     await generate();
 

@@ -1,19 +1,23 @@
+import type { JSONSchema7 } from 'json-schema';
 /**
  * This file contains the core interfaces for the Prompt Manager project.
  * It serves as a single source of truth for the expected behavior of both
  * the CLI tool and the importable library.
- * 
+ *
  * These interfaces should be used to guide the implementation of the project.
  * Any changes to the project's core functionality should be reflected here first.
- * 
+ *
  * IMPORTANT: Do not delete the comments in this file. They provide crucial
  * information about the purpose and usage of each interface and type.
  */
 
+type IPromptInput = Record<string, any>;
+type IPromptOutput = Record<string, any>;
+
 /**
  * Represents the structure of a single prompt.
  */
-interface Prompt {
+interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPromptOutput> {
   /** Unique identifier for the prompt */
   name: string;
   /** Category the prompt belongs to */
@@ -35,12 +39,28 @@ interface Prompt {
   };
   /** List of all available versions for this prompt */
   versions: string[];
+
+  /** Type of output expected from the model (structured or plain text) */
+  outputType: 'structured' | 'plain';
+  /** Default model name to use for this prompt */
+  defaultModelName?: string;
+  /** Optional list of models that can be used with this prompt */
+  compatibleModels?: string[];
+  /** Optional list of tags or keywords associated with this prompt */
+  tags?: string[];
+
+  /** Type of input expected by the prompt */
+  inputSchema: JSONSchema7;
+  /** Type of output expected by the prompt */
+  outputSchema: JSONSchema7;
+  /** Function to format the prompt with given inputs */
+  format: (inputs: PromptInput) => string;
 }
 
 /**
  * Defines the structure and behavior of the Prompt Manager CLI.
  */
-interface PromptManagerCLI {
+interface IPromptManagerCLI {
   /**
    * Creates a new prompt.
    * @param name Name of the new prompt
@@ -100,14 +120,15 @@ interface PromptManagerCLI {
 
 /**
  * Represents a category of prompts in the importable library.
+ * NOTE: DO NOT DELETE THESE COMMENTS. THEY ARE USED BY THE DOCUMENTATION GENERATOR.
  */
-interface PromptCategory<T extends Record<string, Prompt>> {
+interface IPromptCategory<T extends Record<string, IPrompt<IPromptInput, IPromptOutput>>> {
   [K: string]: {
     /** Returns the raw content of the prompt */
     raw: string;
     /** Returns the current version of the prompt */
     version: string;
-    /** 
+    /**
      * Formats the prompt with given inputs
      * @param inputs Object containing the required parameters
      */
@@ -118,7 +139,7 @@ interface PromptCategory<T extends Record<string, Prompt>> {
 /**
  * Defines the structure and behavior of the importable Prompt Manager library.
  */
-interface PromptManagerLibrary {
+interface IPromptManagerLibrary {
   /**
    * Asynchronously initializes the Prompt Manager.
    * This must be called before using any other methods.
@@ -130,20 +151,20 @@ interface PromptManagerLibrary {
    * @param category Category of the prompt
    * @param name Name of the prompt
    */
-  getPrompt(category: string, name: string): Prompt;
+  getPrompt(category: string, name: string): IPrompt<IPromptInput, IPromptOutput>;
 
   /**
    * Creates a new prompt.
    * @param prompt The prompt to create
    */
-  createPrompt(prompt: Omit<Prompt, 'versions'>): Promise<void>;
+  createPrompt(prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'>): Promise<void>;
 
   /**
    * Updates an existing prompt.
    * @param name Name of the prompt to update
    * @param updates Partial prompt object with updates
    */
-  updatePrompt(name: string, updates: Partial<Prompt>): Promise<void>;
+  updatePrompt(name: string, updates: Partial<IPrompt<IPromptInput, IPromptOutput>>): Promise<void>;
 
   /**
    * Deletes a prompt.
@@ -155,7 +176,7 @@ interface PromptManagerLibrary {
    * Lists all available prompts.
    * @param category Optional category to filter prompts
    */
-  listPrompts(category?: string): Promise<Prompt[]>;
+  listPrompts(category?: string): Promise<IPrompt<IPromptInput, IPromptOutput>[]>;
 
   /**
    * Manages versions of a prompt.
@@ -178,14 +199,16 @@ interface PromptManagerLibrary {
    * This allows for dynamic access to categories and prompts.
    */
   categories: {
-    [category: string]: PromptCategory<Record<string, Prompt>>;
+    [category: string]: IPromptCategory<Record<string, IPrompt<IPromptInput, IPromptOutput>>>;
   };
 }
 
 // Export the interfaces so they can be imported and used in other parts of the project
-export {
-  Prompt,
-  PromptManagerCLI,
-  PromptCategory,
-  PromptManagerLibrary
+export type {
+  IPromptInput,
+  IPromptOutput,
+  IPrompt as Prompt,
+  IPromptManagerCLI as PromptManagerCLI,
+  IPromptCategory as PromptCategory,
+  IPromptManagerLibrary as PromptManagerLibrary
 };

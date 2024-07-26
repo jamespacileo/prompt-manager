@@ -1,0 +1,18 @@
+{
+    "exclude": [
+        "node_modules",
+        "dist",
+        "build",
+        "coverage"
+    ],
+    "rules": {
+        "complexity": {
+            "level": "warning",
+            "max": 20
+        },
+        "no-unused-vars": "error",
+        "no-console": "warning",
+        "no-debugger": "error",
+        "prefer-const": "error"
+    }
+}

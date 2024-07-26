@@ -1,10 +1,9 @@
-import fs from 'fs/promises';
+import fs from 'fs-extra';
 import path from 'path';
+import { config } from '../config';
 
-const config = await import('../prompt-manager.config.js');
-
-const PROMPTS_DIR = path.resolve(process.cwd(), config.default.promptsDir);
-const OUTPUT_DIR = path.resolve(process.cwd(), config.default.outputDir);
+const PROMPTS_DIR = config.promptsDir;
+const OUTPUT_DIR = config.outputDir;
 
 interface PromptData {
   name: string;
@@ -47,7 +46,7 @@ export function generateTypes(prompts: PromptData[]): string {
       output += `      content: string;\n`;
       output += `      parameters: string[];\n`;
       output += `      description: string;\n`;
-      output += `      format: (inputs: {${prompt.parameters.map(p => `${p}: string`).join('; ')}}) => string;\n`;
+      output += `      format: (inputs: {${prompt.parameters.map((p: string) => `${p}: string`).join('; ')}}) => string;\n`;
       output += `    };\n`;
     }
     output += `  };\n`;
@@ -75,7 +74,7 @@ export function generateImplementation(prompts: PromptData[]): string {
       output += `      format: (inputs) => {\n`;
       output += `        let formatted = ${JSON.stringify(prompt.content)};\n`;
       output += `        for (const [key, value] of Object.entries(inputs)) {\n`;
-      output += `          formatted = formatted.replace(new RegExp(\`{{${key}}}\`, 'g'), value);\n`;
+      output += `          formatted = formatted.replace(new RegExp(\`{{$\{key}}}\`, 'g'), value);\n`;
       output += `        }\n`;
       output += `        return formatted;\n`;
       output += `      },\n`;

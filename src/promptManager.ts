@@ -1,8 +1,8 @@
-import { promptManager, PromptManager as GeneratedPromptManager } from './generated';
-
-import { Prompt, PromptManagerLibrary, PromptCategory } from '../types/interfaces';
+import { Prompt as IPrompt, PromptManagerLibrary, PromptCategory, IPromptInput, IPromptOutput } from './types/interfaces';
 import fs from 'fs/promises';
 import path from 'path';
+
+type Prompt = IPrompt<any, any>;
 
 export class PromptManager implements PromptManagerLibrary {
   private prompts: Record<string, Record<string, Prompt>> = {};
@@ -21,21 +21,12 @@ export class PromptManager implements PromptManagerLibrary {
         this.prompts[category] = {};
         const promptFiles = await fs.readdir(categoryPath);
         for (const file of promptFiles) {
-          if (file.endsWith('.txt')) {
-            const promptName = path.basename(file, '.txt');
-            const content = await fs.readFile(path.join(categoryPath, file), 'utf-8');
+          if (file.endsWith('.json')) {
+            const promptName = path.basename(file, '.json');
+            const promptData = JSON.parse(await fs.readFile(path.join(categoryPath, file), 'utf-8'));
             this.prompts[category][promptName] = {
-              name: promptName,
-              category,
-              version: '1.0.0',
-              content,
-              parameters: [], // This should be parsed from the content
-              metadata: {
-                description: '', // This should be parsed from the content
-                created: new Date().toISOString(),
-                lastModified: new Date().toISOString(),
-              },
-              versions: ['1.0.0'],
+              ...promptData,
+              format: (inputs: IPromptInput) => this.formatPrompt(category, promptName, inputs),
             };
           }
         }
@@ -50,14 +41,21 @@ export class PromptManager implements PromptManagerLibrary {
     return this.prompts[category][name];
   }
 
-  async createPrompt(prompt: Omit<Prompt, 'versions'>): Promise<void> {
+  async createPrompt(prompt: Omit<Prompt, 'versions' | 'format'>): Promise<void> {
     if (!this.prompts[prompt.category]) {
       this.prompts[prompt.category] = {};
     }
-    this.prompts[prompt.category][prompt.name] = {
+    const newPrompt: Prompt = {
       ...prompt,
       versions: [prompt.version],
+      metadata: {
+        ...prompt.metadata,
+        created: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+      },
+      format: (inputs: IPromptInput) => this.formatPrompt(prompt.category, prompt.name, inputs),
     };
+    this.prompts[prompt.category][prompt.name] = newPrompt;
     await this.savePrompt(prompt.category, prompt.name);
   }
 
@@ -148,8 +146,9 @@ export class PromptManager implements PromptManagerLibrary {
 
   private async savePrompt(category: string, name: string): Promise<void> {
     const prompt = this.prompts[category][name];
-    const filePath = path.join(this.promptsPath, category, `${name}.txt`);
-    await fs.writeFile(filePath, prompt.content);
+    const filePath = path.join(this.promptsPath, category, `${name}.json`);
+    const { format, ...promptData } = prompt; // Exclude the format function
+    await fs.writeFile(filePath, JSON.stringify(promptData, null, 2));
   }
 
   private incrementVersion(version: string): string {
