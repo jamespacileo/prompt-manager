@@ -72,10 +72,11 @@ export async function updatePrompt(name: string, options: any) {
   const updates: Partial<Prompt<IPromptInput, IPromptOutput>> = {};
   
   if (!options.content) {
-    const useAI = await input({ message: 'Do you want to use AI to generate the new content? (y/n)', default: 'n' });
-    if (useAI.toLowerCase() === 'y') {
+    const useAI = await confirm({ message: 'Do you want to use AI to generate the new content?' });
+    if (useAI) {
       const query = await input({ message: 'What changes do you want to make to the prompt?' });
-      updates.content = await generateWithAI(query, 'content');
+      const updatedPrompt = await updatePromptWithAI({ name, ...options }, query);
+      updates.content = updatedPrompt.content;
     } else {
       updates.content = await input({ message: 'Enter new prompt content:' });
     }
