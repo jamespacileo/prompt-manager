@@ -75,3 +75,36 @@ export async function generateTypes() {
 
   await fs.writeFile(path.join(config.outputDir, 'prompts.d.ts'), typeDefs);
 }
+
+export async function getStatus() {
+  const config = await getConfig();
+  const manager = new PromptManager(config.promptsDir);
+  await manager.initialize();
+  const prompts = await manager.listPrompts();
+
+  const categories = [...new Set(prompts.map(prompt => prompt.category))];
+  
+  let lastGenerated = null;
+  try {
+    const stats = await fs.stat(path.join(config.outputDir, 'prompts.d.ts'));
+    lastGenerated = stats.mtime.toISOString();
+  } catch (error) {
+    // File doesn't exist, which is fine
+  }
+
+  const warnings = [];
+  if (prompts.length === 0) {
+    warnings.push('No prompts found. Use the "create" command to add new prompts.');
+  }
+  if (!lastGenerated) {
+    warnings.push('Type definitions have not been generated yet. Use the "generate" command to create them.');
+  }
+
+  return {
+    config,
+    totalPrompts: prompts.length,
+    categories,
+    lastGenerated,
+    warnings
+  };
+}
