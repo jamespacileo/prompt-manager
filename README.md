@@ -31,8 +31,8 @@ import { getPromptManager } from 'prompt-manager';
 
 async function example() {
   const promptManager = getPromptManager();
-  const myPrompt = promptManager.MyCategory.MY_PROMPT;
-  const formattedPrompt = myPrompt.format({ param: 'custom' });
+  const summarizationPrompt = promptManager.Summarization.ARTICLE_SUMMARIZATION_PROMPT;
+  const formattedPrompt = summarizationPrompt.format({ articleContent: 'Your article content here' });
   // Use the formatted prompt with your AI service
 }
 ```
