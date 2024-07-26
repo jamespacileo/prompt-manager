@@ -32,10 +32,7 @@
     "lint:fix": "oxlint --quiet --fix ."
   },
   "bin": {
-    "prompt-manager": "./dist/cli.js"
-  },
-  "bin": {
-    "prompt-manager": "./dist/index.js"
+    "prompt-manager": "./dist/cli/cli.js"
   },
   "keywords": [
     "prompt",
