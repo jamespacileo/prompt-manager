@@ -10,10 +10,13 @@
  * information about the purpose and usage of each interface and type.
  */
 
+type IPromptInput = Record<string, any>;
+type IPromptOutput = Record<string, any>;
+
 /**
  * Represents the structure of a single prompt.
  */
-interface Prompt<PromptInput, PromptOutput> {
+interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPromptOutput> {
   /** Unique identifier for the prompt */
   name: string;
   /** Category the prompt belongs to */
@@ -56,7 +59,7 @@ interface Prompt<PromptInput, PromptOutput> {
 /**
  * Defines the structure and behavior of the Prompt Manager CLI.
  */
-interface PromptManagerCLI {
+interface IPromptManagerCLI {
   /**
    * Creates a new prompt.
    * @param name Name of the new prompt
@@ -118,7 +121,7 @@ interface PromptManagerCLI {
  * Represents a category of prompts in the importable library.
  * NOTE: DO NOT DELETE THESE COMMENTS. THEY ARE USED BY THE DOCUMENTATION GENERATOR.
  */
-interface PromptCategory<T extends Record<string, Prompt<any, any>>> {
+interface IPromptCategory<T extends Record<string, IPrompt<IPromptInput, IPromptOutput>>> {
   [K: string]: {
     /** Returns the raw content of the prompt */
     raw: string;
@@ -135,7 +138,7 @@ interface PromptCategory<T extends Record<string, Prompt<any, any>>> {
 /**
  * Defines the structure and behavior of the importable Prompt Manager library.
  */
-interface PromptManagerLibrary {
+interface IPromptManagerLibrary {
   /**
    * Asynchronously initializes the Prompt Manager.
    * This must be called before using any other methods.
@@ -147,20 +150,20 @@ interface PromptManagerLibrary {
    * @param category Category of the prompt
    * @param name Name of the prompt
    */
-  getPrompt(category: string, name: string): Prompt<any, any>;
+  getPrompt(category: string, name: string): IPrompt<IPromptInput, IPromptOutput>;
 
   /**
    * Creates a new prompt.
    * @param prompt The prompt to create
    */
-  createPrompt(prompt: Omit<Prompt<any, any>, 'versions'>): Promise<void>;
+  createPrompt(prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'>): Promise<void>;
 
   /**
    * Updates an existing prompt.
    * @param name Name of the prompt to update
    * @param updates Partial prompt object with updates
    */
-  updatePrompt(name: string, updates: Partial<Prompt<any, any>>): Promise<void>;
+  updatePrompt(name: string, updates: Partial<IPrompt<IPromptInput, IPromptOutput>>): Promise<void>;
 
   /**
    * Deletes a prompt.
@@ -172,7 +175,7 @@ interface PromptManagerLibrary {
    * Lists all available prompts.
    * @param category Optional category to filter prompts
    */
-  listPrompts(category?: string): Promise<Prompt<any, any>[]>;
+  listPrompts(category?: string): Promise<IPrompt<IPromptInput, IPromptOutput>[]>;
 
   /**
    * Manages versions of a prompt.
@@ -195,14 +198,16 @@ interface PromptManagerLibrary {
    * This allows for dynamic access to categories and prompts.
    */
   categories: {
-    [category: string]: PromptCategory<Record<string, Prompt<any, any>>>;
+    [category: string]: IPromptCategory<Record<string, IPrompt<IPromptInput, IPromptOutput>>>;
   };
 }
 
 // Export the interfaces so they can be imported and used in other parts of the project
 export {
-  Prompt,
-  PromptManagerCLI,
-  PromptCategory,
-  PromptManagerLibrary
+  IPromptInput,
+  IPromptOutput,
+  IPrompt as Prompt,
+  IPromptManagerCLI as PromptManagerCLI,
+  IPromptCategory as PromptCategory,
+  IPromptManagerLibrary as PromptManagerLibrary
 };

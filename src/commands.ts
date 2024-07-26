@@ -1,10 +1,10 @@
 import { PromptManager } from './promptManager';
-import { Prompt } from './types/interfaces';
+import { IPromptInput, IPromptOutput, Prompt } from './types/interfaces';
 import fs from 'fs-extra';
 import path from 'path';
 
 export async function createPrompt(name: string, options: any) {
-  const prompt: Prompt = {
+  const prompt: Prompt<IPromptInput, IPromptOutput> = {
     name,
     category: options.category || 'General',
     version: '1.0.0',
@@ -16,6 +16,12 @@ export async function createPrompt(name: string, options: any) {
       lastModified: new Date().toISOString(),
     },
     versions: ['1.0.0'],
+    outputType: "plain",
+    input: {},
+    output: {},
+    format: (inputs: IPromptInput) => {
+      return inputs.content;
+    },
   };
 
   const manager = new PromptManager('path/to/prompts');
@@ -33,7 +39,7 @@ export async function listPrompts() {
 }
 
 export async function updatePrompt(name: string, options: any) {
-  const updates: Partial<Prompt> = {};
+  const updates: Partial<Prompt<IPromptInput, IPromptOutput>> = {};
   if (options.content) updates.content = options.content;
   const manager = new PromptManager('path/to/prompts');
   await manager.initialize();
@@ -47,10 +53,11 @@ export async function generateTypes() {
   const prompts = await manager.listPrompts();
   let typeDefs = 'declare module "prompt-manager" {\n';
 
-  for (const promptName of prompts) {
+  for (const storedPrompt of prompts) {
     const manager = new PromptManager('path/to/prompts');
     await manager.initialize();
-    const [category, name] = promptName.split('/');
+    const name = storedPrompt.name
+    const category = storedPrompt.category
     const prompt = await manager.getPrompt(category, name);
     if (prompt) {
       typeDefs += `  export namespace ${prompt.category} {\n`;

@@ -1,13 +1,5 @@
-import { Prompt as IPrompt } from './types/interfaces';
+import { Prompt } from './types/interfaces';
 
-export interface Prompt<PromptInput, PromptOutput> extends IPrompt<PromptInput, PromptOutput> {
-  name: string;
-  category: string;
-  version: string;
-  content: string;
-  parameters: string[];
-  format: (params: Record<string, any>) => string;
-}
 
 export interface PromptManagerBase {
   [category: string]: {

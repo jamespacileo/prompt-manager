@@ -1,4 +1,4 @@
-import { Prompt as IPrompt, PromptManagerLibrary, PromptCategory } from './types/interfaces';
+import { Prompt as IPrompt, PromptManagerLibrary, PromptCategory, IPromptInput, IPromptOutput } from './types/interfaces';
 
 type Prompt = IPrompt<any, any>;
 import fs from 'fs/promises';
@@ -36,6 +36,10 @@ export class PromptManager implements PromptManagerLibrary {
                 lastModified: new Date().toISOString(),
               },
               versions: ['1.0.0'],
+              outputType: 'plain', // Add default outputType
+              input: {} as IPromptInput, // Add default input
+              output: {} as IPromptOutput, // Add default output
+              format: (inputs: IPromptInput) => this.formatPrompt(category, promptName, inputs), // Add format method
             };
           }
         }
@@ -57,6 +61,7 @@ export class PromptManager implements PromptManagerLibrary {
     this.prompts[prompt.category][prompt.name] = {
       ...prompt,
       versions: [prompt.version],
+      format: (inputs: IPromptInput) => this.formatPrompt(prompt.category, prompt.name, inputs),
     };
     await this.savePrompt(prompt.category, prompt.name);
   }
