@@ -6,11 +6,14 @@ sudo apt-get update
 # Install additional packages
 sudo apt-get install -y curl
 
+npm install -g npm@latest
+npm install -g bun pnpm
+
 # Install global npm packages
-npm install -g typescript ts-node
+bun install -g typescript ts-node
 
 # Install ChatGPT CLI (adjust the installation method as needed)
-npm install -g chatgpt-cli
+bun install -g chatgpt-cli
 
 # Verify Bun installation
 bun --version
