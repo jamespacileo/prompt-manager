@@ -28,8 +28,8 @@
     "install-global": "npm install -g .",
     "dev:watch": "concurrently \"bun run dev\" \"bun run install-global\" \"bun run install-example\"",
     "install-example": "cd examples/test-project && npm install",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint --quiet --ext .ts --fix ."
+    "lint": "oxlint . --ext .ts",
+    "lint:fix": "oxlint --quiet --fix ."
   },
   "bin": {
     "prompt-manager": "./dist/index.js"
@@ -44,15 +44,14 @@
   "dependencies": {
     "@types/bun": "^1.1.6",
     "commander": "^12.1.0",
+    "cosmiconfig": "^9.0.0",
     "fs-extra": "^11.2.0"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.12",
-    "@typescript-eslint/eslint-plugin": "^7.17.0",
-    "@typescript-eslint/parser": "^7.17.0",
     "concurrently": "^8.2.2",
-    "eslint": "^9.7.0",
+    "oxlint": "^0.6.1",
     "pre-commit": "^1.2.2",
     "ts-node": "^10.9.2",
     "tsup": "^8.2.3",

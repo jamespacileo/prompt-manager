@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
+import { config } from '../src/config';
 
 const PROMPTS_DIR = path.resolve(process.cwd(), config.promptsDir);
 const OUTPUT_DIR = path.resolve(process.cwd(), config.outputDir);
