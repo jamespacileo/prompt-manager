@@ -5,6 +5,9 @@ import { config } from '../config';
 const PROMPTS_DIR = config.getConfig('promptsDir');
 const OUTPUT_DIR = config.getConfig('outputDir');
 
+// Ensure the output directory exists
+fs.ensureDirSync(OUTPUT_DIR);
+
 interface PromptData {
   name: string;
   category: string;
@@ -93,17 +96,16 @@ export async function generate() {
     const types = generateTypes(prompts);
     const implementation = generateImplementation(prompts);
 
-    await fs.ensureDir(OUTPUT_DIR);
-    await fs.writeFile(path.join(OUTPUT_DIR, 'types.d.ts'), types);
+    await fs.writeFile(path.join(OUTPUT_DIR, 'prompts.d.ts'), types);
     await fs.writeFile(path.join(OUTPUT_DIR, 'promptManager.ts'), implementation);
 
-    const indexContent = `export * from './types';\nexport { default as promptManager } from './promptManager';\n`;
+    const indexContent = `export * from './prompts';\nexport { default as promptManager } from './promptManager';\n`;
     await fs.writeFile(path.join(OUTPUT_DIR, 'index.ts'), indexContent);
 
     console.log('Generation complete.');
   } catch (error) {
     console.error('Error during generation:', error);
-    throw error;  // Re-throw the error instead of exiting
+    throw error;
   }
 }
 
