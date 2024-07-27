@@ -45,6 +45,27 @@ export class PromptModel implements IPromptModel {
     this.metadata = { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = 'plain';
     this.initializeConfiguration();
+    this.configuration = this.initializeConfiguration();
+  }
+
+  private initializeConfiguration(): {
+    modelName: string;
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    frequencyPenalty: number;
+    presencePenalty: number;
+    stopSequences: string[];
+  } {
+    return {
+      modelName: this.defaultModelName || 'default-model',
+      temperature: 0.7,
+      maxTokens: 100,
+      topP: 1,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      stopSequences: [],
+    };
   }
 
   private initializeConfiguration(): void {
