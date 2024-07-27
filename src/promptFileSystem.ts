@@ -15,7 +15,7 @@ export class PromptFileSystem implements IPromptFileSystem {
   }
 
   private getVersionFilePath({ category, promptName, version }: { category: string, promptName: string, version: string }): string {
-    return path.join(this.basePath, category, promptName, '.versions', `${version}.json`);
+    return path.join(this.basePath, category, promptName, '.versions', `v${version}.json`);
   }
 
   async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
@@ -32,6 +32,15 @@ export class PromptFileSystem implements IPromptFileSystem {
 
     await fs.writeFile(filePath, JSON.stringify(promptData, null, 2));
     await fs.writeFile(versionFilePath, JSON.stringify(promptData, null, 2));
+
+    // Update the list of versions
+    const versionsPath = path.join(this.basePath, promptData.category, promptData.name, '.versions');
+    const versions = await this.getPromptVersions({ category: promptData.category, promptName: promptData.name });
+    if (!versions.includes(promptData.version)) {
+      versions.push(promptData.version);
+      versions.sort((a, b) => this.compareVersions(b, a));
+    }
+    await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
   }
 
   async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
@@ -103,15 +112,24 @@ export class PromptFileSystem implements IPromptFileSystem {
     const { category, promptName } = props;
     const versionsPath = path.join(this.basePath, category, promptName, '.versions');
     try {
-      const versions = await fs.readdir(versionsPath);
-      return versions.map(v => v.replace('.json', '')).sort((a, b) => {
-        const versionA = parseInt(a.replace('v', ''));
-        const versionB = parseInt(b.replace('v', ''));
-        return versionB - versionA;
-      });
+      const versionsFile = path.join(versionsPath, 'versions.json');
+      const versionsData = await fs.readFile(versionsFile, 'utf-8');
+      return JSON.parse(versionsData);
     } catch {
       return [];
     }
+  }
+
+  private compareVersions(a: string, b: string): number {
+    const partsA = a.split('.').map(Number);
+    const partsB = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+      const partA = partsA[i] || 0;
+      const partB = partsB[i] || 0;
+      if (partA > partB) return 1;
+      if (partA < partB) return -1;
+    }
+    return 0;
   }
 
   async deletePrompt({ category, promptName }: { category: string, promptName: string }): Promise<void> {

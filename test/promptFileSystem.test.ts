@@ -93,11 +93,42 @@ describe("PromptFileSystem", () => {
   });
 
   test("getPromptVersions", async () => {
+    const promptData: IPrompt<IPromptInput, IPromptOutput> = {
+      name: "testPrompt",
+      category: "testCategory",
+      description: "Test prompt",
+      version: "1.0.0",
+      template: "This is a test prompt",
+      parameters: [],
+      metadata: {
+        created: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+      },
+      outputSchema: {
+        type: "object",
+        properties: {
+          text: { type: "string" },
+        },
+        required: ["text"],
+      },
+      outputType: "plain",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    };
+
+    await promptFileSystem.savePrompt({ promptData });
+
+    promptData.version = "1.1.0";
+    await promptFileSystem.savePrompt({ promptData });
+
     const versions = await promptFileSystem.getPromptVersions({
       category: "testCategory",
       promptName: "testPrompt",
     });
-    expect(versions).toEqual(["1.0.0"]);
+    expect(versions).toEqual(["1.1.0", "1.0.0"]);
   });
 
   test("deletePrompt", async () => {
