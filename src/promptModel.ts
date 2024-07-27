@@ -2,7 +2,7 @@ import { IPromptModel, IPromptInput, IPromptOutput, IAsyncIterableStream } from 
 import { JSONSchema7 } from 'json-schema';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
+import { z, ZodObject } from 'zod';
 import { PromptFileSystem } from './promptFileSystem';
 
 export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_promptExists'> {
@@ -163,6 +163,14 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   async save(): Promise<void> {
     await this.fileSystem.savePrompt({ promptData: this });
     this.markAsLoadedFromStorage();
+  }
+
+  get inputZodSchema(): ZodObject<IPromptInput> {
+    return z.object(this.inputSchema as any);
+  }
+
+  get outputZodSchema(): ZodObject<IPromptOutput> {
+    return z.object(this.outputSchema as any);
   }
 
   load(props: { filePath: string }): void {
