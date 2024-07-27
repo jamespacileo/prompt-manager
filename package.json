@@ -9,7 +9,7 @@
     "dist"
   ],
   "bin": {
-    "prompt-manager": "dist/cli/cli.js"
+    "prompt-manager": "src/cli/cli.ts"
   },
   "scripts": {
     "generate": "bun run scripts/generate.ts",
@@ -21,8 +21,7 @@
     "test:coverage": "bun test --coverage",
     "tsc": "tsc",
     "tsc:fix": "tsc --noEmit --fix",
-    "prompt-manager": "bun run scripts/cli.ts",
-    "prompt-manager": "bun run scripts/cli.ts",
+    "prompt-manager": "bun run src/cli/cli.ts",
     "publish": "npm publish",
     "legacy-build": "bun run generate && bun run rollup -c",
     "legacy-prepublishOnly": "bun run build",
