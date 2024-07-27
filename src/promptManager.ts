@@ -7,7 +7,7 @@ export class PromptManager implements IPromptManagerLibrary {
   private fileSystem: PromptFileSystem;
 
   constructor(promptsPath: string) {
-    this.fileSystem = new PromptFileSystem(promptsPath);
+    this.fileSystem = new PromptFileSystem();
   }
 
   async initialize(): Promise<void> {
@@ -21,14 +21,15 @@ export class PromptManager implements IPromptManagerLibrary {
     }
   }
 
-  getPrompt(category: string, name: string): PromptModel {
-    if (!this.prompts[category] || !this.prompts[category][name]) {
-      throw new Error(`Prompt "${name}" in category "${category}" does not exist`);
+  getPrompt(props: { category: string; name: string }): IPrompt<IPromptInput, IPromptOutput> {
+    if (!this.prompts[props.category] || !this.prompts[props.category][props.name]) {
+      throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
     }
-    return this.prompts[category][name];
+    return this.prompts[props.category][props.name];
   }
 
-  async createPrompt(prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'id'>): Promise<void> {
+  async createPrompt(props: { prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'> }): Promise<void> {
+    const { prompt } = props;
     if (!prompt.category || !prompt.name) {
       throw new Error('Prompt category and name are required');
     }
