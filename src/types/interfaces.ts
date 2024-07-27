@@ -191,49 +191,57 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
 interface IPromptManagerCLI {
   /**
    * Creates a new prompt.
-   * @param name Name of the new prompt
-   * @param options Additional options for prompt creation
+   * @param props An object containing the name and options for the new prompt
    */
-  create(name: string, options: {
-    category?: string;
-    content?: string;
-    parameters?: string[];
-    description?: string;
+  create(props: {
+    name: string;
+    options: {
+      category?: string;
+      content?: string;
+      parameters?: string[];
+      description?: string;
+    }
   }): Promise<void>;
 
   /**
    * Lists all available prompts.
-   * @param options Filtering and display options
+   * @param props An object containing filtering and display options
    */
-  list(options?: {
-    category?: string;
-    format?: 'json' | 'table';
+  list(props?: {
+    options?: {
+      category?: string;
+      format?: 'json' | 'table';
+    }
   }): Promise<void>;
 
   /**
    * Updates an existing prompt.
-   * @param name Name of the prompt to update
-   * @param options Update options
+   * @param props An object containing the name of the prompt to update and update options
    */
-  update(name: string, options: {
-    content?: string;
-    parameters?: string[];
-    description?: string;
+  update(props: {
+    name: string;
+    options: {
+      content?: string;
+      parameters?: string[];
+      description?: string;
+    }
   }): Promise<void>;
 
   /**
    * Deletes a prompt.
-   * @param name Name of the prompt to delete
+   * @param props An object containing the name of the prompt to delete
    */
-  delete(name: string): Promise<void>;
+  delete(props: { name: string }): Promise<void>;
 
   /**
    * Manages versions of a prompt.
-   * @param action Version management action
-   * @param name Name of the prompt
-   * @param version Version number (for switch action)
+   * @param props An object containing the version management action, prompt name, and optional version
    */
-  version(action: 'list' | 'create' | 'switch', name: string, version?: string): Promise<void>;
+  version(props: {
+    action: 'list' | 'create' | 'switch';
+    name: string;
+    version?: string;
+  }): Promise<void>;
 
   /**
    * Generates TypeScript types for all prompts.
@@ -276,51 +284,56 @@ interface IPromptManagerLibrary {
 
   /**
    * Retrieves a specific prompt.
-   * @param category Category of the prompt
-   * @param name Name of the prompt
+   * @param props An object containing the category and name of the prompt
    */
-  getPrompt(category: string, name: string): IPrompt<IPromptInput, IPromptOutput>;
+  getPrompt(props: { category: string; name: string }): IPrompt<IPromptInput, IPromptOutput>;
 
   /**
    * Creates a new prompt.
-   * @param prompt The prompt to create
+   * @param props An object containing the prompt to create
    */
-  createPrompt(prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'>): Promise<void>;
+  createPrompt(props: { prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'> }): Promise<void>;
 
   /**
    * Updates an existing prompt.
-   * @param name Name of the prompt to update
-   * @param updates Partial prompt object with updates
+   * @param props An object containing the name of the prompt to update and the updates
    */
-  updatePrompt(name: string, updates: Partial<IPrompt<IPromptInput, IPromptOutput>>): Promise<void>;
+  updatePrompt(props: {
+    name: string;
+    updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
+  }): Promise<void>;
 
   /**
    * Deletes a prompt.
-   * @param name Name of the prompt to delete
+   * @param props An object containing the name of the prompt to delete
    */
-  deletePrompt(name: string): Promise<void>;
+  deletePrompt(props: { name: string }): Promise<void>;
 
   /**
    * Lists all available prompts.
-   * @param category Optional category to filter prompts
+   * @param props An object containing an optional category to filter prompts
    */
-  listPrompts(category?: string): Promise<IPrompt<IPromptInput, IPromptOutput>[]>;
+  listPrompts(props?: { category?: string }): Promise<IPrompt<IPromptInput, IPromptOutput>[]>;
 
   /**
    * Manages versions of a prompt.
-   * @param action Version management action
-   * @param name Name of the prompt
-   * @param version Version number (for switch action)
+   * @param props An object containing the version management action, prompt name, and optional version
    */
-  versionPrompt(action: 'list' | 'create' | 'switch', name: string, version?: string): Promise<void>;
+  versionPrompt(props: {
+    action: 'list' | 'create' | 'switch';
+    name: string;
+    version?: string;
+  }): Promise<void>;
 
   /**
    * Formats a prompt with given parameters.
-   * @param category Category of the prompt
-   * @param promptName Name of the prompt
-   * @param params Object containing the required parameters
+   * @param props An object containing the category, prompt name, and parameters
    */
-  formatPrompt(category: string, promptName: string, params: Record<string, any>): string;
+  formatPrompt(props: {
+    category: string;
+    promptName: string;
+    params: Record<string, any>;
+  }): string;
 
   /**
    * Access to prompt categories.
