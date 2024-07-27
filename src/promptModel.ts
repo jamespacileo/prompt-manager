@@ -2,6 +2,9 @@ import { IPromptModel, IPromptInput, IPromptOutput, IAsyncIterableStream } from 
 import { JSONSchema7 } from 'json-schema';
 import fs from 'fs/promises';
 import path from 'path';
+import { generateText, generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 export class PromptModel implements IPromptModel {
   name: string = '';
@@ -116,13 +119,56 @@ export class PromptModel implements IPromptModel {
     onData: (chunk: string) => void,
     onComplete: (result: IPromptOutput) => void
   ): Promise<IAsyncIterableStream<string>> {
-    // Implement streaming logic
-    return {} as IAsyncIterableStream<string>; // Placeholder
+    const formattedPrompt = this.format(inputs);
+    const { textStream } = await generateText({
+      model: openai(this.configuration.modelName),
+      prompt: formattedPrompt,
+      temperature: this.configuration.temperature,
+      maxTokens: this.configuration.maxTokens,
+      topP: this.configuration.topP,
+      frequencyPenalty: this.configuration.frequencyPenalty,
+      presencePenalty: this.configuration.presencePenalty,
+      stopSequences: this.configuration.stopSequences,
+    });
+
+    let fullResponse = '';
+    for await (const chunk of textStream) {
+      fullResponse += chunk;
+      onData(chunk);
+    }
+
+    const result: IPromptOutput = { text: fullResponse };
+    onComplete(result);
+
+    return textStream;
   }
 
   async execute(inputs: IPromptInput): Promise<IPromptOutput> {
-    // Implement execution logic
-    return {}; // Placeholder
+    if (this.outputType === 'structured') {
+      const formattedPrompt = this.format(inputs);
+      const schema = z.object(this.outputSchema as z.ZodRawShape);
+      const result = await generateObject({
+        model: openai(this.configuration.modelName),
+        schema,
+        prompt: formattedPrompt,
+        temperature: this.configuration.temperature,
+        maxTokens: this.configuration.maxTokens,
+        topP: this.configuration.topP,
+        frequencyPenalty: this.configuration.frequencyPenalty,
+        presencePenalty: this.configuration.presencePenalty,
+        stopSequences: this.configuration.stopSequences,
+      });
+      return result.object as IPromptOutput;
+    } else {
+      const { text } = await new Promise<IPromptOutput>((resolve) => {
+        this.streamText(
+          inputs,
+          () => {},
+          (result) => resolve(result)
+        );
+      });
+      return { text };
+    }
   }
 
   updateMetadata(metadata: Partial<IPromptModel['metadata']>): void {
