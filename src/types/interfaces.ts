@@ -77,27 +77,27 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
   // Static methods
   /**
    * Load a prompt by its name.
-   * @param name The name of the prompt to load.
+   * @param props An object containing the name of the prompt to load.
    */
-  loadPromptByName(name: string): IPromptModel;
+  loadPromptByName(props: { name: string }): IPromptModel;
 
   /**
    * Validate the input against the prompt's input schema.
-   * @param input The input to validate.
+   * @param props An object containing the input to validate.
    */
-  validateInput(input: IPromptInput): boolean;
+  validateInput(props: { input: IPromptInput }): boolean;
 
   /**
    * Validate the output against the prompt's output schema.
-   * @param output The output to validate.
+   * @param props An object containing the output to validate.
    */
-  validateOutput(output: IPromptOutput): boolean;
+  validateOutput(props: { output: IPromptOutput }): boolean;
 
   /**
    * Check if a prompt with the given name already exists in storage.
-   * @param name The name of the prompt to check.
+   * @param props An object containing the name of the prompt to check.
    */
-  _promptExists(name: string): boolean;
+  _promptExists(props: { name: string }): boolean;
 
   // Private methods
   /**
@@ -123,31 +123,27 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
   // Public methods
   /**
    * Format the template with given inputs.
-   * @param inputs The inputs to format the template with.
+   * @param props An object containing the inputs to format the template with.
    */
-  format(inputs: IPromptInput): string;
+  format(props: { inputs: IPromptInput }): string;
 
   /**
    * Submit a request to AI and stream the response.
-   * @param inputs The inputs for the AI request.
-   * @param onData Callback for handling streamed data.
-   * @param onComplete Callback for handling completion of the stream.
+   * @param props An object containing the inputs for the AI request.
    */
-  stream(
-    inputs: IPromptInput,
-  ): Promise<IAsyncIterableStream<string>>;
+  stream(props: { inputs: IPromptInput }): Promise<IAsyncIterableStream<string>>;
 
   /**
    * Execute the prompt with the given inputs and return the output.
-   * @param inputs The inputs for the prompt.
+   * @param props An object containing the inputs for the prompt.
    */
-  execute(inputs: IPromptInput): Promise<IPromptOutput>;
+  execute(props: { inputs: IPromptInput }): Promise<IPromptOutput>;
 
   /**
    * Update the metadata for the prompt.
-   * @param metadata The new metadata for the prompt.
+   * @param props An object containing the new metadata for the prompt.
    */
-  updateMetadata(metadata: Partial<IPromptModel['metadata']>): void;
+  updateMetadata(props: { metadata: Partial<IPromptModel['metadata']> }): void;
 
   /**
    * Get a summary of the prompt.
@@ -161,9 +157,9 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
 
   /**
    * Load the prompt from a file.
-   * @param filePath The path to the file to load the prompt from.
+   * @param props An object containing the file path to load the prompt from.
    */
-  load(filePath: string): void;
+  load(props: { filePath: string }): void;
 
   /**
    * Get all available stored versions of the prompt.
@@ -172,9 +168,9 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
 
   /**
    * Move to a different version of the prompt.
-   * @param version The version to switch to.
+   * @param props An object containing the version to switch to.
    */
-  switchVersion(version: string): void;
+  switchVersion(props: { version: string }): void;
 
   /**
    * Check if the prompt was loaded from storage.
