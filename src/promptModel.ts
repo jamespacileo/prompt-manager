@@ -85,7 +85,7 @@ export class PromptModel<
    * @param input The input to validate
    * @returns True if the input is valid, false otherwise
    */
-  validateInput(input: IPromptInput): boolean {
+  validateInput(input: TInput): boolean {
     // TODO: Implement input validation logic using this.inputSchema
     return true; // Placeholder
   }
@@ -95,7 +95,7 @@ export class PromptModel<
    * @param output The output to validate
    * @returns True if the output is valid, false otherwise
    */
-  validateOutput(output: IPromptOutput): boolean {
+  validateOutput(output: TOutput): boolean {
     // TODO: Implement output validation logic using this.outputSchema
     return true; // Placeholder
   }
@@ -105,7 +105,7 @@ export class PromptModel<
    * @param inputs The input values to use for formatting
    * @returns The formatted prompt string
    */
-  format(inputs: IPromptInput): string {
+  format(inputs: TInput): string {
     let formattedContent = this.template;
     for (const [key, value] of Object.entries(inputs)) {
       formattedContent = formattedContent.replace(new RegExp(`{{${key}}}`, 'g'), value as string);
