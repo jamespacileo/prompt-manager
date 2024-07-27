@@ -32,7 +32,7 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
   /** List of parameter names expected by the prompt */
   parameters: string[];
   /** Metadata associated with the prompt */
-  metadata?: {
+  metadata: {
     /** Timestamp of when the prompt was created */
     created: string;
     /** Timestamp of the last modification */
@@ -63,6 +63,11 @@ export interface IPromptModelRequired {
   parameters: string[];
   inputSchema: JSONSchema7;
   outputSchema: JSONSchema7;
+  version: string;
+  metadata: {
+    created: string;
+    lastModified: string;
+  };
 }
 
 export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput>, IPromptModelRequired {
