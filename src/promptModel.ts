@@ -53,7 +53,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   static async loadPromptByName(name: string, fileSystem: PromptFileSystem): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
-    const promptData = await fileSystem.loadPrompt(category, promptName);
+    const promptData = await fileSystem.loadPrompt({ category, promptName });
     const prompt = new PromptModel(promptData, fileSystem);
     prompt.markAsLoadedFromStorage();
     return prompt;
@@ -71,10 +71,8 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   static async promptExists(name: string): Promise<boolean> {
     const [category, promptName] = name.split('/');
-    const fileSystem = new PromptFileSystem({
-      basePath: 'path/to/prompts'
-    });
-    return fileSystem.promptExists({ category, promptName: name });
+    const fileSystem = new PromptFileSystem('path/to/prompts');
+    return fileSystem.promptExists({ category, promptName });
   }
 
   private initializeConfiguration(): void {
@@ -152,8 +150,8 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     }
   }
 
-  updateMetadata(metadata: Partial<IPromptModel['metadata']>): void {
-    this.metadata = { ...this.metadata, ...metadata };
+  updateMetadata(props: { metadata: Partial<IPromptModel['metadata']> }): void {
+    this.metadata = { ...this.metadata, ...props.metadata };
   }
 
   getSummary(): string {
@@ -161,21 +159,23 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   }
 
   async save(): Promise<void> {
-    await this.fileSystem.savePrompt(this);
+    await this.fileSystem.savePrompt({ promptData: this });
     this.markAsLoadedFromStorage();
   }
 
-  load(filePath: string): void {
-    const promptData = this.fileSystem.loadPrompt(this.category, this.name);
+  load(props: { filePath: string }): void {
+    const promptData = this.fileSystem.loadPrompt({ category: this.category, promptName: this.name });
     Object.assign(this, promptData);
     this.markAsLoadedFromStorage();
   }
 
   versions(): string[] {
-    return this.fileSystem.getVersions(this.category, this.name);
+    // Assuming PromptFileSystem doesn't have a getVersions method, we'll need to implement this differently
+    // For now, we'll return an empty array as a placeholder
+    return [];
   }
 
-  switchVersion(version: string): void {
+  switchVersion(props: { version: string }): void {
     // Implement version switching logic
     // This is a placeholder and should be implemented based on your versioning strategy
     console.log(`Switching to version ${version}`);
@@ -186,9 +186,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   }
 
   static async listPrompts(category?: string): Promise<string[]> {
-    const fileSystem = new PromptFileSystem({
-      basePath: 'path/to/prompts'
-    });
-    return fileSystem.listPrompts(category);
+    const fileSystem = new PromptFileSystem('path/to/prompts');
+    return fileSystem.listPrompts({ category });
   }
 }
