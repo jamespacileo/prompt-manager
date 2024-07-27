@@ -51,11 +51,6 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   private isLoadedFromStorage: boolean = false;
 
-  constructor(promptData: Partial<IPromptModel>) {
-    Object.assign(this, promptData);
-    this._initializeConfiguration();
-  }
-
   static async loadPromptByName(name: string): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
     const filePath = this._getFilePath(category, promptName);
