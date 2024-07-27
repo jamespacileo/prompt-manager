@@ -72,6 +72,8 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
     stopSequences: string[];
   }
 
+  fileSystem?: IPromptFileSystem;
+
   // Static methods
   /**
    * Load a prompt by its name.
@@ -330,7 +332,7 @@ interface IPromptManagerLibrary {
 }
 
 // Export the interfaces so they can be imported and used in other parts of the project
-export interface IPromptFileSystem {
+interface IPromptFileSystem {
   savePrompt(promptData: IPrompt<IPromptInput, IPromptOutput>): Promise<void>;
   loadPrompt(category: string, promptName: string): Promise<IPrompt<IPromptInput, IPromptOutput>>;
   promptExists(category: string, promptName: string): Promise<boolean>;
