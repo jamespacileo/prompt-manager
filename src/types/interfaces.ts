@@ -333,13 +333,62 @@ interface IPromptManagerLibrary {
 
 // Export the interfaces so they can be imported and used in other parts of the project
 interface IPromptFileSystem {
+  /**
+   * Saves a prompt to the file system.
+   * @param promptData The prompt data to be saved.
+   * @returns A promise that resolves when the prompt is saved.
+   */
   savePrompt(promptData: IPrompt<IPromptInput, IPromptOutput>): Promise<void>;
+
+  /**
+   * Loads a prompt from the file system.
+   * @param category The category of the prompt.
+   * @param promptName The name of the prompt.
+   * @returns A promise that resolves with the loaded prompt data.
+   */
   loadPrompt(category: string, promptName: string): Promise<IPrompt<IPromptInput, IPromptOutput>>;
+
+  /**
+   * Checks if a prompt exists in the file system.
+   * @param category The category of the prompt.
+   * @param promptName The name of the prompt.
+   * @returns A promise that resolves with a boolean indicating if the prompt exists.
+   */
   promptExists(category: string, promptName: string): Promise<boolean>;
+
+  /**
+   * Lists all prompts, optionally filtered by category.
+   * @param category Optional category to filter prompts.
+   * @returns A promise that resolves with an array of prompt names.
+   */
   listPrompts(category?: string): Promise<string[]>;
+
+  /**
+   * Lists all categories in the file system.
+   * @returns A promise that resolves with an array of category names.
+   */
   listCategories(): Promise<string[]>;
+
+  /**
+   * Searches for prompts based on a query string.
+   * @param query The search query.
+   * @returns A promise that resolves with an array of objects containing category and name of matching prompts.
+   */
   searchPrompts(query: string): Promise<Array<{ category: string; name: string }>>;
+
+  /**
+   * Searches for categories based on a query string.
+   * @param query The search query.
+   * @returns A promise that resolves with an array of matching category names.
+   */
   searchCategories(query: string): Promise<string[]>;
+
+  /**
+   * Retrieves all versions of a specific prompt.
+   * @param category The category of the prompt.
+   * @param promptName The name of the prompt.
+   * @returns A promise that resolves with an array of version strings.
+   */
   getPromptVersions(category: string, promptName: string): Promise<string[]>;
 }
 
