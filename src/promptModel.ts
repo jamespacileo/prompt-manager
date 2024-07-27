@@ -12,6 +12,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   version: string = '';
   template: string = '';
   parameters: string[] = [];
+  defaultModelName?: string | undefined;
   metadata: {
     created: string;
     lastModified: string;
@@ -25,14 +26,23 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     presencePenalty: number;
     stopSequences: string[];
   } = {
-    modelName: '',
-    temperature: 0,
-    maxTokens: 0,
-    topP: 0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    stopSequences: []
-  };
+      modelName: '',
+      temperature: 0,
+      maxTokens: 0,
+      topP: 0,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      stopSequences: []
+    };
+  isLoadedFromStorage: boolean = false;
+  outputType: 'structured' | 'plain' = 'plain';
+  inputSchema: JSONSchema7;x
+
+  _isSaved: boolean = false;
+  public get isSaved(): boolean {
+    return this._isSaved;
+  }
+
 
   constructor(promptData: Partial<PromptModel>, private fileSystem: PromptFileSystem) {
     Object.assign(this, promptData);
@@ -66,6 +76,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   private initializeConfiguration(): void {
     // Initialize configuration based on prompt settings and project config
+
     this.configuration = {
       modelName: this.defaultModelName || 'default-model',
       temperature: 0.7,
@@ -83,10 +94,6 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   private markAsLoadedFromStorage(): void {
     this.isLoadedFromStorage = true;
-  }
-
-  isSaved(): boolean {
-    return this._isSaved;
   }
 
   format(inputs: IPromptInput): string {
