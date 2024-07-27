@@ -1,20 +1,21 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 
-export class PromptFileSystem {
+export class PromptFileSystem implements IPromptFileSystem {
   constructor(private basePath: string) {}
 
   private getFilePath(category: string, promptName: string): string {
     return path.join(this.basePath, category, `${promptName}.json`);
   }
 
-  async savePrompt(promptData: any): Promise<void> {
+  async savePrompt(promptData: IPrompt<IPromptInput, IPromptOutput>): Promise<void> {
     const filePath = this.getFilePath(promptData.category, promptData.name);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, JSON.stringify(promptData, null, 2));
   }
 
-  async loadPrompt(category: string, promptName: string): Promise<any> {
+  async loadPrompt(category: string, promptName: string): Promise<IPrompt<IPromptInput, IPromptOutput>> {
     const filePath = this.getFilePath(category, promptName);
     const data = await fs.readFile(filePath, 'utf-8');
     return JSON.parse(data);
@@ -46,7 +47,27 @@ export class PromptFileSystem {
     return prompts;
   }
 
-  async getVersions(category: string, promptName: string): Promise<string[]> {
+  async listCategories(): Promise<string[]> {
+    const entries = await fs.readdir(this.basePath, { withFileTypes: true });
+    return entries.filter(entry => entry.isDirectory()).map(entry => entry.name);
+  }
+
+  async searchPrompts(query: string): Promise<Array<{ category: string; name: string }>> {
+    const allPrompts = await this.listPrompts();
+    return allPrompts
+      .filter(prompt => prompt.toLowerCase().includes(query.toLowerCase()))
+      .map(prompt => {
+        const [category, name] = prompt.split('/');
+        return { category, name };
+      });
+  }
+
+  async searchCategories(query: string): Promise<string[]> {
+    const categories = await this.listCategories();
+    return categories.filter(category => category.toLowerCase().includes(query.toLowerCase()));
+  }
+
+  async getPromptVersions(category: string, promptName: string): Promise<string[]> {
     // This is a placeholder. Implement version tracking if needed.
     const promptData = await this.loadPrompt(category, promptName);
     return [promptData.version];

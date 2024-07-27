@@ -330,6 +330,17 @@ interface IPromptManagerLibrary {
 }
 
 // Export the interfaces so they can be imported and used in other parts of the project
+export interface IPromptFileSystem {
+  savePrompt(promptData: IPrompt<IPromptInput, IPromptOutput>): Promise<void>;
+  loadPrompt(category: string, promptName: string): Promise<IPrompt<IPromptInput, IPromptOutput>>;
+  promptExists(category: string, promptName: string): Promise<boolean>;
+  listPrompts(category?: string): Promise<string[]>;
+  listCategories(): Promise<string[]>;
+  searchPrompts(query: string): Promise<Array<{ category: string; name: string }>>;
+  searchCategories(query: string): Promise<string[]>;
+  getPromptVersions(category: string, promptName: string): Promise<string[]>;
+}
+
 export type {
   IAsyncIterableStream,
   IPromptInput,
@@ -337,5 +348,6 @@ export type {
   IPrompt as Prompt,
   IPromptManagerCLI as PromptManagerCLI,
   IPromptCategory as PromptCategory,
-  IPromptManagerLibrary as PromptManagerLibrary
+  IPromptManagerLibrary as PromptManagerLibrary,
+  IPromptFileSystem
 };
