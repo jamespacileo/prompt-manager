@@ -74,7 +74,7 @@ describe("PromptFileSystem", () => {
     expect(prompts).toContain("testCategory/testPrompt");
 
     const categoryPrompts = await promptFileSystem.listPrompts({ category: "testCategory" });
-    expect(categoryPrompts).toContain("testPrompt");
+    expect(categoryPrompts).toContain("testCategory/testPrompt");
   });
 
   test("listCategories", async () => {
