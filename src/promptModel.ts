@@ -4,6 +4,7 @@ import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { PromptFileSystem } from './promptFileSystem';
+import path from 'path';
 
 export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_promptExists'> {
   name: string = '';
@@ -53,7 +54,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   static async loadPromptByName(name: string, fileSystem: PromptFileSystem): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
     const promptData = await fileSystem.loadPrompt({ category, promptName });
-    const prompt = new PromptModel(promptData, fileSystem);
+    const prompt = new PromptModel(promptData as Partial<PromptModel>, fileSystem);
     prompt.markAsLoadedFromStorage();
     return prompt;
   }
@@ -68,9 +69,8 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     return true; // Placeholder
   }
 
-  static async promptExists(name: string): Promise<boolean> {
+  static async promptExists(name: string, fileSystem: PromptFileSystem): Promise<boolean> {
     const [category, promptName] = name.split('/');
-    const fileSystem = new PromptFileSystem('path/to/prompts');
     return fileSystem.promptExists({ category, promptName });
   }
 
@@ -173,8 +173,8 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     return z.object(this.outputSchema as any);
   }
 
-  load(props: { filePath: string }): void {
-    const promptData = this.fileSystem.loadPrompt({ category: this.category, promptName: this.name });
+  async load(props: { filePath: string }): Promise<void> {
+    const promptData = await this.fileSystem.loadPrompt({ category: this.category, promptName: this.name });
     Object.assign(this, promptData);
     this.markAsLoadedFromStorage();
   }
@@ -192,8 +192,10 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   }
 
 
-  static async listPrompts(category?: string): Promise<string[]> {
-    const fileSystem = new PromptFileSystem('path/to/prompts');
+  static async listPrompts(category?: string, fileSystem?: PromptFileSystem): Promise<string[]> {
+    if (!fileSystem) {
+      throw new Error("FileSystem is required for listing prompts");
+    }
     return fileSystem.listPrompts({ category });
   }
 }
