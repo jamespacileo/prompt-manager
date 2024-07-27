@@ -2,6 +2,11 @@ import { IPromptManagerLibrary, IPromptCategory, IPrompt, IPromptInput, IPromptO
 import { PromptModel } from './promptModel';
 import { PromptFileSystem } from './promptFileSystem';
 
+/**
+ * PromptManager is the central class for managing prompts.
+ * It provides methods for creating, retrieving, updating, and deleting prompts,
+ * as well as managing prompt versions and formatting.
+ */
 export class PromptManager<
   TInput extends IPromptInput<any> = IPromptInput<any>,
   TOutput extends IPromptOutput<any> = IPromptOutput<any>
@@ -16,7 +21,8 @@ export class PromptManager<
 
   /**
    * Initialize the PromptManager by loading all prompts from the file system.
-   * This method should be called before using any other methods of the PromptManager.
+   * This method must be called before using any other methods of the PromptManager.
+   * Purpose: Set up the PromptManager with all existing prompts for further operations.
    */
   async initialize(props: {}): Promise<void> {
     const prompts = await this.fileSystem.listPrompts();
@@ -31,6 +37,7 @@ export class PromptManager<
 
   /**
    * Retrieve a specific prompt by its category and name.
+   * Purpose: Fetch a single prompt for use or manipulation.
    * @throws Error if the prompt does not exist
    */
   getPrompt(props: { category: string; name: string }): PromptModel {
@@ -42,6 +49,7 @@ export class PromptManager<
 
   /**
    * Create a new prompt and save it to the file system.
+   * Purpose: Add a new prompt to the manager and persist it for future use.
    */
   async createPrompt(props: { prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'> }): Promise<void> {
     const { prompt } = props;
@@ -58,6 +66,7 @@ export class PromptManager<
 
   /**
    * Update an existing prompt with new data and save the changes.
+   * Purpose: Modify an existing prompt's properties and persist the changes.
    */
   async updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
     const { category, name, updates } = props;
@@ -69,6 +78,7 @@ export class PromptManager<
 
   /**
    * Delete a prompt from both the in-memory storage and the file system.
+   * Purpose: Remove a prompt entirely from the manager and persistent storage.
    */
   async deletePrompt(props: { category: string; name: string }): Promise<void> {
     const { category, name } = props;
@@ -88,6 +98,7 @@ export class PromptManager<
 
   /**
    * Manage prompt versions: list, create, or switch to a specific version.
+   * Purpose: Provide version control functionality for prompts.
    */
   async versionPrompt(props: { action: 'list' | 'create' | 'switch'; category: string; name: string; version?: string }): Promise<void> {
     const { action, category, name, version } = props;
@@ -118,6 +129,7 @@ export class PromptManager<
 
   /**
    * Format a prompt by replacing placeholders with provided parameters.
+   * Purpose: Prepare a prompt for use by inserting actual values into its template.
    */
   formatPrompt(props: { category: string; name: string; params: Record<string, any> }): string {
     const { category, name, params } = props;

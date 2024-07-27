@@ -7,6 +7,8 @@ import { PROMPT_FILENAME, PromptFileSystem } from './promptFileSystem';
 
 /**
  * Represents a single prompt model with all its properties and methods.
+ * Purpose: Encapsulate all data and behavior related to a specific prompt,
+ * including validation, formatting, and execution.
  */
 export class PromptModel<
   TInput extends IPromptInput<any> = IPromptInput<any>,
@@ -41,6 +43,7 @@ export class PromptModel<
 
   /**
    * Create a new PromptModel instance.
+   * Purpose: Initialize a new prompt with all necessary data and optional file system access.
    * @param promptData Required data to initialize the prompt
    * @param fileSystem Optional PromptFileSystem instance for file operations
    */
@@ -82,6 +85,7 @@ export class PromptModel<
 
   /**
    * Validate the input against the input schema.
+   * Purpose: Ensure that the provided input matches the expected schema before processing.
    * @param input The input to validate
    * @returns True if the input is valid, false otherwise
    */
@@ -92,6 +96,7 @@ export class PromptModel<
 
   /**
    * Validate the output against the output schema.
+   * Purpose: Verify that the generated output conforms to the expected schema.
    * @param output The output to validate
    * @returns True if the output is valid, false otherwise
    */
@@ -102,6 +107,7 @@ export class PromptModel<
 
   /**
    * Format the prompt template by replacing placeholders with input values.
+   * Purpose: Prepare the prompt for execution by inserting actual values into the template.
    * @param inputs The input values to use for formatting
    * @returns The formatted prompt string
    */
@@ -115,6 +121,7 @@ export class PromptModel<
 
   /**
    * Stream the prompt execution results.
+   * Purpose: Execute the prompt and provide results as a stream for real-time processing.
    * @param inputs The input values for the prompt
    * @returns An async iterable stream of the generated text
    */
@@ -135,6 +142,7 @@ export class PromptModel<
 
   /**
    * Execute the prompt and return the result.
+   * Purpose: Process the prompt with given inputs and generate the final output.
    * @param inputs The input values for the prompt
    * @returns The execution result, either structured or plain text
    */

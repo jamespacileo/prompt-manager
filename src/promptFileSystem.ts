@@ -5,6 +5,10 @@ import config from './config/PromptProjectConfigManager';
 
 export const PROMPT_FILENAME = "prompt.json";
 
+/**
+ * PromptFileSystem handles all file system operations related to prompts.
+ * Purpose: Provide a centralized interface for reading, writing, and managing prompt files.
+ */
 export class PromptFileSystem implements IPromptFileSystem {
   private basePath: string;
 
@@ -20,6 +24,10 @@ export class PromptFileSystem implements IPromptFileSystem {
     return path.join(this.basePath, category, promptName, '.versions', `v${version}.json`);
   }
 
+  /**
+   * Save a prompt to the file system.
+   * Purpose: Persist prompt data and manage versioning.
+   */
   async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
     const filePath = this.getFilePath({ category: promptData.category, promptName: promptData.name });
@@ -45,6 +53,10 @@ export class PromptFileSystem implements IPromptFileSystem {
     await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
   }
 
+  /**
+   * Load a prompt from the file system.
+   * Purpose: Retrieve stored prompt data for use in the application.
+   */
   async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
@@ -63,6 +75,10 @@ export class PromptFileSystem implements IPromptFileSystem {
     }
   }
 
+  /**
+   * List all prompts, optionally filtered by category.
+   * Purpose: Provide an overview of available prompts for management and selection.
+   */
   async listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>> {
     const category = props?.category;
     const searchPath = category ? path.join(this.basePath, category) : this.basePath;

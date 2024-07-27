@@ -7,6 +7,10 @@ import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './a
 import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
 import configManager from '../config/PromptProjectConfigManager';
 
+/**
+ * Create a new prompt with AI assistance.
+ * Purpose: Guide the user through creating a new prompt, leveraging AI for content generation and refinement.
+ */
 export async function createPrompt(): Promise<void> {
   let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
   let accepted = false;
@@ -51,6 +55,10 @@ export async function createPrompt(): Promise<void> {
   console.log(`Prompt "${prompt.name}" created successfully.`);
 }
 
+/**
+ * List all available prompts.
+ * Purpose: Provide an overview of all prompts in the system for user reference.
+ */
 export async function listPrompts(): Promise<string[]> {
   const manager = new PromptManager();
   await manager.initialize({});
@@ -58,6 +66,10 @@ export async function listPrompts(): Promise<string[]> {
   return prompts.map(prompt => `${prompt.category}/${prompt.name}`);
 }
 
+/**
+ * Retrieve detailed information about a specific prompt.
+ * Purpose: Allow users to inspect the properties and content of a particular prompt.
+ */
 export async function getPromptDetails(props: { category: string; name: string }): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
   const manager = new PromptManager();
   await manager.initialize({});
@@ -73,6 +85,10 @@ export async function getPromptDetails(props: { category: string; name: string }
   };
 }
 
+/**
+ * Update an existing prompt, optionally using AI for content refinement.
+ * Purpose: Allow users to modify prompt properties and content, with AI assistance if desired.
+ */
 export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
   const manager = new PromptManager();
   await manager.initialize({});
@@ -89,6 +105,10 @@ export async function updatePrompt(props: { category: string; name: string; upda
   await manager.updatePrompt(props);
 }
 
+/**
+ * Generate TypeScript type definitions for all prompts.
+ * Purpose: Create type-safe interfaces for using prompts in TypeScript projects.
+ */
 export async function generateTypes(): Promise<void> {
   const outputDir = configManager.getConfig('outputDir');
   const manager = new PromptManager();
@@ -116,6 +136,10 @@ export async function getGeneratedTypes(): Promise<string> {
   return fs.readFile(path.join(outputDir, 'prompts.d.ts'), 'utf-8');
 }
 
+/**
+ * Retrieve the current status of the prompt management system.
+ * Purpose: Provide an overview of the system's configuration, prompt count, and potential issues.
+ */
 export async function getStatus(): Promise<{
   config: any;
   totalPrompts: number;
