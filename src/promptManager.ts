@@ -34,12 +34,15 @@ export class PromptManager implements IPromptManagerLibrary {
     return this.prompts[category][name];
   }
 
-  async createPrompt(prompt: Partial<PromptModel>): Promise<void> {
-    if (!this.prompts[prompt.category!]) {
-      this.prompts[prompt.category!] = {};
+  async createPrompt(prompt: Omit<IPromptModelRequired, 'fileSystem'>): Promise<void> {
+    if (!prompt.category || !prompt.name) {
+      throw new Error('Prompt category and name are required');
     }
-    const newPrompt = new PromptModel(prompt, this.fileSystem);
-    this.prompts[prompt.category!][prompt.name!] = newPrompt;
+    if (!this.prompts[prompt.category]) {
+      this.prompts[prompt.category] = {};
+    }
+    const newPrompt = new PromptModel({ ...prompt, fileSystem: this.fileSystem });
+    this.prompts[prompt.category][prompt.name] = newPrompt;
     await newPrompt.save();
   }
 

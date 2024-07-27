@@ -74,7 +74,14 @@ program
       log.info('You can now use this prompt in your project.');
     } catch (error) {
       log.error('Failed to create prompt:');
-      console.error(error);
+      if (error instanceof Error) {
+        log.error(error.message);
+        if (error.stack) {
+          log.debug(error.stack);
+        }
+      } else {
+        log.error(String(error));
+      }
     }
   });
 
