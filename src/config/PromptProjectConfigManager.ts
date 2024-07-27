@@ -16,7 +16,7 @@ const configSchema = z.object({
   })),
 });
 
-export class PromptProjectConfigManager implements IPromptProjectConfigManager {
+class PromptProjectConfigManager implements IPromptProjectConfigManager {
   configPath: string;
   config: {
     promptsDir: string;
@@ -111,3 +111,9 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     }
   }
 }
+
+// Create a singleton instance
+const config = new PromptProjectConfigManager();
+
+// Export the singleton instance
+export default config;

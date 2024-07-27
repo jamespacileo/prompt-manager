@@ -1,9 +1,14 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
+import config from './config/PromptProjectConfigManager';
 
 export class PromptFileSystem implements IPromptFileSystem {
-  constructor(private basePath: string) {}
+  private basePath: string;
+
+  constructor() {
+    this.basePath = config.getConfig('promptsDir');
+  }
 
   private getFilePath(category: string, promptName: string): string {
     return path.join(this.basePath, category, `${promptName}.json`);
