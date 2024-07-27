@@ -10,7 +10,7 @@ export class PromptManager implements IPromptManagerLibrary {
   private prompts: Record<string, Record<string, PromptModel>> = {};
   private fileSystem: PromptFileSystem;
 
-  constructor(promptsPath: string) {
+  constructor() {
     this.fileSystem = new PromptFileSystem();
   }
 
@@ -25,7 +25,7 @@ export class PromptManager implements IPromptManagerLibrary {
     }
   }
 
-  getPrompt(props: { category: string; name: string }): IPrompt<IPromptInput, IPromptOutput> {
+  getPrompt(props: { category: string; name: string }): PromptModel {
     if (!this.prompts[props.category] || !this.prompts[props.category][props.name]) {
       throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
     }
@@ -127,6 +127,6 @@ export class PromptManager implements IPromptManagerLibrary {
   }
 }
 
-export function getPromptManager(promptsPath: string): PromptManager {
-  return new PromptManager(promptsPath);
+export function getPromptManager(): PromptManager {
+  return new PromptManager();
 }
