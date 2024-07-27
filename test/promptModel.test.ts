@@ -1,4 +1,4 @@
-import { expect, test, describe, beforeAll, afterAll } from "bun:test";
+import { expect, test, describe, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
 import { PromptModel } from "../src/promptModel";
 import { PromptFileSystem } from "../src/promptFileSystem";
 import fs from "fs/promises";
@@ -6,6 +6,7 @@ import path from "path";
 import { IPromptModelRequired } from "../src/types/interfaces";
 
 const TEST_PROMPTS_PATH = path.join(process.cwd(), "test_prompts");
+let fileSystem: PromptFileSystem;
 
 // Dummy base objects for testing
 const dummyPromptData: Partial<PromptModel> & IPromptModelRequired = {
@@ -47,11 +48,20 @@ const dummyPromptData: Partial<PromptModel> & IPromptModelRequired = {
 };
 
 describe("PromptModel", () => {
-  let fileSystem: PromptFileSystem;
-
   beforeAll(async () => {
     await fs.mkdir(TEST_PROMPTS_PATH, { recursive: true });
+  });
+
+  beforeEach(() => {
     fileSystem = new PromptFileSystem();
+  });
+
+  afterEach(async () => {
+    const prompts = await fileSystem.listPrompts({});
+    for (const prompt of prompts) {
+      const [category, promptName] = prompt.split('/');
+      await fileSystem.deletePrompt({ category, promptName });
+    }
   });
 
   afterAll(async () => {
@@ -105,6 +115,21 @@ describe("PromptModel", () => {
     }
     expect(result).toBeTruthy();
     expect(typeof result).toBe("string");
+  });
+
+  test("list prompts", async () => {
+    const prompt1 = new PromptModel({ ...dummyPromptData, name: "prompt1" }, fileSystem);
+    const prompt2 = new PromptModel({ ...dummyPromptData, name: "prompt2" }, fileSystem);
+    await prompt1.save();
+    await prompt2.save();
+
+    const prompts = await PromptModel.listPrompts(dummyPromptData.category, fileSystem);
+    expect(prompts).toContain("prompt1");
+    expect(prompts).toContain("prompt2");
+
+    const allPrompts = await PromptModel.listPrompts(undefined, fileSystem);
+    expect(allPrompts).toContain(`${dummyPromptData.category}/prompt1`);
+    expect(allPrompts).toContain(`${dummyPromptData.category}/prompt2`);
   });
 
   test("update metadata", () => {

@@ -191,6 +191,10 @@ export class PromptModel implements IPromptModel {
     if (!fileSystem) {
       fileSystem = new PromptFileSystem();
     }
-    return fileSystem.listPrompts({ category });
+    const prompts = await fileSystem.listPrompts({ category });
+    return prompts.map(prompt => {
+      const [promptCategory, promptName] = prompt.split('/');
+      return category ? promptName : `${promptCategory}/${promptName}`;
+    });
   }
 }
