@@ -44,6 +44,11 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
       stopSequences: []
     };
 
+  constructor(promptData: Partial<PromptModel>) {
+    Object.assign(this, promptData);
+    this._initializeConfiguration();
+  }
+
   private isLoadedFromStorage: boolean = false;
 
   constructor(promptData: Partial<IPromptModel>) {

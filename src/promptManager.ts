@@ -37,12 +37,12 @@ export class PromptManager implements PromptManagerLibrary {
     return this.prompts[category][name];
   }
 
-  async createPrompt(prompt: Omit<PromptModel, 'versions' | 'format'>): Promise<void> {
-    if (!this.prompts[prompt.category]) {
-      this.prompts[prompt.category] = {};
+  async createPrompt(prompt: Partial<PromptModel>): Promise<void> {
+    if (!this.prompts[prompt.category!]) {
+      this.prompts[prompt.category!] = {};
     }
     const newPrompt = new PromptModel(prompt);
-    this.prompts[prompt.category][prompt.name] = newPrompt;
+    this.prompts[prompt.category!][prompt.name!] = newPrompt;
     await newPrompt.save();
   }
 
