@@ -4,6 +4,7 @@ export const CONFIG_FILE_NAME = 'prompt-manager.json';
 export const DEFAULT_PROMPTS_DIR = 'prompts';
 export const DEFAULT_CONFIG = {
   promptsDir: DEFAULT_PROMPTS_DIR,
+  outputDir: 'output',
   preferredModels: ['gpt-4o-mini'],
   modelParams: {},
 };

@@ -38,7 +38,7 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
    */
   constructor(configPath?: string) {
     this.configPath = configPath || getConfigPath();
-    this.config = { ...DEFAULT_CONFIG, outputDir: '' };
+    this.config = { ...DEFAULT_CONFIG };
   }
 
   /**
