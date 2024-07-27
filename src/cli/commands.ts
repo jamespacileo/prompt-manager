@@ -5,7 +5,7 @@ import path from 'path';
 import { input, confirm } from '@inquirer/prompts';
 import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './aiHelpers';
 import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
-import { PromptProjectConfigManager } from '../config/PromptProjectConfigManager';
+import configManager from '../config/PromptProjectConfigManager';
 
 export async function createPrompt(): Promise<void> {
   const configManager = PromptProjectConfigManager.getInstance();
