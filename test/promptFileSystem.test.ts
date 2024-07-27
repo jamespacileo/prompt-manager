@@ -8,6 +8,32 @@ import os from "os";
 let promptFileSystem: PromptFileSystem;
 let tempDir: string;
 
+const DUMMY_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
+  name: "testPrompt",
+  category: "testCategory",
+  description: "Test prompt",
+  version: "1.0.0",
+  template: "This is a test prompt",
+  parameters: [],
+  metadata: {
+    created: new Date().toISOString(),
+    lastModified: new Date().toISOString(),
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      text: { type: "string" },
+    },
+    required: ["text"],
+  },
+  outputType: "plain",
+  inputSchema: {
+    type: "object",
+    properties: {},
+    required: [],
+  },
+};
+
 beforeAll(async () => {
   tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'prompt-fs-test-'));
   process.env.PROMPTS_DIR = tempDir;
@@ -70,18 +96,25 @@ describe("PromptFileSystem", () => {
   });
 
   test("listPrompts", async () => {
+    await promptFileSystem.savePrompt({
+      promptData: {
+        ...DUMMY_PROMPT,
+        name: "listTestPrompt",
+        category: "testCategory",
+      }
+    });
     const prompts = await promptFileSystem.listPrompts();
     expect(prompts).toContainEqual({
-      name: "testPrompt",
+      name: "listTestPrompt",
       category: "testCategory",
-      relativeFilePath: "testCategory/testPrompt/prompt.json"
+      relativeFilePath: "testCategory/listTestPrompt/prompt.json"
     });
 
     const categoryPrompts = await promptFileSystem.listPrompts({ category: "testCategory" });
     expect(categoryPrompts).toContainEqual({
-      name: "testPrompt",
+      name: "listTestPrompt",
       category: "testCategory",
-      relativeFilePath: "testCategory/testPrompt/prompt.json"
+      relativeFilePath: "testCategory/listTestPrompt/prompt.json"
     });
   });
 
