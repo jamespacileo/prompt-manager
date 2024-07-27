@@ -18,6 +18,7 @@ const log = {
   error: (message: string) => console.log(chalk.red(message)),
   warn: (message: string) => console.log(chalk.yellow(message)),
   title: (message: string) => console.log(chalk.bold.underline(message)),
+  debug: (message: string) => console.log(chalk.gray(message)),
 };
 
 const program = new Command();
@@ -104,7 +105,8 @@ program
             value: prompt,
           })),
         });
-        const promptDetails = await getPromptDetails(selectedPrompt);
+        const [category, promptName] = selectedPrompt.split('/');
+        const promptDetails = await getPromptDetails({ category, name: promptName });
         log.info('\nPrompt Details:');
         Object.entries(promptDetails).forEach(([key, value]) => {
           log.info(`${key}: ${value}`);
@@ -124,7 +126,8 @@ program
     log.info('You can update various aspects of the prompt.');
 
     try {
-      const promptDetails = await getPromptDetails(name);
+      const [category, promptName] = name.split('/');
+      const promptDetails = await getPromptDetails({ category, name: promptName });
       log.info('Current prompt details:');
       Object.entries(promptDetails).forEach(([key, value]) => {
         log.info(`${key}: ${value}`);
