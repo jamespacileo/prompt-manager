@@ -114,6 +114,7 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
 
 // Create a singleton instance
 const config = new PromptProjectConfigManager();
+void config.loadConfig();
 
 // Export the singleton instance
 export default config;

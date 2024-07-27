@@ -204,7 +204,7 @@ interface IPromptManagerLibrary {
    * Asynchronously initializes the Prompt Manager.
    * This must be called before using any other methods.
    */
-  initialize(): Promise<void>;
+  initialize(props: {}): Promise<void>;
 
   /**
    * Retrieves a specific prompt.
@@ -220,31 +220,33 @@ interface IPromptManagerLibrary {
 
   /**
    * Updates an existing prompt.
-   * @param props An object containing the name of the prompt to update and the updates
+   * @param props An object containing the category, name of the prompt to update and the updates
    */
   updatePrompt(props: {
+    category: string;
     name: string;
     updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
   }): Promise<void>;
 
   /**
    * Deletes a prompt.
-   * @param props An object containing the name of the prompt to delete
+   * @param props An object containing the category and name of the prompt to delete
    */
-  deletePrompt(props: { name: string }): Promise<void>;
+  deletePrompt(props: { category: string; name: string }): Promise<void>;
 
   /**
    * Lists all available prompts.
    * @param props An object containing an optional category to filter prompts
    */
-  listPrompts(props?: { category?: string }): Promise<IPrompt<IPromptInput, IPromptOutput>[]>;
+  listPrompts(props: { category?: string }): Promise<IPrompt<IPromptInput, IPromptOutput>[]>;
 
   /**
    * Manages versions of a prompt.
-   * @param props An object containing the version management action, prompt name, and optional version
+   * @param props An object containing the version management action, category, prompt name, and optional version
    */
   versionPrompt(props: {
     action: 'list' | 'create' | 'switch';
+    category: string;
     name: string;
     version?: string;
   }): Promise<void>;
@@ -255,7 +257,7 @@ interface IPromptManagerLibrary {
    */
   formatPrompt(props: {
     category: string;
-    promptName: string;
+    name: string;
     params: Record<string, any>;
   }): string;
 
