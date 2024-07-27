@@ -71,18 +71,25 @@ export class PromptFileSystem implements IPromptFileSystem {
     const prompts: Array<{ name: string; category: string; relativeFilePath: string }> = [];
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        const promptJsonPath = path.join(searchPath, entry.name, PROMPT_FILENAME);
-        try {
-          await fs.access(promptJsonPath);
-          const currentCategory = category || entry.name;
-          const relativePath = path.relative(this.basePath, path.dirname(promptJsonPath)).replace(/\\/g, '/');
-          prompts.push({
-            name: entry.name,
-            category: currentCategory,
-            relativeFilePath: `${relativePath}/${PROMPT_FILENAME}`
-          });
-        } catch {
-          // If prompt.json doesn't exist, skip this directory
+        const categoryPath = category ? path.join(category, entry.name) : entry.name;
+        const promptDir = path.join(this.basePath, categoryPath);
+        const promptEntries = await fs.readdir(promptDir, { withFileTypes: true });
+        
+        for (const promptEntry of promptEntries) {
+          if (promptEntry.isDirectory()) {
+            const promptJsonPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
+            try {
+              await fs.access(promptJsonPath);
+              const relativePath = path.relative(this.basePath, path.dirname(promptJsonPath)).replace(/\\/g, '/');
+              prompts.push({
+                name: promptEntry.name,
+                category: categoryPath,
+                relativeFilePath: `${relativePath}/${PROMPT_FILENAME}`
+              });
+            } catch {
+              // If prompt.json doesn't exist, skip this directory
+            }
+          }
         }
       }
     }
