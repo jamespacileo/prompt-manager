@@ -3,6 +3,8 @@ import path from 'path';
 import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import config from './config/PromptProjectConfigManager';
 
+const PROMPT_FILENAME = "prompt.json";
+
 export class PromptFileSystem implements IPromptFileSystem {
   private basePath: string;
 
@@ -21,10 +23,10 @@ export class PromptFileSystem implements IPromptFileSystem {
   async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
     const filePath = this.getFilePath({ category: promptData.category, promptName: promptData.name });
-    const versionFilePath = this.getVersionFilePath({ 
-      category: promptData.category, 
-      promptName: promptData.name, 
-      version: promptData.version 
+    const versionFilePath = this.getVersionFilePath({
+      category: promptData.category,
+      promptName: promptData.name,
+      version: promptData.version
     });
 
     await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -77,7 +79,7 @@ export class PromptFileSystem implements IPromptFileSystem {
           prompts.push({
             name: entry.name,
             category: currentCategory,
-            relativeFilePath: relativePath + '/'
+            relativeFilePath: relativePath + '/' + PROMPT_FILENAME
           });
         } catch {
           // If prompt.json doesn't exist, skip this directory
@@ -95,7 +97,7 @@ export class PromptFileSystem implements IPromptFileSystem {
   async searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>> {
     const { query } = props;
     const allPrompts = await this.listPrompts();
-    return allPrompts.filter(prompt => 
+    return allPrompts.filter(prompt =>
       prompt.name.toLowerCase().includes(query.toLowerCase()) ||
       prompt.category.toLowerCase().includes(query.toLowerCase()) ||
       prompt.relativeFilePath.toLowerCase().includes(query.toLowerCase())
