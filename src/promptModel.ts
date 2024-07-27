@@ -15,6 +15,23 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   metadata: {
     created: string;
     lastModified: string;
+  } = { created: '', lastModified: '' };
+  configuration: { modelName: string } = { modelName: '' };
+
+  private _initializeConfiguration(): void {
+    // Implementation details
+  }
+
+  private _getFilePath(): string {
+    // Implementation details
+    return '';
+  }
+
+  private _markAsLoadedFromStorage(): void {
+    // Implementation details
+  }
+
+  private _isSaved: boolean = false;
   } = {
       created: '',
       lastModified: ''
