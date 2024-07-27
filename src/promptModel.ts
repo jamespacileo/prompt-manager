@@ -45,6 +45,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   constructor(promptData: Partial<PromptModel>, private fileSystem: PromptFileSystem) {
     Object.assign(this, promptData);
+    this.fileSystem = fileSystem;
     this.initializeConfiguration();
   }
 
@@ -70,7 +71,10 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   static async promptExists(name: string): Promise<boolean> {
     const [category, promptName] = name.split('/');
-    return PromptModel.fileSystem.promptExists(category, promptName);
+    const fileSystem = new PromptFileSystem({
+      basePath: 'path/to/prompts'
+    });
+    return fileSystem.promptExists({ category, promptName: name });
   }
 
   private initializeConfiguration(): void {
@@ -182,6 +186,9 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   }
 
   static async listPrompts(category?: string): Promise<string[]> {
-    return PromptModel.fileSystem.listPrompts(category);
+    const fileSystem = new PromptFileSystem({
+      basePath: 'path/to/prompts'
+    });
+    return fileSystem.listPrompts(category);
   }
 }
