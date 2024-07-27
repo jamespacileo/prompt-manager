@@ -48,12 +48,16 @@ export class PromptFileSystem implements IPromptFileSystem {
     for (const entry of entries) {
       if (entry.isDirectory() && !category) {
         const subPrompts = await this.listPrompts({ category: entry.name });
-        prompts.push(...subPrompts.map(p => `${entry.name}/${p}`));
+        prompts.push(...subPrompts.map(p => path.join(entry.name, p)));
       } else if (entry.isFile() && entry.name.endsWith('.json')) {
-        prompts.push(entry.name.slice(0, -5));
+        const promptName = entry.name.slice(0, -5);
+        const relativePath = category 
+          ? path.join(category, promptName)
+          : promptName;
+        prompts.push(relativePath);
       }
     }
-    return prompts;
+    return prompts.map(p => p.replace(/\\/g, '/')); // Ensure forward slashes for consistency
   }
 
   async listCategories(): Promise<string[]> {
