@@ -16,7 +16,7 @@ const getConfig = async () => {
 
 export async function createPrompt() {
   const config = await getConfig();
-  let promptData: Partial<PromptModel>;
+  let promptData: Partial<PromptModel> = {};
   let accepted = false;
 
   const description = await input({ message: 'Describe the prompt you want to create:' });

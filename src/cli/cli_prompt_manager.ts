@@ -22,10 +22,10 @@ export class CLI implements PromptManagerCLI {
       template: options.content || '',
       parameters: options.parameters || [],
       metadata: {
-        description: options.description || '',
         created: new Date().toISOString(),
         lastModified: new Date().toISOString(),
       },
+      description: options.description || '',
       outputType: 'plain', // Add default outputType
       inputSchema: {} as IPromptInput, // Add default input
       outputSchema: {} as IPromptOutput, // Add default output
@@ -45,7 +45,7 @@ export class CLI implements PromptManagerCLI {
         name: p.name,
         category: p.category,
         version: p.version,
-        description: p.metadata.description,
+        description: p.description,
       })));
     }
   }

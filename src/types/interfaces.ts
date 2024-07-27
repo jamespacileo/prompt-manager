@@ -54,7 +54,7 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
 
 type IAsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
 
-interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
+export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
 
   /**
    * Configuration for the prompt to be run with the model.

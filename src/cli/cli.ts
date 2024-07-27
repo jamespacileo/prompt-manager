@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { input, confirm, select } from '@inquirer/prompts';
 import chalk from 'chalk';
-import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus } from './commands.js';
+import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus } from './commands.js';
 import fs from 'fs-extra';
 import path from 'path';
 

@@ -4,22 +4,25 @@ import fs from 'fs/promises';
 import path from 'path';
 
 export class PromptModel implements IPromptModel {
-  name: string;
-  category: string;
-  description: string;
-  version: string;
-  template: string;
-  parameters: string[];
+  name: string = '';
+  category: string = '';
+  description: string = '';
+  version: string = '';
+  template: string = '';
+  parameters: string[] = [];
   metadata: {
     created: string;
     lastModified: string;
+  } = {
+    created: '',
+    lastModified: ''
   };
-  outputType: 'structured' | 'plain';
+  outputType: 'structured' | 'plain' = 'plain';
   defaultModelName?: string;
   compatibleModels?: string[];
   tags?: string[];
-  inputSchema: JSONSchema7;
-  outputSchema: JSONSchema7;
+  inputSchema: JSONSchema7 = {};
+  outputSchema: JSONSchema7 = {};
   configuration: {
     modelName: string;
     temperature: number;
@@ -28,6 +31,14 @@ export class PromptModel implements IPromptModel {
     frequencyPenalty: number;
     presencePenalty: number;
     stopSequences: string[];
+  } = {
+    modelName: '',
+    temperature: 0,
+    maxTokens: 0,
+    topP: 0,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    stopSequences: []
   };
 
   private isLoadedFromStorage: boolean = false;
@@ -56,10 +67,15 @@ export class PromptModel implements IPromptModel {
     return true; // Placeholder
   }
 
-  static _promptExists(name: string): boolean {
+  static async _promptExists(name: string): Promise<boolean> {
     const [category, promptName] = name.split('/');
     const filePath = this._getFilePath(category, promptName);
-    return fs.access(filePath).then(() => true).catch(() => false);
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   _initializeConfiguration(): void {
