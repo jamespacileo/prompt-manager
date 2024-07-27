@@ -119,7 +119,7 @@ export class PromptManager implements PromptManagerLibrary {
 
   formatPrompt(category: string, promptName: string, params: Record<string, any>): string {
     const prompt = this.getPrompt(category, promptName);
-    let formattedContent = prompt.content;
+    let formattedContent = prompt.template;
     for (const [key, value] of Object.entries(params)) {
       formattedContent = formattedContent.replace(new RegExp(`{{${key}}}`, 'g'), value);
     }
@@ -134,7 +134,7 @@ export class PromptManager implements PromptManagerLibrary {
           Object.entries(prompts).map(([name, prompt]) => [
             name,
             {
-              raw: prompt.content,
+              raw: prompt.template,
               version: prompt.version,
               format: (inputs: Record<string, string>) => this.formatPrompt(category, name, inputs),
             },

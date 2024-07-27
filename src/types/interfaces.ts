@@ -22,14 +22,14 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
   name: string;
   /** Category the prompt belongs to */
   category: string;
+  /** Brief description of the prompt's purpose */
+  description: string;
   /** Current version of the prompt */
   version: string;
   /** The actual content of the prompt */
-  content: string;
+  template: string;
   /** List of parameter names expected by the prompt */
   parameters: string[];
-  /** Brief description of the prompt's purpose */
-  description: string;
   /** Metadata associated with the prompt */
   metadata?: {
     /** Timestamp of when the prompt was created */
@@ -37,8 +37,6 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
     /** Timestamp of the last modification */
     lastModified: string;
   };
-  /** List of all available versions for this prompt */
-  versions: string[];
 
   /** Type of output expected from the model (structured or plain text) */
   outputType: 'structured' | 'plain';
@@ -48,12 +46,13 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
   compatibleModels?: string[];
   /** Optional list of tags or keywords associated with this prompt */
   tags?: string[];
-
   /** Type of input expected by the prompt */
   inputSchema: JSONSchema7;
   /** Type of output expected by the prompt */
   outputSchema: JSONSchema7;
 }
+
+type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
 
 interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
 
@@ -73,14 +72,117 @@ interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
     stopSequences: string[];
   }
 
-  // format the template
-  format: (inputs: IPromptInput) => string;
+  // Static methods
+  /**
+   * Load a prompt by its name.
+   * @param name The name of the prompt to load.
+   */
+  loadPromptByName(name: string): IPromptModel;
 
-  // Submit a request to ai and stream the response
-  streamResponse: 
+  /**
+   * Validate the input against the prompt's input schema.
+   * @param input The input to validate.
+   */
+  validateInput(input: IPromptInput): boolean;
 
+  /**
+   * Validate the output against the prompt's output schema.
+   * @param output The output to validate.
+   */
+  validateOutput(output: IPromptOutput): boolean;
+
+  /**
+   * Check if a prompt with the given name already exists in storage.
+   * @param name The name of the prompt to check.
+   */
+  _promptExists(name: string): boolean;
+
+  // Private methods
+  /**
+   * Private method to initialize the prompt configuration.
+   */
+  _initializeConfiguration(): void;
+
+  /**
+   * Private method to process the prompt content.
+   */
+  _processContent(): void;
+
+  /**
+   * Private method to get the file path for the prompt.
+   */
+  _getFilePath(): string;
+
+  /**
+   * Private method to mark the prompt as loaded from storage.
+   */
+  _markAsLoadedFromStorage(): void;
+
+  // Public methods
+  /**
+   * Format the template with given inputs.
+   * @param inputs The inputs to format the template with.
+   */
+  format(inputs: IPromptInput): string;
+
+  /**
+   * Submit a request to AI and stream the response.
+   * @param inputs The inputs for the AI request.
+   * @param onData Callback for handling streamed data.
+   * @param onComplete Callback for handling completion of the stream.
+   */
+  streamText(
+    inputs: IPromptInput,
+    onData: (chunk: string) => void,
+    onComplete: (result: IPromptOutput) => void
+  ): AsyncIterableStream<string>;
+
+  /**
+   * Execute the prompt with the given inputs and return the output.
+   * @param inputs The inputs for the prompt.
+   */
+  execute(inputs: IPromptInput): Promise<IPromptOutput>;
+
+  /**
+   * Update the metadata for the prompt.
+   * @param metadata The new metadata for the prompt.
+   */
+  updateMetadata(metadata: Partial<IPromptModel['metadata']>): void;
+
+  /**
+   * Get a summary of the prompt.
+   */
+  getSummary(): string;
+
+  /**
+   * Save the prompt to a file.
+   */
+  save(): void;
+
+  /**
+   * Load the prompt from a file.
+   * @param filePath The path to the file to load the prompt from.
+   */
+  load(filePath: string): void;
+
+  /**
+   * Get all available stored versions of the prompt.
+   */
+  versions(): string[];
+
+  /**
+   * Move to a different version of the prompt.
+   * @param version The version to switch to.
+   */
+  switchVersion(version: string): void;
+
+  /**
+   * Check if the prompt was loaded from storage.
+   */
+  _isSaved(): boolean;
 
 }
+
 
 
 /**

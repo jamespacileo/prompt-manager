@@ -1,4 +1,4 @@
-import { generateObject } from 'ai';
+import { generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { PromptSchema } from '../schemas/prompts';
 import chalk from 'chalk';
@@ -20,6 +20,10 @@ export function prettyPrintPrompt(prompt: any): void {
 }
 
 export async function generatePromptWithAI(description: string): Promise<any> {
+  const {textStream} = await streamText({
+    model: openai("gpt-4o-mini"),
+    prompt: `Generate a prompt based on the following description: ${description}`,
+  })
   const { object } = await generateObject({
     model: openai("gpt-4o-mini"),
     schema: PromptSchema,

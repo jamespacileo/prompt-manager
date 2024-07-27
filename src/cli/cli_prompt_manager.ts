@@ -19,7 +19,7 @@ export class CLI implements PromptManagerCLI {
       name: promptName,
       category: options.category || category,
       version: '1.0.0',
-      content: options.content || '',
+      template: options.content || '',
       parameters: options.parameters || [],
       metadata: {
         description: options.description || '',
@@ -56,7 +56,7 @@ export class CLI implements PromptManagerCLI {
     description?: string;
   }): Promise<void> {
     await this.promptManager.updatePrompt(name, {
-      content: options.content,
+      template: options.content,
       parameters: options.parameters,
       // metadata: options.description ? {
       //   description: options.description,
