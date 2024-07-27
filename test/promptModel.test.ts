@@ -103,11 +103,11 @@ describe("PromptModel", () => {
   test("stream prompt", async () => {
     const prompt = new PromptModel(dummyPromptData, fileSystem);
     // Mock the stream method to avoid actual API calls
-    prompt.stream = async function* () {
-      yield "Mocked ";
-      yield "stream ";
-      yield "result";
-    };
+    // prompt.stream = async function* () {
+    //   yield "Mocked ";
+    //   yield "stream ";
+    //   yield "result";
+    // };
     const stream = await prompt.stream({ test: "streamed" });
     let result = "";
     for await (const chunk of stream) {
