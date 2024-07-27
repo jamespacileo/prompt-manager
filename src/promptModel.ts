@@ -92,7 +92,6 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     // Process the prompt content if needed
   }
 
-
   private markAsLoadedFromStorage(): void {
     this.isLoadedFromStorage = true;
   }
