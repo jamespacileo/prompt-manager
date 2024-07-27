@@ -1,4 +1,4 @@
-import { IPromptModel, IPromptInput, IPromptOutput } from './types/interfaces';
+import { IPromptModel, IPromptInput, IPromptOutput, IAsyncIterableStream } from './types/interfaces';
 import { JSONSchema7 } from 'json-schema';
 import fs from 'fs/promises';
 import path from 'path';
@@ -99,9 +99,9 @@ export class PromptModel implements IPromptModel {
     inputs: IPromptInput,
     onData: (chunk: string) => void,
     onComplete: (result: IPromptOutput) => void
-  ): Promise<AsyncIterableStream<string>> {
+  ): Promise<IAsyncIterableStream<string>> {
     // Implement streaming logic
-    return {} as AsyncIterableStream<string>; // Placeholder
+    return {} as IAsyncIterableStream<string>; // Placeholder
   }
 
   async execute(inputs: IPromptInput): Promise<IPromptOutput> {

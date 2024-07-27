@@ -52,7 +52,7 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
   outputSchema: JSONSchema7;
 }
 
-type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
+type IAsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
 
 interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
 
@@ -135,7 +135,7 @@ interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
     inputs: IPromptInput,
     onData: (chunk: string) => void,
     onComplete: (result: IPromptOutput) => void
-  ): AsyncIterableStream<string>;
+  ): IAsyncIterableStream<string>;
 
   /**
    * Execute the prompt with the given inputs and return the output.
@@ -333,6 +333,7 @@ interface IPromptManagerLibrary {
 
 // Export the interfaces so they can be imported and used in other parts of the project
 export type {
+  IAsyncIterableStream,
   IPromptInput,
   IPromptOutput,
   IPrompt as Prompt,
