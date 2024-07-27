@@ -58,7 +58,7 @@ export class PromptModel implements IPromptModel {
     stopSequences: string[];
   } {
     return {
-      modelName: this.defaultModelName || 'default-model',
+      modelName: this.defaultModelName || 'gpt-3.5-turbo',
       temperature: 0.7,
       maxTokens: 100,
       topP: 1,
@@ -189,7 +189,7 @@ export class PromptModel implements IPromptModel {
 
   static async listPrompts(category?: string, fileSystem?: PromptFileSystem): Promise<string[]> {
     if (!fileSystem) {
-      throw new Error("FileSystem is required for listing prompts");
+      fileSystem = new PromptFileSystem();
     }
     return fileSystem.listPrompts({ category });
   }

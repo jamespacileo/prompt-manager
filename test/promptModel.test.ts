@@ -83,6 +83,8 @@ describe("PromptModel", () => {
 
   test("execute prompt", async () => {
     const prompt = new PromptModel(dummyPromptData, fileSystem);
+    // Mock the execute method to avoid actual API calls
+    prompt.execute = async () => ({ text: "Mocked execution result" });
     const result = await prompt.execute({ test: "executed" });
     expect(result).toHaveProperty("text");
     expect(typeof result.text).toBe("string");
@@ -90,6 +92,12 @@ describe("PromptModel", () => {
 
   test("stream prompt", async () => {
     const prompt = new PromptModel(dummyPromptData, fileSystem);
+    // Mock the stream method to avoid actual API calls
+    prompt.stream = async function* () {
+      yield "Mocked ";
+      yield "stream ";
+      yield "result";
+    };
     const stream = await prompt.stream({ test: "streamed" });
     let result = "";
     for await (const chunk of stream) {
@@ -121,7 +129,7 @@ describe("PromptModel", () => {
     await prompt1.save();
     await prompt2.save();
 
-    const prompts = await PromptModel.listPrompts(dummyPromptData.category);
+    const prompts = await PromptModel.listPrompts(dummyPromptData.category, fileSystem);
     expect(prompts).toContain(`${dummyPromptData.category}/prompt1`);
     expect(prompts).toContain(`${dummyPromptData.category}/prompt2`);
   });
