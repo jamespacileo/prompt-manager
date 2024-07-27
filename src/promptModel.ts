@@ -1,12 +1,12 @@
 import { IPromptModel, IPromptInput, IPromptOutput, IAsyncIterableStream } from './types/interfaces';
 import { JSONSchema7 } from 'json-schema';
-import fs from 'fs/promises';
-import path from 'path';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { PromptFileSystem } from './promptFileSystem';
 
-export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_promptExists' | '_getFilePath'> {
+export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_promptExists'> {
+  private static fileSystem: PromptFileSystem;
   name: string = '';
   category: string = '';
   description: string = '';
@@ -44,19 +44,22 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
       stopSequences: []
     };
 
-  constructor(promptData: Partial<PromptModel>) {
+  constructor(promptData: Partial<PromptModel>, private fileSystem: PromptFileSystem) {
     Object.assign(this, promptData);
-    this._initializeConfiguration();
+    this.initializeConfiguration();
   }
 
   private isLoadedFromStorage: boolean = false;
 
+  static setFileSystem(basePath: string): void {
+    PromptModel.fileSystem = new PromptFileSystem(basePath);
+  }
+
   static async loadPromptByName(name: string): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
-    const filePath = this._getFilePath(category, promptName);
-    const promptData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
-    const prompt = new PromptModel(promptData);
-    prompt._markAsLoadedFromStorage();
+    const promptData = await PromptModel.fileSystem.loadPrompt(category, promptName);
+    const prompt = new PromptModel(promptData, PromptModel.fileSystem);
+    prompt.markAsLoadedFromStorage();
     return prompt;
   }
 
@@ -67,25 +70,15 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   validateOutput(output: IPromptOutput): boolean {
     // Implement output validation logic using this.outputSchema
-    return true; //
+    return true; // Placeholder
   }
 
-  static async _promptExists(name: string): Promise<boolean> {
+  static async promptExists(name: string): Promise<boolean> {
     const [category, promptName] = name.split('/');
-    const filePath = this._getFilePath(category, promptName);
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
+    return PromptModel.fileSystem.promptExists(category, promptName);
   }
 
-  static _getFilePath(category: string, promptName: string): string {
-    return path.join(process.cwd(), 'prompts', category, `${promptName}.json`);
-  }
-
-  _initializeConfiguration(): void {
+  private initializeConfiguration(): void {
     // Initialize configuration based on prompt settings and project config
     this.configuration = {
       modelName: this.defaultModelName || 'default-model',
@@ -103,7 +96,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   }
 
 
-  _markAsLoadedFromStorage(): void {
+  private markAsLoadedFromStorage(): void {
     this.isLoadedFromStorage = true;
   }
 
@@ -169,26 +162,31 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   }
 
   async save(): Promise<void> {
-    const filePath = PromptModel._getFilePath(this.category, this.name);
-    await fs.writeFile(filePath, JSON.stringify(this, null, 2));
-    this._markAsLoadedFromStorage();
+    await this.fileSystem.savePrompt(this);
+    this.markAsLoadedFromStorage();
   }
 
-  async load(filePath: string): Promise<void> {
-    const promptData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+  async load(category: string, promptName: string): Promise<void> {
+    const promptData = await this.fileSystem.loadPrompt(category, promptName);
     Object.assign(this, promptData);
-    this._markAsLoadedFromStorage();
+    this.markAsLoadedFromStorage();
   }
 
-  versions(): string[] {
-    return [this.version]; // Placeholder, implement version tracking if needed
+  async versions(): Promise<string[]> {
+    return this.fileSystem.getVersions(this.category, this.name);
   }
 
-  switchVersion(version: string): void {
+  async switchVersion(version: string): Promise<void> {
     // Implement version switching logic
+    // This is a placeholder and should be implemented based on your versioning strategy
+    console.log(`Switching to version ${version}`);
   }
 
-  _isSaved(): boolean {
+  isSaved(): boolean {
     return this.isLoadedFromStorage;
+  }
+
+  static async listPrompts(category?: string): Promise<string[]> {
+    return PromptModel.fileSystem.listPrompts(category);
   }
 }
