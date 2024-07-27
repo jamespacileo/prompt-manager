@@ -20,7 +20,7 @@ export class PromptManagerClientGenerator {
 
     for (const category of categories) {
       const prompts = await this.promptFileSystem.listPrompts({ category });
-      clientCode += this.generateCategoryCode(category, prompts);
+      clientCode += this.generateCategoryCode(category, prompts.map(p => p.name));
     }
 
     clientCode += this.generateClientFooter();
@@ -96,7 +96,7 @@ export class GeneratedPromptManager implements IPromptManagerLibrary {
 
     for (const category of categories) {
       const prompts = await this.promptFileSystem.listPrompts({ category });
-      clientCode += this.generateCategoryCode(category, prompts);
+      clientCode += this.generateCategoryCode(category, prompts.map(p => p.name));
     }
 
     clientCode += this.generateClientFooter();
