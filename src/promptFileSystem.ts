@@ -102,15 +102,14 @@ export class PromptFileSystem implements IPromptFileSystem {
     return entries.filter(entry => entry.isDirectory()).map(entry => entry.name);
   }
 
-  async searchPrompts(props: { query: string }): Promise<Array<{ category: string; name: string }>> {
+  async searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>> {
     const { query } = props;
     const allPrompts = await this.listPrompts();
-    return allPrompts
-      .filter(prompt => prompt.toLowerCase().includes(query.toLowerCase()))
-      .map(prompt => {
-        const [category, name] = prompt.split('/');
-        return { category, name };
-      });
+    return allPrompts.filter(prompt => 
+      prompt.name.toLowerCase().includes(query.toLowerCase()) ||
+      prompt.category.toLowerCase().includes(query.toLowerCase()) ||
+      prompt.relativeFilePath.toLowerCase().includes(query.toLowerCase())
+    );
   }
 
   async searchCategories(props: { query: string }): Promise<string[]> {
