@@ -426,3 +426,8 @@ export type {
   IPromptFileSystem,
   IPromptProjectConfigManager
 };
+
+export interface IPromptManagerClientGenerator {
+  generateClient(): Promise<void>;
+  detectChanges(): Promise<boolean>;
+}
