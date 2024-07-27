@@ -1,23 +1,22 @@
-import { IPromptModel, IPromptInput, IPromptOutput, IAsyncIterableStream } from './types/interfaces';
+import { IPromptModel, IPromptModelRequired, IPromptModelStatic, IPromptInput, IPromptOutput, IAsyncIterableStream } from './types/interfaces';
 import { JSONSchema7 } from 'json-schema';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { PromptFileSystem } from './promptFileSystem';
-import path from 'path';
 
-export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_promptExists'> {
-  name: string = '';
-  category: string = '';
-  description: string = '';
-  version: string = '';
-  template: string = '';
-  parameters: string[] = [];
-  defaultModelName?: string | undefined;
+export class PromptModel implements IPromptModel {
+  name: string;
+  category: string;
+  description: string;
+  version: string;
+  template: string;
+  parameters: string[];
+  defaultModelName?: string;
   metadata: {
     created: string;
     lastModified: string;
-  } = { created: '', lastModified: '' };
+  };
   configuration: {
     modelName: string;
     temperature: number;
@@ -26,37 +25,38 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     frequencyPenalty: number;
     presencePenalty: number;
     stopSequences: string[];
-  } = {
-      modelName: '',
-      temperature: 0,
-      maxTokens: 0,
-      topP: 0,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      stopSequences: []
-    };
-  isLoadedFromStorage: boolean = false;
-  outputType: 'structured' | 'plain' = 'plain';
+  };
+  outputType: 'structured' | 'plain';
   inputSchema: JSONSchema7;
-
+  outputSchema: JSONSchema7;
+  fileSystem: PromptFileSystem;
   _isSaved: boolean = false;
-  public get isSaved(): boolean {
-    return this._isSaved;
-  }
 
-
-  constructor(promptData: Partial<PromptModel>, private fileSystem: PromptFileSystem) {
-    Object.assign(this, promptData);
+  constructor(promptData: IPromptModelRequired, fileSystem: PromptFileSystem) {
+    this.name = promptData.name;
+    this.category = promptData.category;
+    this.description = promptData.description;
+    this.template = promptData.template;
+    this.parameters = promptData.parameters;
+    this.inputSchema = promptData.inputSchema;
+    this.outputSchema = promptData.outputSchema;
     this.fileSystem = fileSystem;
+    this.version = '1.0.0';
+    this.metadata = { created: new Date().toISOString(), lastModified: new Date().toISOString() };
+    this.outputType = 'plain';
     this.initializeConfiguration();
   }
 
-  static async loadPromptByName(name: string, fileSystem: PromptFileSystem): Promise<PromptModel> {
-    const [category, promptName] = name.split('/');
-    const promptData = await fileSystem.loadPrompt({ category, promptName });
-    const prompt = new PromptModel(promptData as Partial<PromptModel>, fileSystem);
-    prompt.markAsLoadedFromStorage();
-    return prompt;
+  private initializeConfiguration(): void {
+    this.configuration = {
+      modelName: this.defaultModelName || 'default-model',
+      temperature: 0.7,
+      maxTokens: 100,
+      topP: 1,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      stopSequences: [],
+    };
   }
 
   validateInput(input: IPromptInput): boolean {
@@ -69,33 +69,6 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     return true; // Placeholder
   }
 
-  static async promptExists(name: string, fileSystem: PromptFileSystem): Promise<boolean> {
-    const [category, promptName] = name.split('/');
-    return fileSystem.promptExists({ category, promptName });
-  }
-
-  private initializeConfiguration(): void {
-    // Initialize configuration based on prompt settings and project config
-
-    this.configuration = {
-      modelName: this.defaultModelName || 'default-model',
-      temperature: 0.7,
-      maxTokens: 100,
-      topP: 1,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      stopSequences: [],
-    };
-  }
-
-  _processContent(): void {
-    // Process the prompt content if needed
-  }
-
-  private markAsLoadedFromStorage(): void {
-    this.isLoadedFromStorage = true;
-  }
-
   format(inputs: IPromptInput): string {
     let formattedContent = this.template;
     for (const [key, value] of Object.entries(inputs)) {
@@ -104,9 +77,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     return formattedContent;
   }
 
-  async stream(
-    inputs: IPromptInput
-  ): Promise<IAsyncIterableStream<string>> {
+  async stream(inputs: IPromptInput): Promise<IAsyncIterableStream<string>> {
     const formattedPrompt = this.format(inputs);
     const { textStream } = await streamText({
       model: openai(this.configuration.modelName),
@@ -151,9 +122,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   updateMetadata(props: { metadata: Partial<IPromptModel['metadata']> }): void {
     this.metadata = { ...this.metadata, ...props.metadata };
-    if (!this.version) {
-      this.version = '1.0.0';
-    }
+    this.metadata.lastModified = new Date().toISOString();
   }
 
   getSummary(): string {
@@ -162,21 +131,21 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   async save(): Promise<void> {
     await this.fileSystem.savePrompt({ promptData: this });
-    this.markAsLoadedFromStorage();
+    this._isSaved = true;
   }
 
-  get inputZodSchema(): ZodObject<IPromptInput> {
-    return z.object(this.inputSchema as any);
+  get inputZodSchema(): z.ZodObject<IPromptInput> {
+    return z.object(this.inputSchema as z.ZodRawShape);
   }
 
-  get outputZodSchema(): ZodObject<IPromptOutput> {
-    return z.object(this.outputSchema as any);
+  get outputZodSchema(): z.ZodObject<IPromptOutput> {
+    return z.object(this.outputSchema as z.ZodRawShape);
   }
 
   async load(props: { filePath: string }): Promise<void> {
     const promptData = await this.fileSystem.loadPrompt({ category: this.category, promptName: this.name });
     Object.assign(this, promptData);
-    this.markAsLoadedFromStorage();
+    this._isSaved = true;
   }
 
   versions(): string[] {
@@ -191,6 +160,20 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     console.log(`Switching to version ${props.version}`);
   }
 
+  get isSaved(): boolean {
+    return this._isSaved;
+  }
+
+  static async loadPromptByName(name: string, fileSystem: PromptFileSystem): Promise<PromptModel> {
+    const [category, promptName] = name.split('/');
+    const promptData = await fileSystem.loadPrompt({ category, promptName });
+    return new PromptModel(promptData as IPromptModelRequired, fileSystem);
+  }
+
+  static async promptExists(name: string, fileSystem: PromptFileSystem): Promise<boolean> {
+    const [category, promptName] = name.split('/');
+    return fileSystem.promptExists({ category, promptName });
+  }
 
   static async listPrompts(category?: string, fileSystem?: PromptFileSystem): Promise<string[]> {
     if (!fileSystem) {

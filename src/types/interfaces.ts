@@ -55,14 +55,23 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
 
 type IAsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
 
-export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
+export interface IPromptModelRequired {
+  name: string;
+  category: string;
+  description: string;
+  template: string;
+  parameters: string[];
+  inputSchema: JSONSchema7;
+  outputSchema: JSONSchema7;
+}
 
-  /**
-   * Configuration for the prompt to be run with the model.
-   * This is generated when loading a prompt, it is generated based on prompt config fields and user project
-   * configuration. eg modelName would be affected by the prompts config for preferred model and
-   * the model preferences in the project settings.
-   */
+export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput>, IPromptModelRequired {
+  version: string;
+  defaultModelName?: string;
+  metadata: {
+    created: string;
+    lastModified: string;
+  };
   configuration: {
     modelName: string;
     temperature: number;
@@ -71,125 +80,31 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
     frequencyPenalty: number;
     presencePenalty: number;
     stopSequences: string[];
-  }
-
-  fileSystem?: IPromptFileSystem;
+  };
+  outputType: 'structured' | 'plain';
+  fileSystem: IPromptFileSystem;
   _isSaved: boolean;
 
-  // Static methods
-  /**
-   * Load a prompt by its name.
-   * @param props An object containing the name of the prompt to load.
-   */
-  loadPromptByName(props: { name: string }): IPromptModel;
-
-  /**
-   * Validate the input against the prompt's input schema.
-   * @param props An object containing the input to validate.
-   */
-  validateInput(props: { input: IPromptInput }): boolean;
-
-  /**
-   * Validate the output against the prompt's output schema.
-   * @param props An object containing the output to validate.
-   */
-  validateOutput(props: { output: IPromptOutput }): boolean;
-
-  /**
-   * Check if a prompt with the given name already exists in storage.
-   * @param props An object containing the name of the prompt to check.
-   */
-  _promptExists(props: { name: string }): boolean;
-
-  // Private methods
-  /**
-   * Private method to initialize the prompt configuration.
-   */
-  _initializeConfiguration(): void;
-
-  /**
-   * Private method to process the prompt content.
-   */
-  _processContent(): void;
-
-  /**
-   * Private method to get the file path for the prompt.
-   */
-  _getFilePath(): string;
-
-  /**
-   * Private method to mark the prompt as loaded from storage.
-   */
-  _markAsLoadedFromStorage(): void;
-
-  // Public methods
-
-  /**
-   * Generate and get the zod schema for the inputs of the prompt, used for validation.
-   */
-  get inputZodSchema(): ZodObject<IPromptInput>;
-
-  /**
-   * Generate and get the zod schema for the outputs of the prompt, used for validation.
-   */
-  get outputZodSchema(): ZodObject<IPromptOutput>;
-
-  /**
-   * Format the template with given inputs.
-   * @param props An object containing the inputs to format the template with.
-   */
-  format(props: { inputs: IPromptInput }): string;
-
-  /**
-   * Submit a request to AI and stream the response.
-   * @param props An object containing the inputs for the AI request.
-   */
-  stream(props: { inputs: IPromptInput }): Promise<IAsyncIterableStream<string>>;
-
-  /**
-   * Execute the prompt with the given inputs and return the output.
-   * @param props An object containing the inputs for the prompt.
-   */
-  execute(props: { inputs: IPromptInput }): Promise<IPromptOutput>;
-
-  /**
-   * Update the metadata for the prompt.
-   * @param props An object containing the new metadata for the prompt.
-   */
+  validateInput(input: IPromptInput): boolean;
+  validateOutput(output: IPromptOutput): boolean;
+  format(inputs: IPromptInput): string;
+  stream(inputs: IPromptInput): Promise<IAsyncIterableStream<string>>;
+  execute(inputs: IPromptInput): Promise<IPromptOutput>;
   updateMetadata(props: { metadata: Partial<IPromptModel['metadata']> }): void;
-
-  /**
-   * Get a summary of the prompt.
-   */
   getSummary(): string;
-
-  /**
-   * Save the prompt to a file.
-   */
-  save(): void;
-
-  /**
-   * Load the prompt from a file.
-   * @param props An object containing the file path to load the prompt from.
-   */
-  load(props: { filePath: string }): void;
-
-  /**
-   * Get all available stored versions of the prompt.
-   */
+  save(): Promise<void>;
+  load(props: { filePath: string }): Promise<void>;
   versions(): string[];
-
-  /**
-   * Move to a different version of the prompt.
-   * @param props An object containing the version to switch to.
-   */
   switchVersion(props: { version: string }): void;
-
-  /**
-   * Check if the prompt was loaded from storage.
-   */
   get isSaved(): boolean;
+  get inputZodSchema(): ZodObject<IPromptInput>;
+  get outputZodSchema(): ZodObject<IPromptOutput>;
+}
 
+export interface IPromptModelStatic {
+  loadPromptByName(name: string, fileSystem: IPromptFileSystem): Promise<IPromptModel>;
+  promptExists(name: string, fileSystem: IPromptFileSystem): Promise<boolean>;
+  listPrompts(category?: string, fileSystem?: IPromptFileSystem): Promise<string[]>;
 }
 
 
