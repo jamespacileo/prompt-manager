@@ -11,7 +11,7 @@ export class PromptManagerClientGenerator {
   constructor(configManager: IPromptProjectConfigManager) {
     this.configManager = configManager;
     this.promptFileSystem = new PromptFileSystem();
-    this.outputPath = path.join(this.configManager.getConfig('promptsDir'), '..', 'generatedPromptManager.ts');
+    this.outputPath = path.join(this.configManager.getConfig('promptsDir'), '..', 'client.ts');
   }
 
   async generateClient(): Promise<void> {
@@ -31,12 +31,13 @@ export class PromptManagerClientGenerator {
   private generateClientHeader(): string {
     return `
 import { IPromptManagerLibrary, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
+import { PromptFileSystem } from './promptFileSystem';
 
-export class GeneratedPromptManager implements IPromptManagerLibrary {
-  private promptFileSystem: any;
+export class PromptManagerClient implements IPromptManagerLibrary {
+  private promptFileSystem: PromptFileSystem;
 
-  constructor(promptFileSystem: any) {
-    this.promptFileSystem = promptFileSystem;
+  constructor() {
+    this.promptFileSystem = new PromptFileSystem();
   }
 
   async initialize(): Promise<void> {
@@ -49,7 +50,11 @@ export class GeneratedPromptManager implements IPromptManagerLibrary {
 
   // Implement other IPromptManagerLibrary methods here
 
-  categories = {
+  categories: Record<string, Record<string, {
+    raw: () => Promise<string>;
+    version: () => Promise<string>;
+    format: (inputs: Record<string, any>) => Promise<string>;
+  }>> = {
 `;
   }
 
@@ -59,9 +64,9 @@ export class GeneratedPromptManager implements IPromptManagerLibrary {
       categoryCode += `      ${prompt}: {\n`;
       categoryCode += `        raw: async () => (await this.getPrompt({ category: '${category}', name: '${prompt}' })).template,\n`;
       categoryCode += `        version: async () => (await this.getPrompt({ category: '${category}', name: '${prompt}' })).version,\n`;
-      categoryCode += `        format: async (inputs: any) => {\n`;
+      categoryCode += `        format: async (inputs: Record<string, any>) => {\n`;
       categoryCode += `          const prompt = await this.getPrompt({ category: '${category}', name: '${prompt}' });\n`;
-      categoryCode += `          return prompt.template.replace(/\\{(\\w+)\\}/g, (_, key) => inputs[key] || '');\n`;
+      categoryCode += `          return prompt.template.replace(/\\{(\\w+)\\}/g, (_, key) => inputs[key] ?? '');\n`;
       categoryCode += `        },\n`;
       categoryCode += `      },\n`;
     }
@@ -72,6 +77,8 @@ export class GeneratedPromptManager implements IPromptManagerLibrary {
   private generateClientFooter(): string {
     return `  };
 }
+
+export const promptManager = new PromptManagerClient();
 `;
   }
 
