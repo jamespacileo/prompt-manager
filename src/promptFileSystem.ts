@@ -71,7 +71,7 @@ export class PromptFileSystem implements IPromptFileSystem {
     const prompts: Array<{ name: string; category: string; relativeFilePath: string }> = [];
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        const promptJsonPath = path.join(searchPath, entry.name, 'prompt.json');
+        const promptJsonPath = path.join(searchPath, entry.name, PROMPT_FILENAME);
         try {
           await fs.access(promptJsonPath);
           const currentCategory = category || entry.name;
@@ -79,7 +79,7 @@ export class PromptFileSystem implements IPromptFileSystem {
           prompts.push({
             name: entry.name,
             category: currentCategory,
-            relativeFilePath: relativePath + '/' + PROMPT_FILENAME
+            relativeFilePath: `${relativePath}/${PROMPT_FILENAME}`
           });
         } catch {
           // If prompt.json doesn't exist, skip this directory
