@@ -396,9 +396,9 @@ export type {
   IAsyncIterableStream,
   IPromptInput,
   IPromptOutput,
-  IPrompt as Prompt,
-  IPromptManagerCLI as PromptManagerCLI,
-  IPromptCategory as PromptCategory,
-  IPromptManagerLibrary as PromptManagerLibrary,
+  IPrompt,
+  IPromptManagerCLI,
+  IPromptCategory,
+  IPromptManagerLibrary,
   IPromptFileSystem
 };
