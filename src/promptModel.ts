@@ -11,8 +11,8 @@ import { PROMPT_FILENAME, PromptFileSystem } from './promptFileSystem';
  * including validation, formatting, and execution.
  */
 export class PromptModel<
-  TInput extends IPromptInput<any> = IPromptInput<any>,
-  TOutput extends IPromptOutput<any> = IPromptOutput<any>
+  TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
+  TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > implements IPromptModel<TInput, TOutput> {
   name: string;
   category: string;
@@ -125,7 +125,7 @@ export class PromptModel<
    * @param inputs The input values for the prompt
    * @returns An async iterable stream of the generated text
    */
-  async stream(inputs: IPromptInput): Promise<IAsyncIterableStream<string>> {
+  async stream(inputs: TInput): Promise<IAsyncIterableStream<string>> {
     const formattedPrompt = this.format(inputs);
     const { textStream } = await streamText({
       model: openai(this.configuration.modelName),
@@ -146,7 +146,7 @@ export class PromptModel<
    * @param inputs The input values for the prompt
    * @returns The execution result, either structured or plain text
    */
-  async execute(inputs: IPromptInput): Promise<IPromptOutput> {
+  async execute(inputs: TInput): Promise<IPromptOutput> {
     if (this.outputType === 'structured') {
       const formattedPrompt = this.format(inputs);
       const schema = z.object(this.outputSchema as z.ZodRawShape);

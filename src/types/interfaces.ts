@@ -12,13 +12,13 @@ import { ZodObject } from 'zod';
  * information about the purpose and usage of each interface and type.
  */
 
-type IPromptInput = Record<string, any>;
-type IPromptOutput = Record<string, any>;
+type IPromptInput<T extends Record<string, any> = Record<string, any>> = T;
+type IPromptOutput<T extends Record<string, any> = Record<string, any>> = T;
 
 /**
  * Represents the structure of a single prompt.
  */
-interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPromptOutput> {
+interface IPrompt<PromptInput extends IPromptInput<any>, PromptOutput extends IPromptOutput<any>> {
   /** Unique identifier for the prompt */
   name: string;
   /** Category the prompt belongs to */
@@ -70,7 +70,10 @@ export interface IPromptModelRequired {
   };
 }
 
-export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput>, IPromptModelRequired {
+export interface IPromptModel<
+  TInput extends IPromptInput<any> = IPromptInput<any>,
+  TOutput extends IPromptOutput<any> = IPromptOutput<any>
+> extends IPrompt<TInput, TOutput>, IPromptModelRequired {
   version: string;
   defaultModelName?: string;
   metadata: {
@@ -90,11 +93,11 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput>, IPro
   fileSystem: IPromptFileSystem;
   _isSaved: boolean;
 
-  validateInput(input: IPromptInput): boolean;
-  validateOutput(output: IPromptOutput): boolean;
-  format(inputs: IPromptInput): string;
-  stream(inputs: IPromptInput): Promise<IAsyncIterableStream<string>>;
-  execute(inputs: IPromptInput): Promise<IPromptOutput>;
+  validateInput(input: TInput): boolean;
+  validateOutput(output: TOutput): boolean;
+  format(inputs: TInput): string;
+  stream(inputs: TInput): Promise<IAsyncIterableStream<string>>;
+  execute(inputs: TInput): Promise<TOutput>;
   updateMetadata(props: { metadata: Partial<IPromptModel['metadata']> }): void;
   getSummary(): string;
   save(): Promise<void>;
