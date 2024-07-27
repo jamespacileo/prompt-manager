@@ -85,7 +85,18 @@ program
       if (prompts.length === 0) {
         log.warn('No prompts found. Use the "create" command to add new prompts.');
       } else {
-        prompts.forEach((prompt, index) => log.info(`${index + 1}. ${prompt}`));
+        const selectedPrompt = await select({
+          message: 'Select a prompt to view details:',
+          choices: prompts.map((prompt, index) => ({
+            name: `${index + 1}. ${prompt}`,
+            value: prompt,
+          })),
+        });
+        const promptDetails = await getPromptDetails(selectedPrompt);
+        log.info('\nPrompt Details:');
+        Object.entries(promptDetails).forEach(([key, value]) => {
+          log.info(`${key}: ${value}`);
+        });
       }
     } catch (error) {
       log.error('Failed to list prompts:');
@@ -98,10 +109,22 @@ program
   .description('Update an existing prompt')
   .action(async (name: string) => {
     log.title(`Updating prompt: ${name}`);
-    log.info('You can update the content of the prompt. Other fields can be updated in future versions.');
+    log.info('You can update various aspects of the prompt.');
 
     try {
-      await updatePrompt(name, {});
+      const promptDetails = await getPromptDetails(name);
+      log.info('Current prompt details:');
+      Object.entries(promptDetails).forEach(([key, value]) => {
+        log.info(`${key}: ${value}`);
+      });
+
+      const updateField = await select({
+        message: 'Select a field to update:',
+        choices: Object.keys(promptDetails).map(field => ({ name: field, value: field })),
+      });
+
+      const newValue = await input({ message: `Enter new value for ${updateField}:` });
+      await updatePrompt(name, { [updateField]: newValue });
       log.success(`Prompt "${name}" updated successfully.`);
       log.info('The new content has been saved and is ready to use.');
     } catch (error) {
@@ -118,9 +141,22 @@ program
     log.info('This command will create type definitions based on your current prompts.');
 
     try {
+      const shouldProceed = await confirm({ message: 'This action will overwrite existing type definitions. Continue?' });
+      if (!shouldProceed) {
+        log.info('Type generation cancelled.');
+        return;
+      }
+
       await generateTypes();
       log.success('Type definitions generated successfully.');
       log.info('You can now use these types in your TypeScript projects for better type safety and autocompletion.');
+      
+      const viewTypes = await confirm({ message: 'Would you like to view the generated types?' });
+      if (viewTypes) {
+        const types = await getGeneratedTypes();
+        log.info('\nGenerated Types:');
+        console.log(types);
+      }
     } catch (error) {
       log.error('Failed to generate type definitions:');
       console.error(error);
@@ -151,6 +187,18 @@ program
       if (status.warnings.length > 0) {
         log.warn('\nWarnings:');
         status.warnings.forEach(warning => log.warn(`  - ${warning}`));
+      }
+
+      const showDetails = await confirm({ message: 'Would you like to see detailed prompt information?' });
+      if (showDetails) {
+        const detailedStatus = await getDetailedStatus();
+        log.info('\nDetailed Prompt Information:');
+        detailedStatus.forEach(prompt => {
+          log.info(`\n${prompt.category}/${prompt.name}:`);
+          log.info(`  Version: ${prompt.version}`);
+          log.info(`  Parameters: ${prompt.parameters.join(', ')}`);
+          log.info(`  Last Modified: ${prompt.metadata.lastModified}`);
+        });
       }
     } catch (error) {
       log.error('Failed to retrieve status:');

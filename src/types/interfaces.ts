@@ -28,10 +28,10 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
   content: string;
   /** List of parameter names expected by the prompt */
   parameters: string[];
+  /** Brief description of the prompt's purpose */
+  description: string;
   /** Metadata associated with the prompt */
-  metadata: {
-    /** Brief description of the prompt's purpose */
-    description: string;
+  metadata?: {
     /** Timestamp of when the prompt was created */
     created: string;
     /** Timestamp of the last modification */
@@ -53,9 +53,35 @@ interface IPrompt<PromptInput extends IPromptInput, PromptOutput extends IPrompt
   inputSchema: JSONSchema7;
   /** Type of output expected by the prompt */
   outputSchema: JSONSchema7;
-  /** Function to format the prompt with given inputs */
-  format: (inputs: PromptInput) => string;
 }
+
+interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
+
+  /**
+   * Configuration for the prompt to be run with the model.
+   * This is generated when loading a prompt, it is generated based on prompt config fields and user project
+   * configuration. eg modelName would be affected by the prompts config for preferred model and
+   * the model preferences in the project settings.
+   */
+  configuration: {
+    modelName: string;
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    frequencyPenalty: number;
+    presencePenalty: number;
+    stopSequences: string[];
+  }
+
+  // format the template
+  format: (inputs: IPromptInput) => string;
+
+  // Submit a request to ai and stream the response
+  streamResponse: 
+
+
+}
+
 
 /**
  * Defines the structure and behavior of the Prompt Manager CLI.
