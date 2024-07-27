@@ -8,7 +8,10 @@ import { PROMPT_FILENAME, PromptFileSystem } from './promptFileSystem';
 /**
  * Represents a single prompt model with all its properties and methods.
  */
-export class PromptModel implements IPromptModel {
+export class PromptModel<
+  TInput extends IPromptInput<any> = IPromptInput<any>,
+  TOutput extends IPromptOutput<any> = IPromptOutput<any>
+> implements IPromptModel<TInput, TOutput> {
   name: string;
   category: string;
   description: string;
