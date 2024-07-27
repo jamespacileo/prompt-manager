@@ -2,7 +2,7 @@ import { IPromptModel, IPromptInput, IPromptOutput, IAsyncIterableStream } from 
 import { JSONSchema7 } from 'json-schema';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { z, ZodObject } from 'zod';
+import { z } from 'zod';
 import { PromptFileSystem } from './promptFileSystem';
 
 export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_promptExists'> {
@@ -36,7 +36,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     };
   isLoadedFromStorage: boolean = false;
   outputType: 'structured' | 'plain' = 'plain';
-  inputSchema: JSONSchema7;x
+  inputSchema: JSONSchema7;
 
   _isSaved: boolean = false;
   public get isSaved(): boolean {

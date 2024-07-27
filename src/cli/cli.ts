@@ -6,6 +6,11 @@ import chalk from 'chalk';
 import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus } from './commands.js';
 import fs from 'fs-extra';
 import path from 'path';
+import { TextEncoder, TextDecoder } from 'text-encoding';
+
+// Add TextEncoder and TextDecoder to the global object
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
 
 const log = {
   info: (message: string) => console.log(chalk.blue(message)),

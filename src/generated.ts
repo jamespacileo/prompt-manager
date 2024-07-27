@@ -1,9 +1,9 @@
-import { Prompt } from './types/interfaces';
+import { IPrompt } from './types/interfaces';
 
 
 export interface PromptManagerBase {
   [category: string]: {
-    [prompt: string]: Prompt<any, any>;
+    [prompt: string]: IPrompt<any, any>;
   };
 }
 

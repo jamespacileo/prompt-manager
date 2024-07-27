@@ -46,11 +46,13 @@
     "@ai-sdk/openai": "^0.0.40",
     "@inquirer/prompts": "^5.3.2",
     "@types/json-schema": "^7.0.15",
+    "@types/text-encoding": "^0.0.39",
     "ai": "^3.2.37",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "cosmiconfig": "^9.0.0",
     "fs-extra": "^11.2.0",
+    "text-encoding": "^0.7.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
-import { IPromptInput, IPromptOutput, PromptManagerCLI } from '../types/interfaces';
+import { IPromptInput, IPromptOutput, IPromptManagerCLI } from '../types/interfaces';
 import { PromptManager } from '../promptManager';
 
-export class CLI implements PromptManagerCLI {
+export class CLI implements IPromptManagerCLI {
   private promptManager: PromptManager;
 
   constructor(promptsPath: string) {

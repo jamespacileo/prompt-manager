@@ -1,12 +1,12 @@
 import fs from 'fs-extra';
 import path from 'path';
 
-import { Prompt, IPromptInput, IPromptOutput } from '../types/interfaces';
+import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
 
 export class PromptManagerBase {
-  private prompts: Record<string, Prompt<any, any>> = {};
+  private prompts: Record<string, IPrompt<any, any>> = {};
 
-  constructor(private promptsPath: string) {}
+  constructor(private promptsPath: string) { }
 
   async initialize(): Promise<void> {
     const promptFiles = await fs.readdir(this.promptsPath);
@@ -34,7 +34,7 @@ export class PromptManagerBase {
     }
   }
 
-  getPrompt(promptName: string): Prompt<IPromptInput, IPromptOutput> {
+  getPrompt(promptName: string): IPrompt<IPromptInput, IPromptOutput> {
     const prompt = this.prompts[promptName];
     if (!prompt) {
       throw new Error(`Prompt '${promptName}' not found`);

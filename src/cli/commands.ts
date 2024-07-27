@@ -37,6 +37,8 @@ export async function createPrompt() {
     }
   }
 
+  const manager = new PromptManager(config.promptsDir);
+  await manager.initialize();
   const prompt = new PromptModel({
     ...promptData,
     name: promptData.name || '',
@@ -51,8 +53,6 @@ export async function createPrompt() {
     },
   }, manager.getFileSystem());
 
-  const manager = new PromptManager(config.promptsDir);
-  await manager.initialize();
   await manager.createPrompt(prompt);
   console.log(`Prompt "${prompt.name}" created successfully.`);
 }

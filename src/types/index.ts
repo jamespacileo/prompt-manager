@@ -1,13 +1,13 @@
 import {
-  Prompt,
-  PromptManagerCLI,
-  PromptCategory,
-  PromptManagerLibrary
+  IPrompt,
+  IPromptManagerCLI,
+  IPromptCategory,
+  IPromptManagerLibrary
 } from './interfaces';
 
 export type {
-  Prompt,
-  PromptManagerCLI,
-  PromptCategory,
-  PromptManagerLibrary
+  IPrompt as Prompt,
+  IPromptManagerCLI as PromptManagerCLI,
+  IPromptCategory as PromptCategory,
+  IPromptManagerLibrary as PromptManagerLibrary
 };

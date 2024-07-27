@@ -1,4 +1,5 @@
 import type { JSONSchema7 } from 'json-schema';
+import { ZodObject } from 'zod';
 /**
  * This file contains the core interfaces for the Prompt Manager project.
  * It serves as a single source of truth for the expected behavior of both
@@ -73,6 +74,7 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
   }
 
   fileSystem?: IPromptFileSystem;
+  _isSaved: boolean;
 
   // Static methods
   /**
@@ -121,6 +123,17 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
   _markAsLoadedFromStorage(): void;
 
   // Public methods
+
+  /**
+   * Generate and get the zod schema for the inputs of the prompt, used for validation.
+   */
+  get inputZodSchema(): ZodObject<IPromptInput>;
+
+  /**
+   * Generate and get the zod schema for the outputs of the prompt, used for validation.
+   */
+  get outputZodSchema(): ZodObject<IPromptOutput>;
+
   /**
    * Format the template with given inputs.
    * @param props An object containing the inputs to format the template with.
@@ -175,7 +188,7 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
   /**
    * Check if the prompt was loaded from storage.
    */
-  _isSaved(): boolean;
+  get isSaved(): boolean;
 
 }
 

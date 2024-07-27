@@ -1,9 +1,10 @@
-import { PromptManagerLibrary, PromptCategory, IPromptInput, IPromptOutput } from './types/interfaces';
+import { IPromptManagerLibrary, IPromptCategory, IPromptInput, IPromptOutput } from './types/interfaces';
 import { PromptModel } from './promptModel';
 import fs from 'fs/promises';
 import path from 'path';
+import { PromptFileSystem } from './promptFileSystem';
 
-export class PromptManager implements PromptManagerLibrary {
+export class PromptManager implements IPromptManagerLibrary {
   private prompts: Record<string, Record<string, PromptModel>> = {};
   private promptsPath: string;
 
@@ -98,7 +99,7 @@ export class PromptManager implements PromptManagerLibrary {
     return prompt.format(params);
   }
 
-  get categories(): { [category: string]: PromptCategory<Record<string, PromptModel>> } {
+  get categories(): { [category: string]: IPromptCategory<Record<string, PromptModel>> } {
     return Object.fromEntries(
       Object.entries(this.prompts).map(([category, prompts]) => [
         category,
