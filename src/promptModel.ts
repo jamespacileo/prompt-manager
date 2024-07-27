@@ -31,8 +31,9 @@ export class PromptModel implements IPromptModel {
   outputSchema: JSONSchema7;
   fileSystem: PromptFileSystem;
   _isSaved: boolean = false;
+  isLoadedFromStorage: boolean = false;
 
-  constructor(promptData: IPromptModelRequired, fileSystem: PromptFileSystem) {
+  constructor(promptData: IPromptModelRequired, fileSystem?: PromptFileSystem) {
     this.name = promptData.name;
     this.category = promptData.category;
     this.description = promptData.description;
@@ -40,11 +41,10 @@ export class PromptModel implements IPromptModel {
     this.parameters = promptData.parameters;
     this.inputSchema = promptData.inputSchema;
     this.outputSchema = promptData.outputSchema;
-    this.fileSystem = fileSystem;
+    this.fileSystem = fileSystem ?? new PromptFileSystem();
     this.version = '1.0.0';
     this.metadata = { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = 'plain';
-    this.initializeConfiguration();
     this.configuration = this.initializeConfiguration();
   }
 
@@ -68,17 +68,6 @@ export class PromptModel implements IPromptModel {
     };
   }
 
-  private initializeConfiguration(): void {
-    this.configuration = {
-      modelName: this.defaultModelName || 'default-model',
-      temperature: 0.7,
-      maxTokens: 100,
-      topP: 1,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      stopSequences: [],
-    };
-  }
 
   validateInput(input: IPromptInput): boolean {
     // Implement input validation logic using this.inputSchema
@@ -188,7 +177,9 @@ export class PromptModel implements IPromptModel {
   static async loadPromptByName(name: string, fileSystem: PromptFileSystem): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
     const promptData = await fileSystem.loadPrompt({ category, promptName });
-    return new PromptModel(promptData as IPromptModelRequired, fileSystem);
+    const prompt = new PromptModel(promptData as IPromptModelRequired, fileSystem);
+    prompt.isLoadedFromStorage = true;
+    return prompt;
   }
 
   static async promptExists(name: string, fileSystem: PromptFileSystem): Promise<boolean> {

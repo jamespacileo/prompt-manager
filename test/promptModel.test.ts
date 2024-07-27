@@ -3,11 +3,12 @@ import { PromptModel } from "../src/promptModel";
 import { PromptFileSystem } from "../src/promptFileSystem";
 import fs from "fs/promises";
 import path from "path";
+import { IPromptModelRequired } from "../src/types/interfaces";
 
 const TEST_PROMPTS_PATH = path.join(process.cwd(), "test_prompts");
 
 // Dummy base objects for testing
-const dummyPromptData = {
+const dummyPromptData: Partial<PromptModel> & IPromptModelRequired = {
   name: "testPrompt",
   category: "testCategory",
   description: "A test prompt",
@@ -36,6 +37,13 @@ const dummyPromptData = {
     },
     required: ["test"],
   },
+  outputSchema: {
+    type: "object",
+    properties: {
+      text: { type: "string" },
+    },
+    required: ["text"],
+  },
 };
 
 describe("PromptModel", () => {
@@ -43,7 +51,7 @@ describe("PromptModel", () => {
 
   beforeAll(async () => {
     await fs.mkdir(TEST_PROMPTS_PATH, { recursive: true });
-    fileSystem = new PromptFileSystem(TEST_PROMPTS_PATH);
+    fileSystem = new PromptFileSystem();
   });
 
   afterAll(async () => {
