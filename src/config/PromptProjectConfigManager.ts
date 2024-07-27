@@ -6,6 +6,7 @@ import { CONFIG_FILE_NAME, DEFAULT_CONFIG, getConfigPath, getDefaultPromptsPath 
 
 const configSchema = z.object({
   promptsDir: z.string(),
+  outputDir: z.string(),
   preferredModels: z.array(z.string()),
   modelParams: z.record(z.object({
     temperature: z.number().optional(),
@@ -37,7 +38,7 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
    */
   constructor(configPath?: string) {
     this.configPath = configPath || getConfigPath();
-    this.config = { ...DEFAULT_CONFIG };
+    this.config = { ...DEFAULT_CONFIG, outputDir: '' };
   }
 
   /**
@@ -58,8 +59,9 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         // File doesn't exist, create a new one with default values
-        this.config = { ...DEFAULT_CONFIG };
+        this.config = { ...DEFAULT_CONFIG, outputDir: '' };
         this.config.promptsDir = getDefaultPromptsPath();
+        this.config.outputDir = path.join(path.dirname(this.configPath), 'output');
         await this.saveConfig();
       } else {
         throw new Error(`Failed to load configuration: ${error.message}`);
