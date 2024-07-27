@@ -1,5 +1,5 @@
 {
-  "promptsDir": ".prompts",
+  "promptsDir": "prompts",
   "preferredModels": ["gpt-4", "gpt-3.5-turbo"],
   "modelParams": {
     "gpt-4": {
@@ -16,5 +16,6 @@
       "frequencyPenalty": 0,
       "presencePenalty": 0
     }
-  }
+  },
+  "outputDir": "output"
 }
