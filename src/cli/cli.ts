@@ -136,7 +136,7 @@ program
       });
 
       const newValue = await input({ message: `Enter new value for ${updateField}:` });
-      await updatePrompt(name, { [updateField]: newValue });
+      await updatePrompt({ category: promptDetails.category!, name, updates: { [updateField]: newValue } });
       log.success(`Prompt "${name}" updated successfully.`);
       log.info('The new content has been saved and is ready to use.');
     } catch (error) {
