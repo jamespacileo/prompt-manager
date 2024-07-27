@@ -1,29 +1,23 @@
-import { IPromptManagerLibrary, IPromptCategory, IPromptInput, IPromptOutput } from './types/interfaces';
+import { IPromptManagerLibrary, IPromptCategory, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import { PromptModel } from './promptModel';
-import fs from 'fs/promises';
-import path from 'path';
 import { PromptFileSystem } from './promptFileSystem';
 
 export class PromptManager implements IPromptManagerLibrary {
   private prompts: Record<string, Record<string, PromptModel>> = {};
-  private promptsPath: string;
-
   private fileSystem: PromptFileSystem;
 
   constructor(promptsPath: string) {
-    this.promptsPath = promptsPath;
     this.fileSystem = new PromptFileSystem(promptsPath);
   }
 
   async initialize(): Promise<void> {
-    const categories = await this.fileSystem.listCategories();
-    for (const category of categories) {
-      this.prompts[category] = {};
-      const promptNames = await this.fileSystem.listPrompts(category);
-      for (const promptName of promptNames) {
-        const promptData = await this.fileSystem.loadPrompt(category, promptName);
-        this.prompts[category][promptName] = new PromptModel(promptData, this.fileSystem);
+    const prompts = await this.fileSystem.listPrompts();
+    for (const prompt of prompts) {
+      if (!this.prompts[prompt.category]) {
+        this.prompts[prompt.category] = {};
       }
+      const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
+      this.prompts[prompt.category][prompt.name] = new PromptModel(promptData);
     }
   }
 
@@ -34,72 +28,72 @@ export class PromptManager implements IPromptManagerLibrary {
     return this.prompts[category][name];
   }
 
-  async createPrompt(prompt: Omit<IPromptModelRequired, 'fileSystem'>): Promise<void> {
+  async createPrompt(prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'id'>): Promise<void> {
     if (!prompt.category || !prompt.name) {
       throw new Error('Prompt category and name are required');
     }
     if (!this.prompts[prompt.category]) {
       this.prompts[prompt.category] = {};
     }
-    const newPrompt = new PromptModel({ ...prompt, fileSystem: this.fileSystem });
+    const newPrompt = new PromptModel(prompt);
     this.prompts[prompt.category][prompt.name] = newPrompt;
-    await newPrompt.save();
+    await this.fileSystem.savePrompt({ promptData: newPrompt });
   }
 
-  async updatePrompt(name: string, updates: Partial<PromptModel>): Promise<void> {
-    const [category, promptName] = name.split('/');
+  async updatePrompt(props: { name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
+    const [category, promptName] = props.name.split('/');
     const prompt = this.getPrompt(category, promptName);
-    Object.assign(prompt, updates);
-    prompt.updateMetadata({ lastModified: new Date().toISOString() });
-    await prompt.save();
+    Object.assign(prompt, props.updates);
+    prompt.updateMetadata({ metadata: { lastModified: new Date().toISOString() } });
+    await this.fileSystem.savePrompt({ promptData: prompt });
   }
 
-  async deletePrompt(name: string): Promise<void> {
-    const [category, promptName] = name.split('/');
+  async deletePrompt(props: { name: string }): Promise<void> {
+    const [category, promptName] = props.name.split('/');
     if (!this.prompts[category] || !this.prompts[category][promptName]) {
-      throw new Error(`Prompt "${name}" does not exist`);
+      throw new Error(`Prompt "${props.name}" does not exist`);
     }
     delete this.prompts[category][promptName];
-    await this.fileSystem.deletePrompt(category, promptName);
+    await this.fileSystem.deletePrompt({ category, promptName });
   }
 
-  async listPrompts(category?: string): Promise<PromptModel[]> {
-    if (category) {
-      return Object.values(this.prompts[category] || {});
+  async listPrompts(props?: { category?: string }): Promise<IPrompt<IPromptInput, IPromptOutput>[]> {
+    if (props?.category) {
+      return Object.values(this.prompts[props.category] || {});
     }
     return Object.values(this.prompts).flatMap(categoryPrompts => Object.values(categoryPrompts));
   }
 
-  async versionPrompt(action: 'list' | 'create' | 'switch', name: string, version?: string): Promise<void> {
-    const [category, promptName] = name.split('/');
+  async versionPrompt(props: { action: 'list' | 'create' | 'switch'; name: string; version?: string }): Promise<void> {
+    const [category, promptName] = props.name.split('/');
     const prompt = this.getPrompt(category, promptName);
 
-    switch (action) {
+    switch (props.action) {
       case 'list':
         const versions = await prompt.versions();
-        console.log(`Versions for ${name}:`, versions);
+        console.log(`Versions for ${props.name}:`, versions);
         break;
       case 'create':
         const newVersion = this.incrementVersion(prompt.version);
         prompt.version = newVersion;
-        await prompt.save();
-        console.log(`Created new version ${newVersion} for ${name}`);
+        await this.fileSystem.savePrompt({ promptData: prompt });
+        console.log(`Created new version ${newVersion} for ${props.name}`);
         break;
       case 'switch':
         const availableVersions = await prompt.versions();
-        if (!version || !availableVersions.includes(version)) {
-          throw new Error(`Invalid version ${version} for ${name}`);
+        if (!props.version || !availableVersions.includes(props.version)) {
+          throw new Error(`Invalid version ${props.version} for ${props.name}`);
         }
-        await prompt.switchVersion(version);
-        await prompt.save();
-        console.log(`Switched ${name} to version ${version}`);
+        await prompt.switchVersion({ version: props.version });
+        await this.fileSystem.savePrompt({ promptData: prompt });
+        console.log(`Switched ${props.name} to version ${props.version}`);
         break;
     }
   }
 
-  formatPrompt(category: string, promptName: string, params: Record<string, any>): string {
-    const prompt = this.getPrompt(category, promptName);
-    return prompt.format(params);
+  formatPrompt(props: { category: string; promptName: string; params: Record<string, any> }): string {
+    const prompt = this.getPrompt(props.category, props.promptName);
+    return prompt.format(props.params);
   }
 
   get categories(): { [category: string]: IPromptCategory<Record<string, PromptModel>> } {
