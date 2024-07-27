@@ -59,8 +59,7 @@ describe("PromptModel", () => {
   afterEach(async () => {
     const prompts = await fileSystem.listPrompts({});
     for (const prompt of prompts) {
-      const [category, promptName] = prompt.split('/');
-      await fileSystem.deletePrompt({ category, promptName });
+      await fileSystem.deletePrompt({ category: prompt.category, promptName: prompt.name });
     }
   });
 
@@ -174,12 +173,12 @@ describe("PromptModel", () => {
     expect(prompts).toContainEqual({
       name: "prompt1",
       category: dummyPromptData.category,
-      relativeFilePath: `${dummyPromptData.category}/prompt1/prompt.json`
+      relativeFilePath: `${dummyPromptData.category}/prompt1`
     });
     expect(prompts).toContainEqual({
       name: "prompt2",
       category: dummyPromptData.category,
-      relativeFilePath: `${dummyPromptData.category}/prompt2/prompt.json`
+      relativeFilePath: `${dummyPromptData.category}/prompt2`
     });
   });
 });
