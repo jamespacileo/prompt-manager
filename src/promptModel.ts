@@ -160,7 +160,7 @@ export class PromptModel<
         frequencyPenalty: this.configuration.frequencyPenalty,
         presencePenalty: this.configuration.presencePenalty
       });
-      return object as IPromptOutput;
+      return object as unknown as TOutput;
     } else {
       const { text } = await generateText({
         model: openai(this.configuration.modelName),
@@ -171,7 +171,7 @@ export class PromptModel<
         frequencyPenalty: this.configuration.frequencyPenalty,
         presencePenalty: this.configuration.presencePenalty
       });
-      return { text };
+      return { text } as unknown as TOutput;
     }
   }
 

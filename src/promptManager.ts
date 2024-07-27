@@ -8,8 +8,8 @@ import { PromptFileSystem } from './promptFileSystem';
  * as well as managing prompt versions and formatting.
  */
 export class PromptManager<
-  TInput extends IPromptInput<any> = IPromptInput<any>,
-  TOutput extends IPromptOutput<any> = IPromptOutput<any>
+  TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
+  TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > implements IPromptManagerLibrary<TInput, TOutput> {
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
   private prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
@@ -31,7 +31,7 @@ export class PromptManager<
         this.prompts[prompt.category] = {};
       }
       const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-      this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as PromptModel<TInput, TOutput>;
+      this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
     }
   }
 
@@ -131,13 +131,13 @@ export class PromptManager<
    * Format a prompt by replacing placeholders with provided parameters.
    * Purpose: Prepare a prompt for use by inserting actual values into its template.
    */
-  formatPrompt(props: { category: string; name: string; params: Record<string, any> }): string {
+  formatPrompt(props: { category: string; name: string; params: TInput }): string {
     const { category, name, params } = props;
     const prompt = this.getPrompt({ category, name });
     return prompt.format(params);
   }
 
-  get categories(): { [category: string]: IPromptCategory<Record<string, PromptModel>> } {
+  get categories(): { [category: string]: IPromptCategory<Record<string, PromptModel<TInput, TOutput>>> } {
     return Object.fromEntries(
       Object.entries(this.prompts).map(([category, prompts]) => [
         category,
