@@ -168,6 +168,9 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   updateMetadata(props: { metadata: Partial<IPromptModel['metadata']> }): void {
     this.metadata = { ...this.metadata, ...props.metadata };
+    if (!this.version) {
+      this.version = '1.0.0';
+    }
   }
 
   getSummary(): string {
