@@ -84,4 +84,47 @@ export class PromptFileSystem implements IPromptFileSystem {
     const promptData = await this.loadPrompt({ category, promptName });
     return [promptData.version];
   }
+
+  async deletePrompt(props: { category: string; promptName: string }): Promise<void> {
+    const { category, promptName } = props;
+    const filePath = this.getFilePath(category, promptName);
+    await fs.unlink(filePath);
+  }
+
+  async renamePrompt(props: { 
+    currentCategory: string; 
+    currentName: string; 
+    newCategory: string; 
+    newName: string 
+  }): Promise<void> {
+    const { currentCategory, currentName, newCategory, newName } = props;
+    const oldPath = this.getFilePath(currentCategory, currentName);
+    const newPath = this.getFilePath(newCategory, newName);
+
+    // Ensure the new category directory exists
+    await fs.mkdir(path.dirname(newPath), { recursive: true });
+
+    // Rename (move) the file
+    await fs.rename(oldPath, newPath);
+
+    // If the categories are different, we need to update the prompt data
+    if (currentCategory !== newCategory || currentName !== newName) {
+      const promptData = await this.loadPrompt({ category: newCategory, promptName: newName });
+      promptData.category = newCategory;
+      promptData.name = newName;
+      await this.savePrompt({ promptData });
+    }
+  }
+
+  async createCategory(props: { categoryName: string }): Promise<void> {
+    const { categoryName } = props;
+    const categoryPath = path.join(this.basePath, categoryName);
+    await fs.mkdir(categoryPath, { recursive: true });
+  }
+
+  async deleteCategory(props: { categoryName: string }): Promise<void> {
+    const { categoryName } = props;
+    const categoryPath = path.join(this.basePath, categoryName);
+    await fs.rm(categoryPath, { recursive: true, force: true });
+  }
 }

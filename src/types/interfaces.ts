@@ -324,6 +324,39 @@ interface IPromptFileSystem {
    * @returns A promise that resolves with an array of version strings.
    */
   getPromptVersions(props: { category: string; promptName: string }): Promise<string[]>;
+
+  /**
+   * Deletes a prompt from the file system.
+   * @param props An object containing the category and name of the prompt to delete.
+   * @returns A promise that resolves when the prompt is deleted.
+   */
+  deletePrompt(props: { category: string; promptName: string }): Promise<void>;
+
+  /**
+   * Renames a prompt in the file system.
+   * @param props An object containing the current category and name, and the new category and name.
+   * @returns A promise that resolves when the prompt is renamed.
+   */
+  renamePrompt(props: { 
+    currentCategory: string; 
+    currentName: string; 
+    newCategory: string; 
+    newName: string 
+  }): Promise<void>;
+
+  /**
+   * Creates a new category in the file system.
+   * @param props An object containing the name of the new category.
+   * @returns A promise that resolves when the category is created.
+   */
+  createCategory(props: { categoryName: string }): Promise<void>;
+
+  /**
+   * Deletes a category and all its prompts from the file system.
+   * @param props An object containing the name of the category to delete.
+   * @returns A promise that resolves when the category and its prompts are deleted.
+   */
+  deleteCategory(props: { categoryName: string }): Promise<void>;
 }
 
 /**
