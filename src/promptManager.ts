@@ -112,4 +112,21 @@ export class PromptManager implements IPromptManagerLibrary {
             {
               raw: prompt.template,
               version: prompt.version,
-              format: (inputs: Record<string, string>)
+              format: (inputs: Record<string, string>) => prompt.format(inputs),
+            },
+          ])
+        ),
+      ])
+    );
+  }
+
+  private incrementVersion(version: string): string {
+    const parts = version.split('.').map(Number);
+    parts[parts.length - 1]++;
+    return parts.join('.');
+  }
+}
+
+export function getPromptManager(promptsPath: string): PromptManager {
+  return new PromptManager(promptsPath);
+}
