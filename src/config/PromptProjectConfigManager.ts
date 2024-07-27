@@ -20,6 +20,7 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
   configPath: string;
   config: {
     promptsDir: string;
+    outputDir: string;
     preferredModels: string[];
     modelParams: Record<string, {
       temperature?: number;
