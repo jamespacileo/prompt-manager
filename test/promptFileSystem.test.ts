@@ -31,6 +31,19 @@ describe("PromptFileSystem", () => {
         created: new Date().toISOString(),
         lastModified: new Date().toISOString(),
       },
+      outputSchema: {
+        type: "object",
+        properties: {
+          text: { type: "string" },
+        },
+        required: ["text"],
+      },
+      outputType: "plain",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
     };
 
     await promptFileSystem.savePrompt({ promptData });
@@ -110,6 +123,19 @@ describe("PromptFileSystem", () => {
       metadata: {
         created: new Date().toISOString(),
         lastModified: new Date().toISOString(),
+      },
+      outputSchema: {
+        type: "object",
+        properties: {
+          text: { type: "string" },
+        },
+        required: ["text"],
+      },
+      outputType: "plain",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
       },
     };
 
