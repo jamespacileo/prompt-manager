@@ -63,20 +63,12 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     }
   }
 
-  updateConfig(key: string, value: any): void {
-    if (key in this.config) {
-      this.config[key] = value;
-    } else {
-      throw new Error(`Invalid configuration key: ${key}`);
-    }
+  updateConfig<K extends keyof typeof this.config>(key: K, value: typeof this.config[K]): void {
+    this.config[key] = value;
   }
 
-  getConfig(key: string): any {
-    if (key in this.config) {
-      return this.config[key];
-    } else {
-      throw new Error(`Invalid configuration key: ${key}`);
-    }
+  getConfig<K extends keyof typeof this.config>(key: K): typeof this.config[K] {
+    return this.config[key];
   }
 
   validateConfig(config: any): boolean {
