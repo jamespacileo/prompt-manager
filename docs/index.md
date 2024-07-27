@@ -4,30 +4,30 @@ Welcome to the Prompt Manager documentation. This guide will help you get starte
 
 ## Getting Started
 
-- [Installation](getting-started.md#installation)
-- [CLI Quickstart](cli_quickstart.md)
-- [Library Quickstart](library_quickstart.md)
+- [Installation](getting-started/installation.md)
+- [CLI Quickstart](getting-started/cli/cli-quickstart.md)
+- [Library Quickstart](getting-started/library/library-quickstart.md)
 
 ## User Guide
 
-- [Managing Prompts](managing_prompts.md)
-- [Version Control](api-reference.md#versionprompt)
-- [AI Assistance](managing_prompts.md#ai-assisted-creation)
+- [Managing Prompts](user-guide/managing-prompts.md)
+- [Version Control](user-guide/version-control.md)
+- [AI Assistance](user-guide/ai-assistance.md)
 
 ## API Reference
 
-- [CLI Commands](api-reference.md#promptmanagercli)
-- [Library API](api-reference.md#promptmanagerlibrary)
+- [CLI Commands](api-reference/cli-commands.md)
+- [Library API](api-reference/library-api.md)
 
 ## Advanced Topics
 
-- [Custom Integrations](api-reference.md#promptmanagerlibrary)
-- [Best Practices](managing_prompts.md)
+- [Custom Integrations](api-reference/library-api.md#custom-integrations)
+- [Best Practices](user-guide/best-practices.md)
 
 ## Miscellaneous
 
-- [Troubleshooting](troubleshooting.md)
-- [Changelog](CHANGELOG.md)
+- [Troubleshooting](user-guide/troubleshooting.md)
+- [Changelog](../CHANGELOG.md)
 - [Contributing](../CONTRIBUTING.md)
 
 For more detailed information on specific topics, please navigate to the respective sections using the links above.
