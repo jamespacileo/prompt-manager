@@ -3,7 +3,7 @@ import { JSONSchema7 } from 'json-schema';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { PromptFileSystem } from './promptFileSystem';
+import { PROMPT_FILENAME, PromptFileSystem } from './promptFileSystem';
 
 export class PromptModel implements IPromptModel {
   name: string;
@@ -99,19 +99,7 @@ export class PromptModel implements IPromptModel {
       presencePenalty: this.configuration.presencePenalty
     });
 
-    // Create a custom AsyncIterableStream
-    const customStream: IAsyncIterableStream<string> = {
-      [Symbol.asyncIterator]() {
-        return {
-          async next() {
-            const { value, done } = await textStream.next();
-            return { value: value?.toString() || '', done };
-          }
-        };
-      }
-    };
-
-    return customStream;
+    return textStream;
   }
 
   async execute(inputs: IPromptInput): Promise<IPromptOutput> {
@@ -204,10 +192,6 @@ export class PromptModel implements IPromptModel {
     if (!fileSystem) {
       fileSystem = new PromptFileSystem();
     }
-    const prompts = await fileSystem.listPrompts({ category });
-    return prompts.map(prompt => ({
-      ...prompt,
-      relativeFilePath: `${prompt.relativeFilePath}/${PROMPT_FILENAME}`
-    }));
+    return await fileSystem.listPrompts({ category });
   }
 }

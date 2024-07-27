@@ -107,14 +107,14 @@ describe("PromptFileSystem", () => {
     expect(prompts).toContainEqual({
       name: "listTestPrompt",
       category: "testCategory",
-      relativeFilePath: "testCategory/listTestPrompt"
+      relativeFilePath: "prompts/testCategory/listTestPrompt/prompt.json"
     });
 
     const categoryPrompts = await promptFileSystem.listPrompts({ category: "testCategory" });
     expect(categoryPrompts).toContainEqual({
       name: "listTestPrompt",
       category: "testCategory",
-      relativeFilePath: "testCategory/listTestPrompt"
+      relativeFilePath: "prompts/testCategory/listTestPrompt/prompt.json"
     });
   });
 
@@ -128,7 +128,7 @@ describe("PromptFileSystem", () => {
     expect(searchResults).toContainEqual({
       name: "testPrompt",
       category: "testCategory",
-      relativeFilePath: "testCategory/testPrompt/prompt.json"
+      relativeFilePath: "prompts/testCategory/testPrompt/prompt.json"
     });
   });
 

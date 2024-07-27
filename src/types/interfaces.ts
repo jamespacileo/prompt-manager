@@ -285,6 +285,13 @@ interface IPromptFileSystem {
   loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>>;
 
   /**
+   * Deletes a prompt from the file system.
+   * @param props An object containing the category and name of the prompt to delete.
+   * @returns A promise that resolves when the prompt is deleted.
+   */
+  deletePrompt(props: { category: string; promptName: string }): Promise<void>;
+
+  /**
    * Checks if a prompt exists in the file system.
    * @param props An object containing the category and name of the prompt to check.
    * @returns A promise that resolves with a boolean indicating if the prompt exists.
@@ -296,7 +303,7 @@ interface IPromptFileSystem {
    * @param props An object containing an optional category to filter prompts.
    * @returns A promise that resolves with an array of prompt names.
    */
-  listPrompts(props?: { category?: string }): Promise<string[]>;
+  listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>>;
 
   /**
    * Lists all categories in the file system.
@@ -309,7 +316,7 @@ interface IPromptFileSystem {
    * @param props An object containing the search query.
    * @returns A promise that resolves with an array of objects containing category and name of matching prompts.
    */
-  searchPrompts(props: { query: string }): Promise<Array<{ category: string; name: string }>>;
+  searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>>;
 
   /**
    * Searches for categories based on a query string.
@@ -337,11 +344,11 @@ interface IPromptFileSystem {
    * @param props An object containing the current category and name, and the new category and name.
    * @returns A promise that resolves when the prompt is renamed.
    */
-  renamePrompt(props: { 
-    currentCategory: string; 
-    currentName: string; 
-    newCategory: string; 
-    newName: string 
+  renamePrompt(props: {
+    currentCategory: string;
+    currentName: string;
+    newCategory: string;
+    newName: string
   }): Promise<void>;
 
   /**

@@ -3,7 +3,7 @@ import path from 'path';
 import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import config from './config/PromptProjectConfigManager';
 
-const PROMPT_FILENAME = "prompt.json";
+export const PROMPT_FILENAME = "prompt.json";
 
 export class PromptFileSystem implements IPromptFileSystem {
   private basePath: string;
@@ -74,17 +74,18 @@ export class PromptFileSystem implements IPromptFileSystem {
         const categoryPath = category ? category : entry.name;
         const promptDir = path.join(this.basePath, categoryPath);
         const promptEntries = await fs.readdir(promptDir, { withFileTypes: true });
-        
+
         for (const promptEntry of promptEntries) {
           if (promptEntry.isDirectory()) {
             const promptJsonPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
             try {
               await fs.access(promptJsonPath);
-              const relativePath = path.relative(this.basePath, path.dirname(promptJsonPath)).replace(/\\/g, '/');
+              // const relativePath = path.relative(this.basePath, path.dirname(promptJsonPath)).replace(/\\/g, '/');
+              // console.log({ promptDir, name: promptEntry.name, promptJsonPath, entry, category });
               prompts.push({
                 name: promptEntry.name,
                 category: categoryPath,
-                relativeFilePath: relativePath
+                relativeFilePath: promptJsonPath
               });
             } catch {
               // If prompt.json doesn't exist, skip this directory
@@ -93,8 +94,10 @@ export class PromptFileSystem implements IPromptFileSystem {
         }
       }
     }
+    // console.log("PROMPTSS", prompts)
     return prompts;
   }
+
 
   async listCategories(): Promise<string[]> {
     const entries = await fs.readdir(this.basePath, { withFileTypes: true });
