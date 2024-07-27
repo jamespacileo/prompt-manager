@@ -2,6 +2,8 @@ import { IPromptManagerLibrary, IPromptCategory, IPrompt, IPromptInput, IPromptO
 import { PromptModel } from './promptModel';
 import { PromptFileSystem } from './promptFileSystem';
 
+// Ensure all imported interfaces are used in this file
+
 export class PromptManager implements IPromptManagerLibrary {
   private prompts: Record<string, Record<string, PromptModel>> = {};
   private fileSystem: PromptFileSystem;
