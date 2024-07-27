@@ -5,6 +5,9 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { PROMPT_FILENAME, PromptFileSystem } from './promptFileSystem';
 
+/**
+ * Represents a single prompt model with all its properties and methods.
+ */
 export class PromptModel implements IPromptModel {
   name: string;
   category: string;
@@ -33,6 +36,11 @@ export class PromptModel implements IPromptModel {
   _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
 
+  /**
+   * Create a new PromptModel instance.
+   * @param promptData Required data to initialize the prompt
+   * @param fileSystem Optional PromptFileSystem instance for file operations
+   */
   constructor(promptData: IPromptModelRequired, fileSystem?: PromptFileSystem) {
     this.name = promptData.name;
     this.category = promptData.category;
@@ -69,16 +77,31 @@ export class PromptModel implements IPromptModel {
   }
 
 
+  /**
+   * Validate the input against the input schema.
+   * @param input The input to validate
+   * @returns True if the input is valid, false otherwise
+   */
   validateInput(input: IPromptInput): boolean {
-    // Implement input validation logic using this.inputSchema
+    // TODO: Implement input validation logic using this.inputSchema
     return true; // Placeholder
   }
 
+  /**
+   * Validate the output against the output schema.
+   * @param output The output to validate
+   * @returns True if the output is valid, false otherwise
+   */
   validateOutput(output: IPromptOutput): boolean {
-    // Implement output validation logic using this.outputSchema
+    // TODO: Implement output validation logic using this.outputSchema
     return true; // Placeholder
   }
 
+  /**
+   * Format the prompt template by replacing placeholders with input values.
+   * @param inputs The input values to use for formatting
+   * @returns The formatted prompt string
+   */
   format(inputs: IPromptInput): string {
     let formattedContent = this.template;
     for (const [key, value] of Object.entries(inputs)) {
@@ -87,6 +110,11 @@ export class PromptModel implements IPromptModel {
     return formattedContent;
   }
 
+  /**
+   * Stream the prompt execution results.
+   * @param inputs The input values for the prompt
+   * @returns An async iterable stream of the generated text
+   */
   async stream(inputs: IPromptInput): Promise<IAsyncIterableStream<string>> {
     const formattedPrompt = this.format(inputs);
     const { textStream } = await streamText({
@@ -102,6 +130,11 @@ export class PromptModel implements IPromptModel {
     return textStream;
   }
 
+  /**
+   * Execute the prompt and return the result.
+   * @param inputs The input values for the prompt
+   * @returns The execution result, either structured or plain text
+   */
   async execute(inputs: IPromptInput): Promise<IPromptOutput> {
     if (this.outputType === 'structured') {
       const formattedPrompt = this.format(inputs);

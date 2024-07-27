@@ -2,11 +2,8 @@ import { IPromptManagerLibrary, IPromptCategory, IPrompt, IPromptInput, IPromptO
 import { PromptModel } from './promptModel';
 import { PromptFileSystem } from './promptFileSystem';
 
-// Ensure all imported interfaces are used in this file
-
-// Ensure all imported interfaces are used in this file
-
 export class PromptManager implements IPromptManagerLibrary {
+  // Store prompts in a nested structure: category -> prompt name -> PromptModel
   private prompts: Record<string, Record<string, PromptModel>> = {};
   private fileSystem: PromptFileSystem;
 
@@ -14,6 +11,10 @@ export class PromptManager implements IPromptManagerLibrary {
     this.fileSystem = new PromptFileSystem();
   }
 
+  /**
+   * Initialize the PromptManager by loading all prompts from the file system.
+   * This method should be called before using any other methods of the PromptManager.
+   */
   async initialize(props: {}): Promise<void> {
     const prompts = await this.fileSystem.listPrompts();
     for (const prompt of prompts) {
@@ -25,6 +26,10 @@ export class PromptManager implements IPromptManagerLibrary {
     }
   }
 
+  /**
+   * Retrieve a specific prompt by its category and name.
+   * @throws Error if the prompt does not exist
+   */
   getPrompt(props: { category: string; name: string }): PromptModel {
     if (!this.prompts[props.category] || !this.prompts[props.category][props.name]) {
       throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
@@ -32,6 +37,9 @@ export class PromptManager implements IPromptManagerLibrary {
     return this.prompts[props.category][props.name];
   }
 
+  /**
+   * Create a new prompt and save it to the file system.
+   */
   async createPrompt(props: { prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'> }): Promise<void> {
     const { prompt } = props;
     if (!prompt.category || !prompt.name) {
@@ -45,6 +53,9 @@ export class PromptManager implements IPromptManagerLibrary {
     await this.fileSystem.savePrompt({ promptData: newPrompt });
   }
 
+  /**
+   * Update an existing prompt with new data and save the changes.
+   */
   async updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
     const { category, name, updates } = props;
     const prompt = this.getPrompt({ category, name });
@@ -53,6 +64,9 @@ export class PromptManager implements IPromptManagerLibrary {
     await this.fileSystem.savePrompt({ promptData: prompt });
   }
 
+  /**
+   * Delete a prompt from both the in-memory storage and the file system.
+   */
   async deletePrompt(props: { category: string; name: string }): Promise<void> {
     const { category, name } = props;
     if (!this.prompts[category] || !this.prompts[category][name]) {
@@ -69,6 +83,9 @@ export class PromptManager implements IPromptManagerLibrary {
     return Object.values(this.prompts).flatMap(categoryPrompts => Object.values(categoryPrompts));
   }
 
+  /**
+   * Manage prompt versions: list, create, or switch to a specific version.
+   */
   async versionPrompt(props: { action: 'list' | 'create' | 'switch'; category: string; name: string; version?: string }): Promise<void> {
     const { action, category, name, version } = props;
     const prompt = this.getPrompt({ category, name });
@@ -96,6 +113,9 @@ export class PromptManager implements IPromptManagerLibrary {
     }
   }
 
+  /**
+   * Format a prompt by replacing placeholders with provided parameters.
+   */
   formatPrompt(props: { category: string; name: string; params: Record<string, any> }): string {
     const { category, name, params } = props;
     const prompt = this.getPrompt({ category, name });
