@@ -124,12 +124,28 @@ describe("PromptModel", () => {
     await prompt2.save();
 
     const prompts = await PromptModel.listPrompts(dummyPromptData.category, fileSystem);
-    expect(prompts).toContain(`${dummyPromptData.category}/prompt1`);
-    expect(prompts).toContain(`${dummyPromptData.category}/prompt2`);
+    expect(prompts).toContainEqual({
+      name: "prompt1",
+      category: dummyPromptData.category,
+      relativeFilePath: `${dummyPromptData.category}/prompt1/prompt.json`
+    });
+    expect(prompts).toContainEqual({
+      name: "prompt2",
+      category: dummyPromptData.category,
+      relativeFilePath: `${dummyPromptData.category}/prompt2/prompt.json`
+    });
 
     const allPrompts = await PromptModel.listPrompts(undefined, fileSystem);
-    expect(allPrompts).toContain(`${dummyPromptData.category}/prompt1`);
-    expect(allPrompts).toContain(`${dummyPromptData.category}/prompt2`);
+    expect(allPrompts).toContainEqual({
+      name: "prompt1",
+      category: dummyPromptData.category,
+      relativeFilePath: `${dummyPromptData.category}/prompt1/prompt.json`
+    });
+    expect(allPrompts).toContainEqual({
+      name: "prompt2",
+      category: dummyPromptData.category,
+      relativeFilePath: `${dummyPromptData.category}/prompt2/prompt.json`
+    });
   });
 
   test("update metadata", () => {
