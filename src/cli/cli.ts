@@ -150,7 +150,7 @@ program
       await generateTypes();
       log.success('Type definitions generated successfully.');
       log.info('You can now use these types in your TypeScript projects for better type safety and autocompletion.');
-      
+
       const viewTypes = await confirm({ message: 'Would you like to view the generated types?' });
       if (viewTypes) {
         const types = await getGeneratedTypes();
@@ -176,14 +176,14 @@ program
       log.info(`  Name: ${status.config.name}`);
       log.info(`  Prompts Directory: ${status.config.promptsDir}`);
       log.info(`  Output Directory: ${status.config.outputDir}`);
-      
+
       log.info('\nPrompt Statistics:');
       log.info(`  Total Prompts: ${status.totalPrompts}`);
       log.info(`  Categories: ${status.categories.join(', ')}`);
-      
+
       log.info('\nLast Generated:');
       log.info(`  ${status.lastGenerated || 'Types have not been generated yet'}`);
-      
+
       if (status.warnings.length > 0) {
         log.warn('\nWarnings:');
         status.warnings.forEach(warning => log.warn(`  - ${warning}`));
@@ -196,8 +196,8 @@ program
         detailedStatus.forEach(prompt => {
           log.info(`\n${prompt.category}/${prompt.name}:`);
           log.info(`  Version: ${prompt.version}`);
-          log.info(`  Parameters: ${prompt.parameters.join(', ')}`);
-          log.info(`  Last Modified: ${prompt.metadata.lastModified}`);
+          log.info(`  Parameters: ${prompt.parameters?.join(', ')}`);
+          log.info(`  Last Modified: ${prompt.metadata?.lastModified}`);
         });
       }
     } catch (error) {

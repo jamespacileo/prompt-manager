@@ -2,7 +2,7 @@ import { IPromptModel, IPromptInput, IPromptOutput, IAsyncIterableStream } from 
 import { JSONSchema7 } from 'json-schema';
 import fs from 'fs/promises';
 import path from 'path';
-import { generateText, generateObject } from 'ai';
+import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -17,9 +17,9 @@ export class PromptModel implements IPromptModel {
     created: string;
     lastModified: string;
   } = {
-    created: '',
-    lastModified: ''
-  };
+      created: '',
+      lastModified: ''
+    };
   outputType: 'structured' | 'plain' = 'plain';
   defaultModelName?: string;
   compatibleModels?: string[];
@@ -35,14 +35,14 @@ export class PromptModel implements IPromptModel {
     presencePenalty: number;
     stopSequences: string[];
   } = {
-    modelName: '',
-    temperature: 0,
-    maxTokens: 0,
-    topP: 0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    stopSequences: []
-  };
+      modelName: '',
+      temperature: 0,
+      maxTokens: 0,
+      topP: 0,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      stopSequences: []
+    };
 
   private isLoadedFromStorage: boolean = false;
 
@@ -114,40 +114,27 @@ export class PromptModel implements IPromptModel {
     return formattedContent;
   }
 
-  async streamText(
-    inputs: IPromptInput,
-    onData: (chunk: string) => void,
-    onComplete: (result: IPromptOutput) => void
+  async stream(
+    inputs: IPromptInput
   ): Promise<IAsyncIterableStream<string>> {
     const formattedPrompt = this.format(inputs);
-    const { textStream } = await generateText({
+    const { textStream } = await streamText({
       model: openai(this.configuration.modelName),
       prompt: formattedPrompt,
       temperature: this.configuration.temperature,
       maxTokens: this.configuration.maxTokens,
       topP: this.configuration.topP,
       frequencyPenalty: this.configuration.frequencyPenalty,
-      presencePenalty: this.configuration.presencePenalty,
-      stopSequences: this.configuration.stopSequences,
+      presencePenalty: this.configuration.presencePenalty
     });
-
-    let fullResponse = '';
-    for await (const chunk of textStream) {
-      fullResponse += chunk;
-      onData(chunk);
-    }
-
-    const result: IPromptOutput = { text: fullResponse };
-    onComplete(result);
-
-    return textStream;
+    return textStream as IAsyncIterableStream<string>;
   }
 
   async execute(inputs: IPromptInput): Promise<IPromptOutput> {
     if (this.outputType === 'structured') {
       const formattedPrompt = this.format(inputs);
       const schema = z.object(this.outputSchema as z.ZodRawShape);
-      const result = await generateObject({
+      const { object } = await generateObject({
         model: openai(this.configuration.modelName),
         schema,
         prompt: formattedPrompt,
@@ -155,17 +142,18 @@ export class PromptModel implements IPromptModel {
         maxTokens: this.configuration.maxTokens,
         topP: this.configuration.topP,
         frequencyPenalty: this.configuration.frequencyPenalty,
-        presencePenalty: this.configuration.presencePenalty,
-        stopSequences: this.configuration.stopSequences,
+        presencePenalty: this.configuration.presencePenalty
       });
-      return result.object as IPromptOutput;
+      return object as IPromptOutput;
     } else {
-      const { text } = await new Promise<IPromptOutput>((resolve) => {
-        this.streamText(
-          inputs,
-          () => {},
-          (result) => resolve(result)
-        );
+      const { text } = await generateText({
+        model: openai(this.configuration.modelName),
+        prompt: this.format(inputs),
+        temperature: this.configuration.temperature,
+        maxTokens: this.configuration.maxTokens,
+        topP: this.configuration.topP,
+        frequencyPenalty: this.configuration.frequencyPenalty,
+        presencePenalty: this.configuration.presencePenalty
       });
       return { text };
     }

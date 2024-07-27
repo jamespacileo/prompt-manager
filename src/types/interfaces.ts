@@ -131,11 +131,9 @@ export interface IPromptModel extends IPrompt<IPromptInput, IPromptOutput> {
    * @param onData Callback for handling streamed data.
    * @param onComplete Callback for handling completion of the stream.
    */
-  streamText(
+  stream(
     inputs: IPromptInput,
-    onData: (chunk: string) => void,
-    onComplete: (result: IPromptOutput) => void
-  ): IAsyncIterableStream<string>;
+  ): Promise<IAsyncIterableStream<string>>;
 
   /**
    * Execute the prompt with the given inputs and return the output.
