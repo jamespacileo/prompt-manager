@@ -67,7 +67,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   validateOutput(output: IPromptOutput): boolean {
     // Implement output validation logic using this.outputSchema
-    return true; // Placeholder
+    return true; //
   }
 
   static async _promptExists(name: string): Promise<boolean> {
@@ -79,6 +79,10 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     } catch {
       return false;
     }
+  }
+
+  static _getFilePath(category: string, promptName: string): string {
+    return path.join(process.cwd(), 'prompts', category, `${promptName}.json`);
   }
 
   _initializeConfiguration(): void {
@@ -98,9 +102,6 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     // Process the prompt content if needed
   }
 
-  static _getFilePath(category: string, promptName: string): string {
-    return path.join(process.cwd(), 'prompts', category, `${promptName}.json`);
-  }
 
   _markAsLoadedFromStorage(): void {
     this.isLoadedFromStorage = true;
@@ -112,30 +113,6 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
       formattedContent = formattedContent.replace(new RegExp(`{{${key}}}`, 'g'), value as string);
     }
     return formattedContent;
-  }
-
-  static async loadPromptByName(name: string): Promise<PromptModel> {
-    const [category, promptName] = name.split('/');
-    const filePath = PromptModel._getFilePath(category, promptName);
-    const promptData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
-    const prompt = new PromptModel(promptData);
-    prompt._markAsLoadedFromStorage();
-    return prompt;
-  }
-
-  static async _promptExists(name: string): Promise<boolean> {
-    const [category, promptName] = name.split('/');
-    const filePath = PromptModel._getFilePath(category, promptName);
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  static _getFilePath(category: string, promptName: string): string {
-    return path.join(process.cwd(), 'prompts', category, `${promptName}.json`);
   }
 
   async stream(

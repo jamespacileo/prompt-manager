@@ -18,6 +18,7 @@ export class CLI implements PromptManagerCLI {
     await this.promptManager.createPrompt({
       name: promptName,
       category: options.category || category,
+      description: options.description || '',
       version: '1.0.0',
       template: options.content || '',
       parameters: options.parameters || [],
@@ -25,10 +26,16 @@ export class CLI implements PromptManagerCLI {
         created: new Date().toISOString(),
         lastModified: new Date().toISOString(),
       },
-      description: options.description || '',
-      outputType: 'plain', // Add default outputType
-      inputSchema: {} as IPromptInput, // Add default input
-      outputSchema: {} as IPromptOutput, // Add default output
+      outputType: 'plain',
+      configuration: {
+        modelName: '',
+        temperature: 0,
+        maxTokens: 0,
+        topP: 0,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+        stopSequences: [],
+      },
     });
     console.log(`Created prompt: ${name}`);
   }

@@ -78,7 +78,7 @@ export async function getPromptDetails(name: string): Promise<Partial<PromptMode
     version: prompt.version,
     template: prompt.template,
     parameters: prompt.parameters,
-    createdAt: prompt.metadata.created,
+    created: prompt.metadata.created,
     lastModified: prompt.metadata.lastModified,
     format: prompt.format,
   };
