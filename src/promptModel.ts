@@ -6,7 +6,7 @@ import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-export class PromptModel implements IPromptModel {
+export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_promptExists' | '_getFilePath'> {
   name: string = '';
   category: string = '';
   description: string = '';
