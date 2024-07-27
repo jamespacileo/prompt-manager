@@ -4,19 +4,14 @@ import fs from 'fs-extra';
 import path from 'path';
 import { input, confirm } from '@inquirer/prompts';
 import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './aiHelpers';
+import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
+import { PromptProjectConfigManager } from '../config/PromptProjectConfigManager';
 
-const getConfig = async () => {
-  try {
-    const config = await fs.readJSON('prompt-manager.json');
-    return config;
-  } catch (error) {
-    throw new Error('Failed to read configuration. Please run "init" command first.');
-  }
-};
+const configManager = new PromptProjectConfigManager();
 
-export async function createPrompt() {
-  const config = await getConfig();
-  let promptData: Partial<PromptModel> = {};
+export async function createPrompt(): Promise<void> {
+  const config = await configManager.getConfig();
+  let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
   let accepted = false;
 
   const description = await input({ message: 'Describe the prompt you want to create:' });
@@ -38,7 +33,7 @@ export async function createPrompt() {
   }
 
   const manager = new PromptManager(config.promptsDir);
-  await manager.initialize();
+  await manager.initialize({});
   const prompt = new PromptModel({
     ...promptData,
     name: promptData.name || '',
@@ -51,26 +46,25 @@ export async function createPrompt() {
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     },
-  }, manager.getFileSystem());
+  });
 
-  await manager.createPrompt(prompt);
+  await manager.createPrompt({ prompt });
   console.log(`Prompt "${prompt.name}" created successfully.`);
 }
 
 export async function listPrompts(): Promise<string[]> {
-  const config = await getConfig();
+  const config = await configManager.getConfig();
   const manager = new PromptManager(config.promptsDir);
-  await manager.initialize();
-  const prompts = await manager.listPrompts();
+  await manager.initialize({});
+  const prompts = await manager.listPrompts({});
   return prompts.map(prompt => `${prompt.category}/${prompt.name}`);
 }
 
-export async function getPromptDetails(name: string): Promise<Partial<PromptModel>> {
-  const config = await getConfig();
+export async function getPromptDetails(props: { category: string; name: string }): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
+  const config = await configManager.getConfig();
   const manager = new PromptManager(config.promptsDir);
-  await manager.initialize();
-  const [category, promptName] = name.split('/');
-  const prompt = await manager.getPrompt(category, promptName);
+  await manager.initialize({});
+  const prompt = await manager.getPrompt(props);
   return {
     name: prompt.name,
     category: prompt.category,
@@ -86,28 +80,28 @@ export async function getPromptDetails(name: string): Promise<Partial<PromptMode
   };
 }
 
-export async function updatePrompt(name: string, updates: Partial<PromptModel>) {
-  const config = await getConfig();
+export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
+  const config = await configManager.getConfig();
   const manager = new PromptManager(config.promptsDir);
-  await manager.initialize();
+  await manager.initialize({});
 
-  if (updates.template) {
+  if (props.updates.template) {
     const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
     if (useAI) {
       const query = 'Refine and improve this prompt content:';
-      const refinedPrompt = await updatePromptWithAI({ name, ...updates } as PromptModel, query);
-      updates.template = refinedPrompt.template;
+      const refinedPrompt = await updatePromptWithAI({ ...props.updates, category: props.category, name: props.name } as IPrompt<IPromptInput, IPromptOutput>, query);
+      props.updates.template = refinedPrompt.template;
     }
   }
 
-  await manager.updatePrompt(name, updates);
+  await manager.updatePrompt(props);
 }
 
-export async function generateTypes() {
-  const config = await getConfig();
+export async function generateTypes(): Promise<void> {
+  const config = await configManager.getConfig();
   const manager = new PromptManager(config.promptsDir);
-  await manager.initialize();
-  const prompts = await manager.listPrompts();
+  await manager.initialize({});
+  const prompts = await manager.listPrompts({});
   let typeDefs = 'declare module "prompt-manager" {\n';
 
   for (const prompt of prompts) {
@@ -126,15 +120,21 @@ export async function generateTypes() {
 }
 
 export async function getGeneratedTypes(): Promise<string> {
-  const config = await getConfig();
+  const config = await configManager.getConfig();
   return fs.readFile(path.join(config.outputDir, 'prompts.d.ts'), 'utf-8');
 }
 
-export async function getStatus() {
-  const config = await getConfig();
+export async function getStatus(): Promise<{
+  config: any;
+  totalPrompts: number;
+  categories: string[];
+  lastGenerated: string | null;
+  warnings: string[];
+}> {
+  const config = await configManager.getConfig();
   const manager = new PromptManager(config.promptsDir);
-  await manager.initialize();
-  const prompts = await manager.listPrompts();
+  await manager.initialize({});
+  const prompts = await manager.listPrompts({});
 
   const categories = [...new Set(prompts.map(prompt => prompt.category))];
 
@@ -163,11 +163,11 @@ export async function getStatus() {
   };
 }
 
-export async function getDetailedStatus(): Promise<Partial<PromptModel>[]> {
-  const config = await getConfig();
+export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>[]> {
+  const config = await configManager.getConfig();
   const manager = new PromptManager(config.promptsDir);
-  await manager.initialize();
-  const prompts = await manager.listPrompts();
+  await manager.initialize({});
+  const prompts = await manager.listPrompts({});
 
   return prompts.map(prompt => ({
     name: prompt.name,
