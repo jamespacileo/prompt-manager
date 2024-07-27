@@ -38,7 +38,14 @@ export async function createPrompt(): Promise<void> {
     category: promptData.category || '',
     description: promptData.description || '',
     template: promptData.template || '',
-    parameters: promptData.parameters || []
+    parameters: promptData.parameters || [],
+    inputSchema: promptData.inputSchema || {},
+    outputSchema: promptData.outputSchema || {},
+    version: promptData.version || '1.0.0',
+    metadata: {
+      created: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+    }
   });
 
   await manager.createPrompt({ prompt });
@@ -54,7 +61,7 @@ export async function listPrompts(): Promise<string[]> {
 }
 
 export async function getPromptDetails(props: { category: string; name: string }): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
-  const config = await configManager.config
+  const config = await configManager.getConfig('all');
   const manager = new PromptManager();
   await manager.initialize({});
   const prompt = await manager.getPrompt(props);
@@ -65,16 +72,12 @@ export async function getPromptDetails(props: { category: string; name: string }
     version: prompt.version,
     template: prompt.template,
     parameters: prompt.parameters,
-    metadata: {
-      created: prompt.metadata.created,
-      lastModified: prompt.metadata.lastModified,
-    },
-    format: prompt.format,
+    metadata: prompt.metadata,
   };
 }
 
 export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
-  const config = configManager.config
+  const config = await configManager.getConfig('all');
   const manager = new PromptManager();
   await manager.initialize({});
 
@@ -91,7 +94,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
 }
 
 export async function generateTypes(): Promise<void> {
-  const config = await configManager.getConfig();
+  const config = await configManager.getConfig('all');
   const manager = new PromptManager();
   await manager.initialize({});
   const prompts = await manager.listPrompts({});
@@ -113,7 +116,7 @@ export async function generateTypes(): Promise<void> {
 }
 
 export async function getGeneratedTypes(): Promise<string> {
-  const config = await configManager.config
+  const config = await configManager.getConfig('all');
   return fs.readFile(path.join(config.outputDir, 'prompts.d.ts'), 'utf-8');
 }
 
@@ -124,8 +127,8 @@ export async function getStatus(): Promise<{
   lastGenerated: string | null;
   warnings: string[];
 }> {
-  const config = await configManager.config
-  const manager = new PromptManager(config.promptsDir);
+  const config = await configManager.getConfig('all');
+  const manager = new PromptManager();
   await manager.initialize({});
   const prompts = await manager.listPrompts({});
 
@@ -157,8 +160,8 @@ export async function getStatus(): Promise<{
 }
 
 export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>[]> {
-  const config = await configManager.config
-  const manager = new PromptManager(config.promptsDir);
+  const config = await configManager.getConfig('all');
+  const manager = new PromptManager();
   await manager.initialize({});
   const prompts = await manager.listPrompts({});
 
