@@ -191,6 +191,10 @@ export class PromptModel implements IPromptModel {
     if (!fileSystem) {
       fileSystem = new PromptFileSystem();
     }
-    return fileSystem.listPrompts({ category });
+    const prompts = await fileSystem.listPrompts({ category });
+    return prompts.map(prompt => ({
+      ...prompt,
+      relativeFilePath: prompt.relativeFilePath.replace(/prompt\.json$/, '')
+    }));
   }
 }

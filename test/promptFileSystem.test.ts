@@ -81,7 +81,7 @@ describe("PromptFileSystem", () => {
     expect(categoryPrompts).toContainEqual({
       name: "testPrompt",
       category: "testCategory",
-      relativeFilePath: "testPrompt/prompt.json"
+      relativeFilePath: "testCategory/testPrompt/prompt.json"
     });
   });
 

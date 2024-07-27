@@ -72,9 +72,10 @@ export class PromptFileSystem implements IPromptFileSystem {
         const promptJsonPath = path.join(searchPath, entry.name, 'prompt.json');
         try {
           await fs.access(promptJsonPath);
+          const currentCategory = category || entry.name;
           prompts.push({
-            name: entry.name,
-            category: category || '',
+            name: category ? entry.name : path.basename(entry.name),
+            category: currentCategory,
             relativeFilePath: path.relative(this.basePath, promptJsonPath).replace(/\\/g, '/')
           });
         } catch {
