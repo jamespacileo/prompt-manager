@@ -61,29 +61,40 @@ export class PromptFileSystem implements IPromptFileSystem {
     }
   }
 
-  async listPrompts(props?: { category?: string }): Promise<string[]> {
+  async listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>> {
     const category = props?.category;
     const searchPath = category ? path.join(this.basePath, category) : this.basePath;
     const entries = await fs.readdir(searchPath, { withFileTypes: true });
 
-    const prompts: string[] = [];
+    const prompts: Array<{ name: string; category: string; relativeFilePath: string }> = [];
     for (const entry of entries) {
       if (entry.isDirectory()) {
         if (!category) {
           const subPrompts = await this.listPrompts({ category: entry.name });
-          prompts.push(...subPrompts.map(p => path.join(entry.name, p)));
+          prompts.push(...subPrompts.map(p => ({
+            ...p,
+            category: path.join(entry.name, p.category),
+            relativeFilePath: path.join(entry.name, p.relativeFilePath)
+          })));
         } else {
           const promptJsonPath = path.join(searchPath, entry.name, 'prompt.json');
           try {
             await fs.access(promptJsonPath);
-            prompts.push(entry.name);
+            prompts.push({
+              name: entry.name,
+              category: category,
+              relativeFilePath: path.join(category, entry.name, 'prompt.json')
+            });
           } catch {
             // If prompt.json doesn't exist, skip this directory
           }
         }
       }
     }
-    return prompts.map(p => p.replace(/\\/g, '/')); // Ensure forward slashes for consistency
+    return prompts.map(p => ({
+      ...p,
+      relativeFilePath: p.relativeFilePath.replace(/\\/g, '/') // Ensure forward slashes for consistency
+    }));
   }
 
   async listCategories(): Promise<string[]> {
