@@ -8,7 +8,6 @@ import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
 import configManager from '../config/PromptProjectConfigManager';
 
 export async function createPrompt(): Promise<void> {
-  const configManager = PromptProjectConfigManager.getInstance();
   let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
   let accepted = false;
 
@@ -53,7 +52,6 @@ export async function createPrompt(): Promise<void> {
 }
 
 export async function listPrompts(): Promise<string[]> {
-  const config = await configManager.config
   const manager = new PromptManager();
   await manager.initialize({});
   const prompts = await manager.listPrompts({});
@@ -61,7 +59,6 @@ export async function listPrompts(): Promise<string[]> {
 }
 
 export async function getPromptDetails(props: { category: string; name: string }): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
-  const configManager = PromptProjectConfigManager.getInstance();
   const manager = new PromptManager();
   await manager.initialize({});
   const prompt = await manager.getPrompt(props);
@@ -77,7 +74,6 @@ export async function getPromptDetails(props: { category: string; name: string }
 }
 
 export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
-  const configManager = PromptProjectConfigManager.getInstance();
   const manager = new PromptManager();
   await manager.initialize({});
 
@@ -94,7 +90,6 @@ export async function updatePrompt(props: { category: string; name: string; upda
 }
 
 export async function generateTypes(): Promise<void> {
-  const configManager = PromptProjectConfigManager.getInstance();
   const outputDir = configManager.getConfig('outputDir');
   const manager = new PromptManager();
   await manager.initialize({});
@@ -117,7 +112,6 @@ export async function generateTypes(): Promise<void> {
 }
 
 export async function getGeneratedTypes(): Promise<string> {
-  const configManager = PromptProjectConfigManager.getInstance();
   const outputDir = configManager.getConfig('outputDir');
   return fs.readFile(path.join(outputDir, 'prompts.d.ts'), 'utf-8');
 }
@@ -129,7 +123,6 @@ export async function getStatus(): Promise<{
   lastGenerated: string | null;
   warnings: string[];
 }> {
-  const configManager = PromptProjectConfigManager.getInstance();
   const config = {
     promptsDir: configManager.getConfig('promptsDir'),
     outputDir: configManager.getConfig('outputDir'),
@@ -168,7 +161,6 @@ export async function getStatus(): Promise<{
 }
 
 export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>[]> {
-  const configManager = PromptProjectConfigManager.getInstance();
   const manager = new PromptManager();
   await manager.initialize({});
   const prompts = await manager.listPrompts({});
