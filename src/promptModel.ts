@@ -6,7 +6,6 @@ import { z } from 'zod';
 import { PromptFileSystem } from './promptFileSystem';
 
 export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_promptExists'> {
-  private static fileSystem: PromptFileSystem;
   name: string = '';
   category: string = '';
   description: string = '';
@@ -51,14 +50,10 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   private isLoadedFromStorage: boolean = false;
 
-  static setFileSystem(basePath: string): void {
-    PromptModel.fileSystem = new PromptFileSystem(basePath);
-  }
-
-  static async loadPromptByName(name: string): Promise<PromptModel> {
+  static async loadPromptByName(name: string, fileSystem: PromptFileSystem): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
-    const promptData = await PromptModel.fileSystem.loadPrompt(category, promptName);
-    const prompt = new PromptModel(promptData, PromptModel.fileSystem);
+    const promptData = await fileSystem.loadPrompt(category, promptName);
+    const prompt = new PromptModel(promptData, fileSystem);
     prompt.markAsLoadedFromStorage();
     return prompt;
   }
@@ -166,17 +161,17 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     this.markAsLoadedFromStorage();
   }
 
-  async load(category: string, promptName: string): Promise<void> {
-    const promptData = await this.fileSystem.loadPrompt(category, promptName);
+  load(filePath: string): void {
+    const promptData = this.fileSystem.loadPrompt(this.category, this.name);
     Object.assign(this, promptData);
     this.markAsLoadedFromStorage();
   }
 
-  async versions(): Promise<string[]> {
+  versions(): string[] {
     return this.fileSystem.getVersions(this.category, this.name);
   }
 
-  async switchVersion(version: string): Promise<void> {
+  switchVersion(version: string): void {
     // Implement version switching logic
     // This is a placeholder and should be implemented based on your versioning strategy
     console.log(`Switching to version ${version}`);

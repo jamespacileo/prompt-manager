@@ -7,25 +7,21 @@ export class PromptManager implements PromptManagerLibrary {
   private prompts: Record<string, Record<string, PromptModel>> = {};
   private promptsPath: string;
 
+  private fileSystem: PromptFileSystem;
+
   constructor(promptsPath: string) {
     this.promptsPath = promptsPath;
+    this.fileSystem = new PromptFileSystem(promptsPath);
   }
 
   async initialize(): Promise<void> {
-    const categories = await fs.readdir(this.promptsPath);
+    const categories = await this.fileSystem.listCategories();
     for (const category of categories) {
-      const categoryPath = path.join(this.promptsPath, category);
-      const stats = await fs.stat(categoryPath);
-      if (stats.isDirectory()) {
-        this.prompts[category] = {};
-        const promptFiles = await fs.readdir(categoryPath);
-        for (const file of promptFiles) {
-          if (file.endsWith('.json')) {
-            const promptName = path.basename(file, '.json');
-            const promptData = JSON.parse(await fs.readFile(path.join(categoryPath, file), 'utf-8'));
-            this.prompts[category][promptName] = new PromptModel(promptData);
-          }
-        }
+      this.prompts[category] = {};
+      const promptNames = await this.fileSystem.listPrompts(category);
+      for (const promptName of promptNames) {
+        const promptData = await this.fileSystem.loadPrompt(category, promptName);
+        this.prompts[category][promptName] = new PromptModel(promptData, this.fileSystem);
       }
     }
   }
@@ -41,7 +37,7 @@ export class PromptManager implements PromptManagerLibrary {
     if (!this.prompts[prompt.category!]) {
       this.prompts[prompt.category!] = {};
     }
-    const newPrompt = new PromptModel(prompt);
+    const newPrompt = new PromptModel(prompt, this.fileSystem);
     this.prompts[prompt.category!][prompt.name!] = newPrompt;
     await newPrompt.save();
   }
@@ -60,7 +56,7 @@ export class PromptManager implements PromptManagerLibrary {
       throw new Error(`Prompt "${name}" does not exist`);
     }
     delete this.prompts[category][promptName];
-    await fs.unlink(PromptModel._getFilePath(category, promptName));
+    await this.fileSystem.deletePrompt(category, promptName);
   }
 
   async listPrompts(category?: string): Promise<PromptModel[]> {
@@ -76,7 +72,8 @@ export class PromptManager implements PromptManagerLibrary {
 
     switch (action) {
       case 'list':
-        console.log(`Versions for ${name}:`, prompt.versions());
+        const versions = await prompt.versions();
+        console.log(`Versions for ${name}:`, versions);
         break;
       case 'create':
         const newVersion = this.incrementVersion(prompt.version);
@@ -85,10 +82,11 @@ export class PromptManager implements PromptManagerLibrary {
         console.log(`Created new version ${newVersion} for ${name}`);
         break;
       case 'switch':
-        if (!version || !prompt.versions().includes(version)) {
+        const availableVersions = await prompt.versions();
+        if (!version || !availableVersions.includes(version)) {
           throw new Error(`Invalid version ${version} for ${name}`);
         }
-        prompt.switchVersion(version);
+        await prompt.switchVersion(version);
         await prompt.save();
         console.log(`Switched ${name} to version ${version}`);
         break;

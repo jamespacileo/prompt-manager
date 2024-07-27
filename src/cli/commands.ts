@@ -49,7 +49,7 @@ export async function createPrompt() {
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     },
-  });
+  }, manager.getFileSystem());
 
   const manager = new PromptManager(config.promptsDir);
   await manager.initialize();
