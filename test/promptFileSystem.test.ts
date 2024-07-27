@@ -71,10 +71,18 @@ describe("PromptFileSystem", () => {
 
   test("listPrompts", async () => {
     const prompts = await promptFileSystem.listPrompts();
-    expect(prompts).toContain("testCategory/testPrompt");
+    expect(prompts).toContainEqual({
+      name: "testPrompt",
+      category: "testCategory",
+      relativeFilePath: "testCategory/testPrompt/prompt.json"
+    });
 
     const categoryPrompts = await promptFileSystem.listPrompts({ category: "testCategory" });
-    expect(categoryPrompts).toContain("testCategory/testPrompt");
+    expect(categoryPrompts).toContainEqual({
+      name: "testPrompt",
+      category: "testCategory",
+      relativeFilePath: "testCategory/testPrompt/prompt.json"
+    });
   });
 
   test("listCategories", async () => {
