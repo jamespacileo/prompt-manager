@@ -124,8 +124,8 @@ describe("PromptModel", () => {
     await prompt2.save();
 
     const prompts = await PromptModel.listPrompts(dummyPromptData.category, fileSystem);
-    expect(prompts).toContain("prompt1");
-    expect(prompts).toContain("prompt2");
+    expect(prompts).toContain(`${dummyPromptData.category}/prompt1`);
+    expect(prompts).toContain(`${dummyPromptData.category}/prompt2`);
 
     const allPrompts = await PromptModel.listPrompts(undefined, fileSystem);
     expect(allPrompts).toContain(`${dummyPromptData.category}/prompt1`);
