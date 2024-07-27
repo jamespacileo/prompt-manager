@@ -16,29 +16,6 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     created: string;
     lastModified: string;
   } = { created: '', lastModified: '' };
-  configuration: { modelName: string } = { modelName: '' };
-
-  private _initializeConfiguration(): void {
-    // Implementation details
-  }
-
-  private _getFilePath(): string {
-    // Implementation details
-    return '';
-  }
-
-  private _markAsLoadedFromStorage(): void {
-    // Implementation details
-  }
-
-  private _isSaved: boolean = false;
-
-  outputType: 'structured' | 'plain' = 'plain';
-  defaultModelName?: string;
-  compatibleModels?: string[];
-  tags?: string[];
-  inputSchema: JSONSchema7 = {};
-  outputSchema: JSONSchema7 = {};
   configuration: {
     modelName: string;
     temperature: number;
@@ -106,6 +83,10 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
 
   private markAsLoadedFromStorage(): void {
     this.isLoadedFromStorage = true;
+  }
+
+  isSaved(): boolean {
+    return this._isSaved;
   }
 
   format(inputs: IPromptInput): string {
@@ -195,9 +176,6 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     console.log(`Switching to version ${props.version}`);
   }
 
-  isSaved(): boolean {
-    return this.isLoadedFromStorage;
-  }
 
   static async listPrompts(category?: string): Promise<string[]> {
     const fileSystem = new PromptFileSystem('path/to/prompts');
