@@ -98,7 +98,20 @@ export class PromptModel implements IPromptModel {
       frequencyPenalty: this.configuration.frequencyPenalty,
       presencePenalty: this.configuration.presencePenalty
     });
-    return textStream as IAsyncIterableStream<string>;
+
+    // Create a custom AsyncIterableStream
+    const customStream: IAsyncIterableStream<string> = {
+      [Symbol.asyncIterator]() {
+        return {
+          async next() {
+            const { value, done } = await textStream.next();
+            return { value: value?.toString() || '', done };
+          }
+        };
+      }
+    };
+
+    return customStream;
   }
 
   async execute(inputs: IPromptInput): Promise<IPromptOutput> {
@@ -191,10 +204,6 @@ export class PromptModel implements IPromptModel {
     if (!fileSystem) {
       fileSystem = new PromptFileSystem();
     }
-    const prompts = await fileSystem.listPrompts({ category });
-    return prompts.map(prompt => ({
-      ...prompt,
-      relativeFilePath: prompt.relativeFilePath.replace(/prompt\.json$/, '')
-    }));
+    return fileSystem.listPrompts({ category });
   }
 }
