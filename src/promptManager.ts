@@ -12,7 +12,7 @@ export class PromptManager<
   TOutput extends IPromptOutput<any> = IPromptOutput<any>
 > implements IPromptManagerLibrary<TInput, TOutput> {
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
-  private prompts: Record<string, Record<string, PromptModel<TInput, TOutput>>> = {};
+  private prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
   private fileSystem: PromptFileSystem;
 
   constructor() {
@@ -31,7 +31,7 @@ export class PromptManager<
         this.prompts[prompt.category] = {};
       }
       const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-      this.prompts[prompt.category][prompt.name] = new PromptModel(promptData);
+      this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as PromptModel<TInput, TOutput>;
     }
   }
 
@@ -40,11 +40,11 @@ export class PromptManager<
    * Purpose: Fetch a single prompt for use or manipulation.
    * @throws Error if the prompt does not exist
    */
-  getPrompt(props: { category: string; name: string }): PromptModel {
+  getPrompt(props: { category: string; name: string }): PromptModel<TInput, TOutput> {
     if (!this.prompts[props.category] || !this.prompts[props.category][props.name]) {
       throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
     }
-    return this.prompts[props.category][props.name];
+    return this.prompts[props.category][props.name] as PromptModel<TInput, TOutput>;
   }
 
   /**
@@ -59,7 +59,7 @@ export class PromptManager<
     if (!this.prompts[prompt.category]) {
       this.prompts[prompt.category] = {};
     }
-    const newPrompt = new PromptModel(prompt);
+    const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;
     await this.fileSystem.savePrompt({ promptData: newPrompt });
   }
@@ -147,7 +147,7 @@ export class PromptManager<
             {
               raw: prompt.template,
               version: prompt.version,
-              format: (inputs: Record<string, string>) => prompt.format(inputs),
+              format: (inputs: TInput) => prompt.format(inputs),
             },
           ])
         ),

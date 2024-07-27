@@ -207,7 +207,7 @@ interface IPromptCategory<T extends Record<string, IPrompt<IPromptInput, IPrompt
 /**
  * Defines the structure and behavior of the importable Prompt Manager library.
  */
-interface IPromptManagerLibrary {
+interface IPromptManagerLibrary<TInput extends IPromptInput<any> = IPromptInput<any>, TOutput extends IPromptOutput<any> = IPromptOutput<any>> {
   /**
    * Asynchronously initializes the Prompt Manager.
    * This must be called before using any other methods.

@@ -146,7 +146,7 @@ export class PromptModel<
    * @param inputs The input values for the prompt
    * @returns The execution result, either structured or plain text
    */
-  async execute(inputs: TInput): Promise<IPromptOutput> {
+  async execute(inputs: TInput): Promise<TOutput> {
     if (this.outputType === 'structured') {
       const formattedPrompt = this.format(inputs);
       const schema = z.object(this.outputSchema as z.ZodRawShape);
