@@ -42,14 +42,14 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     try {
       const configData = await fs.readFile(this.configPath, 'utf-8');
       const parsedConfig = JSON.parse(configData);
-      
+
       if (this.validateConfig(parsedConfig)) {
         this.config = parsedConfig;
         this.config.promptsDir = path.resolve(path.dirname(this.configPath), this.config.promptsDir);
       } else {
         throw new Error('Invalid configuration file');
       }
-    } catch (error) {
+    } catch (error: Error | any) {
       throw new Error(`Failed to load configuration: ${error.message}`);
     }
   }
@@ -58,7 +58,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     try {
       const configData = JSON.stringify(this.config, null, 2);
       await fs.writeFile(this.configPath, configData, 'utf-8');
-    } catch (error) {
+    } catch (error: Error | any) {
       throw new Error(`Failed to save configuration: ${error.message}`);
     }
   }
@@ -83,7 +83,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     try {
       configSchema.parse(config);
       return true;
-    } catch (error) {
+    } catch (error: Error | any) {
       console.error('Configuration validation error:', error.errors);
       return false;
     }
