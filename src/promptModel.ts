@@ -187,7 +187,7 @@ export class PromptModel implements IPromptModel {
     return fileSystem.promptExists({ category, promptName });
   }
 
-  static async listPrompts(category?: string, fileSystem?: PromptFileSystem): Promise<string[]> {
+  static async listPrompts(category?: string, fileSystem?: PromptFileSystem): Promise<Array<{ name: string; category: string; relativeFilePath: string }>> {
     if (!fileSystem) {
       fileSystem = new PromptFileSystem();
     }

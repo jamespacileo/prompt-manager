@@ -69,32 +69,20 @@ export class PromptFileSystem implements IPromptFileSystem {
     const prompts: Array<{ name: string; category: string; relativeFilePath: string }> = [];
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        if (!category) {
-          const subPrompts = await this.listPrompts({ category: entry.name });
-          prompts.push(...subPrompts.map(p => ({
-            ...p,
-            category: path.join(entry.name, p.category),
-            relativeFilePath: path.join(entry.name, p.relativeFilePath)
-          })));
-        } else {
-          const promptJsonPath = path.join(searchPath, entry.name, 'prompt.json');
-          try {
-            await fs.access(promptJsonPath);
-            prompts.push({
-              name: entry.name,
-              category: category,
-              relativeFilePath: path.join(category, entry.name, 'prompt.json')
-            });
-          } catch {
-            // If prompt.json doesn't exist, skip this directory
-          }
+        const promptJsonPath = path.join(searchPath, entry.name, 'prompt.json');
+        try {
+          await fs.access(promptJsonPath);
+          prompts.push({
+            name: entry.name,
+            category: category || '',
+            relativeFilePath: path.relative(this.basePath, promptJsonPath).replace(/\\/g, '/')
+          });
+        } catch {
+          // If prompt.json doesn't exist, skip this directory
         }
       }
     }
-    return prompts.map(p => ({
-      ...p,
-      relativeFilePath: p.relativeFilePath.replace(/\\/g, '/') // Ensure forward slashes for consistency
-    }));
+    return prompts;
   }
 
   async listCategories(): Promise<string[]> {
