@@ -32,10 +32,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   }
 
   private _isSaved: boolean = false;
-  } = {
-      created: '',
-      lastModified: ''
-    };
+
   outputType: 'structured' | 'plain' = 'plain';
   defaultModelName?: string;
   compatibleModels?: string[];
@@ -51,22 +48,20 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
     presencePenalty: number;
     stopSequences: string[];
   } = {
-      modelName: '',
-      temperature: 0,
-      maxTokens: 0,
-      topP: 0,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      stopSequences: []
-    };
+    modelName: '',
+    temperature: 0,
+    maxTokens: 0,
+    topP: 0,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    stopSequences: []
+  };
 
   constructor(promptData: Partial<PromptModel>, private fileSystem: PromptFileSystem) {
     Object.assign(this, promptData);
     this.fileSystem = fileSystem;
     this.initializeConfiguration();
   }
-
-  private isLoadedFromStorage: boolean = false;
 
   static async loadPromptByName(name: string, fileSystem: PromptFileSystem): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
@@ -197,7 +192,7 @@ export class PromptModel implements Omit<IPromptModel, 'loadPromptByName' | '_pr
   switchVersion(props: { version: string }): void {
     // Implement version switching logic
     // This is a placeholder and should be implemented based on your versioning strategy
-    console.log(`Switching to version ${version}`);
+    console.log(`Switching to version ${props.version}`);
   }
 
   isSaved(): boolean {
