@@ -34,7 +34,7 @@ export async function createPrompt(): Promise<void> {
   }
 
   const manager = new PromptManager();
-  await manager.initialize({});
+  await manager.initialize();
   const prompt = new PromptModel({
     ...promptData,
     name: promptData.name || '',
@@ -61,7 +61,7 @@ export async function createPrompt(): Promise<void> {
  */
 export async function listPrompts(): Promise<string[]> {
   const manager = new PromptManager();
-  await manager.initialize({});
+  await manager.initialize();
   const prompts = await manager.listPrompts({});
   return prompts.map(prompt => `${prompt.category}/${prompt.name}`);
 }
@@ -72,7 +72,7 @@ export async function listPrompts(): Promise<string[]> {
  */
 export async function getPromptDetails(props: { category: string; name: string }): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
   const manager = new PromptManager();
-  await manager.initialize({});
+  await manager.initialize();
   const prompt = await manager.getPrompt(props);
   return {
     name: prompt.name,
@@ -91,7 +91,7 @@ export async function getPromptDetails(props: { category: string; name: string }
  */
 export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
   const manager = new PromptManager();
-  await manager.initialize({});
+  await manager.initialize();
 
   if (props.updates.template) {
     const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
@@ -112,7 +112,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
 export async function generateTypes(): Promise<void> {
   const outputDir = configManager.getConfig('outputDir');
   const manager = new PromptManager();
-  await manager.initialize({});
+  await manager.initialize();
   const prompts = await manager.listPrompts({});
   let typeDefs = 'declare module "prompt-manager" {\n';
 
@@ -154,7 +154,7 @@ export async function getStatus(): Promise<{
     modelParams: configManager.getConfig('modelParams')
   };
   const manager = new PromptManager();
-  await manager.initialize({});
+  await manager.initialize();
   const prompts = await manager.listPrompts({});
 
   const categories = [...new Set(prompts.map(prompt => prompt.category))];
@@ -186,7 +186,7 @@ export async function getStatus(): Promise<{
 
 export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>[]> {
   const manager = new PromptManager();
-  await manager.initialize({});
+  await manager.initialize();
   const prompts = await manager.listPrompts({});
 
   return prompts.map(prompt => ({

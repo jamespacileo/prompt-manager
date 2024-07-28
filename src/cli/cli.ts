@@ -7,6 +7,7 @@ import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getP
 import fs from 'fs-extra';
 import path from 'path';
 import { TextEncoder, TextDecoder } from 'text-encoding';
+import {configManager} from "../config/PromptProjectConfigManager"
 
 // Add TextEncoder and TextDecoder to the global object
 global.TextEncoder = TextEncoder;
