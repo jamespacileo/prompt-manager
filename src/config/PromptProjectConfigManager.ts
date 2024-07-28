@@ -3,7 +3,6 @@ import path from 'path';
 import { z } from 'zod';
 import { IPromptProjectConfigManager } from '../types/interfaces';
 import { getDefaultPromptsPath } from './constants';
-import path from 'path';
 import { ensureDirectoryExists } from '../utils/fileUtils';
 
 const DEFAULT_CONFIG: Config = {
