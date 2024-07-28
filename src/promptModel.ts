@@ -90,8 +90,13 @@ export class PromptModel<
    * @returns True if the input is valid, false otherwise
    */
   validateInput(input: TInput): boolean {
-    // TODO: Implement input validation logic using this.inputSchema
-    return true; // Placeholder
+    try {
+      this.inputZodSchema.parse(input);
+      return true;
+    } catch (error) {
+      console.error('Input validation error:', error);
+      return false;
+    }
   }
 
   /**
@@ -101,8 +106,13 @@ export class PromptModel<
    * @returns True if the output is valid, false otherwise
    */
   validateOutput(output: TOutput): boolean {
-    // TODO: Implement output validation logic using this.outputSchema
-    return true; // Placeholder
+    try {
+      this.outputZodSchema.parse(output);
+      return true;
+    } catch (error) {
+      console.error('Output validation error:', error);
+      return false;
+    }
   }
 
   /**

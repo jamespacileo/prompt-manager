@@ -79,8 +79,7 @@ export class PromptFileSystem implements IPromptFileSystem {
    * List all prompts, optionally filtered by category.
    * Purpose: Provide an overview of available prompts for management and selection.
    */
-  async listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; filePath: string }>> {
-    const category = props?.category;
+  async listPrompts({ category }: { category?: string } = {}): Promise<Array<{ name: string; category: string; filePath: string }>> {
     const searchPath = category ? path.join(this.basePath, category) : this.basePath;
     const entries = await fs.readdir(searchPath, { withFileTypes: true });
 

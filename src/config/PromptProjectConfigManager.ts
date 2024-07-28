@@ -48,20 +48,23 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
       const configData = await fs.readFile(this.configPath, 'utf-8');
       const parsedConfig = JSON.parse(configData);
 
-      if (this.validateConfig(parsedConfig)) {
-        this.config = parsedConfig;
-        this.config.promptsDir = path.resolve(path.dirname(this.configPath), this.config.promptsDir);
-        this.config.outputDir = path.resolve(path.dirname(this.configPath), this.config.outputDir);
-      } else {
-        throw new Error('Invalid configuration file');
-      }
+      const validatedConfig = configSchema.parse(parsedConfig);
+      this.config = {
+        ...validatedConfig,
+        promptsDir: path.resolve(path.dirname(this.configPath), validatedConfig.promptsDir),
+        outputDir: path.resolve(path.dirname(this.configPath), validatedConfig.outputDir),
+      };
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         // File doesn't exist, create a new one with default values
-        this.config = { ...DEFAULT_CONFIG };
-        this.config.promptsDir = getDefaultPromptsPath();
-        this.config.outputDir = path.join(path.dirname(this.configPath), 'output');
+        this.config = {
+          ...DEFAULT_CONFIG,
+          promptsDir: getDefaultPromptsPath(),
+          outputDir: path.join(path.dirname(this.configPath), 'output'),
+        };
         await this.saveConfig();
+      } else if (error instanceof z.ZodError) {
+        throw new Error(`Invalid configuration file: ${error.message}`);
       } else {
         throw new Error(`Failed to load configuration: ${error.message}`);
       }

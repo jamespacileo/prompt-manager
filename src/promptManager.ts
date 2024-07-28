@@ -24,7 +24,7 @@ export class PromptManager<
    * This method must be called before using any other methods of the PromptManager.
    * Purpose: Set up the PromptManager with all existing prompts for further operations.
    */
-  async initialize(props: {}): Promise<void> {
+  async initialize(): Promise<void> {
     const prompts = await this.fileSystem.listPrompts();
     for (const prompt of prompts) {
       if (!this.prompts[prompt.category]) {
