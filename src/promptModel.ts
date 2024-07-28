@@ -246,4 +246,11 @@ export class PromptModel<
     }
     return await fileSystem.listPrompts({ category });
   }
+
+  static async deletePrompt(category: string, name: string, fileSystem?: PromptFileSystem): Promise<void> {
+    if (!fileSystem) {
+      fileSystem = new PromptFileSystem();
+    }
+    await fileSystem.deletePrompt({ category, promptName: name });
+  }
 }
