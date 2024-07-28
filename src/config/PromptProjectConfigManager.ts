@@ -4,7 +4,10 @@ import chalk from 'chalk';
 import { IPromptProjectConfigManager } from '../types/interfaces';
 import { getDefaultPromptsPath } from './constants';
 import { ensureDirectoryExists } from '../utils/fileUtils';
-import { Config, configSchema, DEFAULT_CONFIG, z } from '../schemas/config';
+import { configSchema, DEFAULT_CONFIG, z } from '../schemas/config';
+import type { Config } from '../schemas/config';
+
+export type { Config };
 
 export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private static instance: PromptProjectConfigManager;

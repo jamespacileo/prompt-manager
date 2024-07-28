@@ -1,5 +1,6 @@
 import { expect, test, beforeEach, afterEach, mock } from "bun:test";
-import { PromptProjectConfigManager, Config } from "../PromptProjectConfigManager";
+import { PromptProjectConfigManager } from "../PromptProjectConfigManager";
+import type { Config } from "../../schemas/config";
 import fs from "fs/promises";
 import path from "path";
 
