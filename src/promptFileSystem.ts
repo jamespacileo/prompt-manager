@@ -30,7 +30,9 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Save a prompt to the file system.
    * Purpose: Persist prompt data and manage versioning.
    */
-  async savePrompt(props: { promptData: IPrompt<Record<string, any>, Record<string, any>> }): Promise<void> {
+  async savePrompt<TInput extends IPromptInput<any>, TOutput extends IPromptOutput<any>>(
+    props: { promptData: IPrompt<TInput, TOutput> }
+  ): Promise<void> {
     const { promptData } = props;
   
     try {
@@ -72,7 +74,9 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
    */
-  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<Record<string, any>, Record<string, any>>> {
+  async loadPrompt<TInput extends IPromptInput<any>, TOutput extends IPromptOutput<any>>(
+    props: { category: string; promptName: string }
+  ): Promise<IPrompt<TInput, TOutput>> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
   
@@ -122,8 +126,6 @@ export class PromptFileSystem implements IPromptFileSystem {
             const promptJsonPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
             try {
               await fs.access(promptJsonPath);
-              // const relativePath = path.relative(this.basePath, path.dirname(promptJsonPath)).replace(/\\/g, '/');
-              // console.log({ promptDir, name: promptEntry.name, promptJsonPath, entry, category });
               prompts.push({
                 name: promptEntry.name,
                 category: categoryPath,
@@ -136,10 +138,8 @@ export class PromptFileSystem implements IPromptFileSystem {
         }
       }
     }
-    // console.log("PROMPTSS", prompts)
     return prompts;
   }
-
 
   async listCategories(): Promise<string[]> {
     const entries = await fs.readdir(this.basePath, { withFileTypes: true });
@@ -228,7 +228,9 @@ export class PromptFileSystem implements IPromptFileSystem {
     await fs.rm(categoryPath, { recursive: true, force: true });
   }
 
-  async loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt<Record<string, any>, Record<string, any>>> {
+  async loadPromptVersion<TInput extends IPromptInput<any>, TOutput extends IPromptOutput<any>>(
+    props: { category: string; promptName: string; version: string }
+  ): Promise<IPrompt<TInput, TOutput>> {
     const { category, promptName, version } = props;
     const versionFilePath = this.getVersionFilePath({ category, promptName, version });
     const data = await fs.readFile(versionFilePath, 'utf-8');
