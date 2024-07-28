@@ -33,6 +33,7 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
     if (!PromptProjectConfigManager.instance) {
       PromptProjectConfigManager.instance = new PromptProjectConfigManager(configPath);
     }
+    PromptProjectConfigManager.instance.initialize();
     return PromptProjectConfigManager.instance;
   }
 
