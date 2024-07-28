@@ -23,16 +23,17 @@ async function generatePromptManager() {
           const promptName = path.basename(prompt, '.txt');
           const promptContent = await fs.readFile(path.join(categoryPath, prompt), 'utf-8');
           const parameters = extractParameters(promptContent);
+          const parameterTypes = parameters.map(param => `${param}: string`).join('; ');
           
           output += `    ${promptName}: {\n`;
           output += `      content: string;\n`;
-          output += `      format: (params: { ${parameters.join('; ')} }) => string;\n`;
+          output += `      format: (params: { ${parameterTypes} }) => string;\n`;
           output += `      description: string;\n`;
           output += `      version: string;\n`;
           output += `    };\n`;
 
           typeDefinition += `    export const ${promptName}: {\n`;
-          typeDefinition += `      format: (inputs: { ${parameters.join('; ')} }) => string;\n`;
+          typeDefinition += `      format: (inputs: { ${parameterTypes} }) => string;\n`;
           typeDefinition += `      description: string;\n`;
           typeDefinition += `      version: string;\n`;
           typeDefinition += `    };\n`;
@@ -78,7 +79,13 @@ async function generatePromptManager() {
 function extractParameters(content: string): string[] {
   const matches = content.match(/\{([^}]+)\}/g);
   if (!matches) return [];
-  return matches.map(match => match.slice(1, -1).trim()).filter((value, index, self) => self.indexOf(value) === index);
+  return matches
+    .map(match => match.slice(1, -1).trim())
+    .filter((value, index, self) => self.indexOf(value) === index)
+    .map(param => {
+      // You can add more sophisticated type inference here if needed
+      return param;
+    });
 }
 
 generatePromptManager().catch(console.error);
