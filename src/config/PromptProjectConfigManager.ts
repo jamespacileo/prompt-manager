@@ -9,7 +9,7 @@ import { ensureDirectoryExists } from '../utils/fileUtils';
 const DEFAULT_CONFIG: Config = {
   promptsDir: getDefaultPromptsPath(),
   outputDir: path.join(process.cwd(), 'output'),
-  preferredModels: ['gpt-4', 'gpt-3.5-turbo'],
+  preferredModels: ['gpt-4', 'gpt-4o-mini'],
   modelParams: {
     'gpt-4': {
       temperature: 0.7,
@@ -18,7 +18,7 @@ const DEFAULT_CONFIG: Config = {
       frequencyPenalty: 0,
       presencePenalty: 0,
     },
-    'gpt-3.5-turbo': {
+    'gpt-4o-mini': {
       temperature: 0.8,
       maxTokens: 1500,
       topP: 1,
