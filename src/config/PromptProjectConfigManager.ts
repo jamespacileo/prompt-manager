@@ -43,6 +43,7 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
 
   private async loadConfig(): Promise<void> {
     try {
+      console.log(`Loading configuration from ${this.configPath}`);
       const configData = await fs.readFile(this.configPath, 'utf-8');
       const parsedConfig = JSON.parse(configData);
 
