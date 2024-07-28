@@ -375,6 +375,13 @@ interface IPromptFileSystem {
    * @returns A promise that resolves when the category and its prompts are deleted.
    */
   deleteCategory(props: { categoryName: string }): Promise<void>;
+
+  /**
+   * Loads a specific version of a prompt from the file system.
+   * @param props An object containing the category, name, and version of the prompt to load.
+   * @returns A promise that resolves with the loaded prompt data for the specified version.
+   */
+  loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt<IPromptInput, IPromptOutput>>;
 }
 
 /**
