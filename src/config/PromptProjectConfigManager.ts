@@ -1,12 +1,15 @@
 import fs from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import { IPromptProjectConfigManager } from '../types/interfaces';
-import { getDefaultPromptsPath } from './constants';
+import { IPromptProjectConfigManager, IPromptsFolderConfig } from '../types/interfaces';
+import { getDefaultPromptsPath, getProjectRoot } from './constants';
+import debug from 'debug';
+
+const log = debug('fury:config');
 import { ensureDirectoryExists } from '../utils/fileUtils';
 import { configSchema, DEFAULT_CONFIG, z } from '../schemas/config';
 import type { Config } from '../schemas/config';
-import { PromptFileSystem } from '../promptFileSystem';
+import { PromptFileSystem, DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME } from '../promptFileSystem';
 
 export type { Config };
 
@@ -36,6 +39,8 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private config: Config;
   private initialized: boolean = false;
   private static instance: PromptProjectConfigManager;
+  private basePath: string;
+  private verbosity: number = 0;
 
   /**
    * Constructor for PromptProjectConfigManager.
@@ -43,10 +48,24 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
    */
   constructor(configPath?: string) {
     const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
-    const projectRoot = process.env.FURY_PROJECT_ROOT || process.cwd();
-    this.configPath = configPath || path.join(projectRoot, configFileName);
+    this.basePath = getProjectRoot();
+    this.configPath = configPath || path.resolve(this.basePath, configFileName);
     this.config = { ...DEFAULT_CONFIG };
+    log(`Initializing PromptProjectConfigManager with basePath: ${this.basePath}`);
+    log(`Config path: ${this.configPath}`);
     this.performIntegrityCheck();
+  }
+
+  public getBasePath(): string {
+    return this.basePath;
+  }
+
+  public setVerbosity(level: number): void {
+    this.verbosity = level;
+  }
+
+  public getVerbosity(): number {
+    return this.verbosity;
   }
 
   public static getInstance(configPath?: string): PromptProjectConfigManager {
@@ -64,6 +83,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     try {
       await this.loadConfig();
       await this.ensureConfigDirectories();
+      await this.initializePromptsFolderConfig();
       await this.validatePromptsFolder();
       this.prettyPrintConfig();
       this.initialized = true;
@@ -111,6 +131,23 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     }
   }
 
+  private async initializePromptsFolderConfig(): Promise<void> {
+    const configPath = path.join(this.basePath, DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME);
+    try {
+      await fs.access(configPath);
+      console.log(chalk.green('✔ Prompts folder configuration already exists'));
+    } catch (error) {
+      console.log(chalk.yellow('⚠ Prompts folder configuration not found. Creating a default one...'));
+      const defaultConfig: IPromptsFolderConfig = {
+        version: "1.0.0",
+        lastUpdated: new Date().toISOString(),
+        promptCount: 0
+      };
+      await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2));
+      console.log(chalk.green('✔ Created default prompts folder configuration'));
+    }
+  }
+
   private async validatePromptsFolder(): Promise<void> {
     const promptFileSystem = PromptFileSystem.getInstance();
     await promptFileSystem.initialize();
@@ -140,17 +177,19 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 
   private async loadConfig(): Promise<void> {
     try {
-      console.log(chalk.blue(`Loading configuration from ${this.configPath}`));
+      log(`Loading configuration from ${this.configPath}`);
       const configData = await fs.readFile(this.configPath, 'utf-8');
       const parsedConfig = JSON.parse(configData);
 
       const validatedConfig = configSchema.parse(parsedConfig);
       this.config = {
         ...validatedConfig,
-        promptsDir: path.relative(process.cwd(), path.resolve(process.env.FURY_PROJECT_ROOT || process.cwd(), validatedConfig.promptsDir)),
-        outputDir: path.relative(process.cwd(), path.resolve(process.env.FURY_PROJECT_ROOT || process.cwd(), validatedConfig.outputDir)),
+        promptsDir: path.resolve(this.basePath, validatedConfig.promptsDir),
+        outputDir: path.resolve(this.basePath, validatedConfig.outputDir),
       };
-      console.log(chalk.green('✔ Configuration loaded successfully'));
+      log('Configuration loaded successfully');
+      log(`Prompts directory: ${this.config.promptsDir}`);
+      log(`Output directory: ${this.config.outputDir}`);
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         console.error(chalk.red('Configuration file not found. Project needs to be initialized.'));
@@ -170,18 +209,21 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 
   private prettyPrintConfig(): void {
-    console.log(chalk.bold('\nLoaded Configuration:'));
-    console.log(chalk.white('prompts_dir:      ') + chalk.cyan(this.config.promptsDir));
-    console.log(chalk.white('output_dir:       ') + chalk.cyan(this.config.outputDir));
-    console.log(chalk.white('preferredModels: ') + chalk.cyan(this.config.preferredModels.join(', ')));
-    console.log(chalk.white('modelParams:'));
-    Object.entries(this.config.modelParams).forEach(([model, params]) => {
-      console.log(chalk.white(`  ${model}:`));
-      Object.entries(params).forEach(([key, value]) => {
-        console.log(chalk.white(`    ${key}: `) + chalk.cyan(value));
+    if (this.verbosity > 0) {
+      console.log(chalk.bold('\nLoaded Configuration:'));
+      console.log(chalk.white('prompts_dir:      ') + chalk.cyan(this.config.promptsDir));
+      console.log(chalk.white('output_dir:       ') + chalk.cyan(this.config.outputDir));
+      console.log(chalk.white('preferredModels: ') + chalk.cyan(this.config.preferredModels.join(', ')));
+      console.log(chalk.white('modelParams:'));
+      Object.entries(this.config.modelParams).forEach(([model, params]) => {
+        console.log(chalk.white(`  ${model}:`));
+        Object.entries(params).forEach(([key, value]) => {
+          console.log(chalk.white(`    ${key}: `) + chalk.cyan(value));
+        });
       });
-    });
-    console.log('\n');
+      console.log(chalk.white('verbosity:        ') + chalk.cyan(this.verbosity));
+      console.log('\n');
+    }
   }
 
   private async saveConfig(): Promise<void> {

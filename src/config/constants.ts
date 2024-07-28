@@ -18,13 +18,13 @@ export const DEFAULT_CONFIG = {
 };
 
 export function getProjectRoot(): string {
-  return process.cwd();
+  return process.env.FURY_PROJECT_ROOT || process.cwd();
 }
 
 export function getConfigPath(): string {
-  return path.join(getProjectRoot(), CONFIG_FILE_NAME);
+  return path.resolve(getProjectRoot(), CONFIG_FILE_NAME);
 }
 
 export function getDefaultPromptsPath(): string {
-  return path.join(getProjectRoot(), DEFAULT_PROMPTS_DIR);
+  return path.resolve(getProjectRoot(), DEFAULT_PROMPTS_DIR);
 }

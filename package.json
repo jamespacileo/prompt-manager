@@ -55,6 +55,7 @@
     "commander": "^12.1.0",
     "console-table-printer": "^2.12.1",
     "cosmiconfig": "^9.0.0",
+    "debug": "^4.3.6",
     "fs-extra": "^11.2.0",
     "inquirer-autocomplete-prompt": "^3.0.1",
     "proper-lockfile": "^4.1.2",
@@ -64,6 +65,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.1.6",
+    "@types/debug": "^4.1.12",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.12",
     "@types/proper-lockfile": "^4.1.4",

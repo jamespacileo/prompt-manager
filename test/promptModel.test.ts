@@ -66,12 +66,6 @@ describe("PromptModel", () => {
     await promptManager.initialize();
   });
 
-  afterEach(async () => {
-    const prompts = await promptManager.listPrompts({});
-    for (const prompt of prompts) {
-      await promptManager.deletePrompt({ category: prompt.category, name: prompt.name });
-    }
-  });
 
   afterAll(async () => {
     await fs.rm(TEST_PROMPTS_PATH, { recursive: true, force: true });

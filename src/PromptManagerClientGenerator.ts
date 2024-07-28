@@ -2,6 +2,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { IPromptProjectConfigManager } from './types/interfaces';
 import { PromptFileSystem } from './promptFileSystem';
+import { PromptProjectConfigManager } from './config/PromptProjectConfigManager';
+
+const fileSystem = await PromptFileSystem.getInstance();
+const configManager = await PromptProjectConfigManager.getInstance();
 
 export class PromptManagerClientGenerator {
   private configManager: IPromptProjectConfigManager;
@@ -10,7 +14,7 @@ export class PromptManagerClientGenerator {
 
   constructor(configManager: IPromptProjectConfigManager) {
     this.configManager = configManager;
-    this.promptFileSystem = PromptFileSystem.getInstance();
+    this.promptFileSystem = await PromptFileSystem.getInstance();
     this.outputPath = path.join(this.configManager.getConfig('promptsDir'), '..', 'client.ts');
   }
 

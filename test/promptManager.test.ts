@@ -56,12 +56,12 @@ describe('PromptManager', () => {
     await manager.initialize();
   });
 
-  afterEach(async () => {
-    const prompts = await manager.listPrompts({});
-    for (const prompt of prompts) {
-      await manager.deletePrompt({ category: prompt.category, name: prompt.name });
-    }
-  });
+  // afterEach(async () => {
+  //   const prompts = await manager.listPrompts({});
+  //   for (const prompt of prompts) {
+  //     await manager.deletePrompt({ category: prompt.category, name: prompt.name });
+  //   }
+  // });
 
   afterAll(async () => {
     await fs.rm(testDir, { recursive: true, force: true });

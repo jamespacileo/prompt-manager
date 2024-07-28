@@ -14,9 +14,9 @@ const filesToInclude = [
   // 'test/index.test.ts',
   // 'test/promptFileSystem.test.ts',
   // 'test/promptManager.test.ts',
-  'test/promptModel.test.ts',
+  // 'test/promptModel.test.ts',
   // 'test/PromptProjectConfigManager.test.ts',
-  'test/setupEnvs.ts',
+  // 'test/setupEnvs.ts',
   // 'test/setup.ts',
   // 'test/testsUnload.ts'
   // Add more file paths as needed

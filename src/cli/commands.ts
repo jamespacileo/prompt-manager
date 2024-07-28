@@ -25,8 +25,8 @@ await promptManager.initialize();
  * @returns A Promise that resolves when the prompt creation process is complete.
  */
 export async function createPrompt(): Promise<void> {
+  let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
   try {
-    let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
     let accepted = false;
 
     const description = await input({ message: 'Describe the prompt you want to create:' });
@@ -150,6 +150,21 @@ export async function getPromptDetails(props: { category: string; name: string }
  * Purpose: Allow users to modify prompt properties and content, with AI assistance if desired.
  */
 export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
+  const { category, name, updates } = props;
+
+  if (!category || !name) {
+    throw new Error('Category and name are required for updating a prompt');
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw new Error('No updates provided');
+  }
+
+  // Validate specific fields in updates
+  if (updates.version && !/^\d+\.\d+\.\d+$/.test(updates.version)) {
+    throw new Error('Invalid version format. Use semantic versioning (e.g., 1.0.0)');
+  }
+
   try {
     const manager = PromptManager.getInstance();
     await manager.initialize();

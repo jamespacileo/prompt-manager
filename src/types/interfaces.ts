@@ -454,6 +454,24 @@ interface IPromptProjectConfigManager {
    * @param newConfig Partial configuration object with updated values.
    */
   updateConfig(newConfig: Partial<Config>): Promise<void>;
+
+  /**
+   * Retrieves the base path for the project.
+   * @returns The base path string.
+   */
+  getBasePath(): string;
+
+  /**
+   * Sets the verbosity level for the configuration manager.
+   * @param level The verbosity level to set.
+   */
+  setVerbosity(level: number): void;
+
+  /**
+   * Gets the current verbosity level.
+   * @returns The current verbosity level.
+   */
+  getVerbosity(): number;
 }
 
 export type {
