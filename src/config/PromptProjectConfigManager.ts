@@ -49,8 +49,8 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private config: Config;
 
   private constructor(configPath?: string) {
-    const configFileName = process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
-    this.configPath = configPath || path.join(process.cwd(), configFileName);
+    const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
+    this.configPath = configPath || path.join(process.env.FURY_PROJECT_ROOT || process.cwd(), configFileName);
     this.config = { ...DEFAULT_CONFIG };
   }
 
