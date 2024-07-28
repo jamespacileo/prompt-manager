@@ -314,7 +314,7 @@ interface IPromptFileSystem {
    * @param props An object containing an optional category to filter prompts.
    * @returns A promise that resolves with an array of prompt names.
    */
-  listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>>;
+  listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; filePath: string }>>;
 
   /**
    * Lists all categories in the file system.
@@ -327,7 +327,7 @@ interface IPromptFileSystem {
    * @param props An object containing the search query.
    * @returns A promise that resolves with an array of objects containing category and name of matching prompts.
    */
-  searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>>;
+  searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; filePath: string }>>;
 
   /**
    * Searches for categories based on a query string.
