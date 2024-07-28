@@ -51,11 +51,13 @@ beforeAll(async () => {
   testDir = path.join(process.cwd(), 'test-prompts');
   await fs.mkdir(testDir, { recursive: true });
   process.env.PROMPTS_DIR = testDir;
-  PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);
+  await PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);
+  await PromptProjectConfigManager.getInstance().initialize();
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   promptFileSystem = new PromptFileSystem();
+  await promptFileSystem.initialize();
 });
 
 afterAll(async () => {

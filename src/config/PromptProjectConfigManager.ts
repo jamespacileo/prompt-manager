@@ -62,6 +62,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 
   public async initialize(): Promise<void> {
     await this.loadConfig();
+    await this.ensureConfigDirectories();
   }
 
   private async loadConfig(): Promise<void> {

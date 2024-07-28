@@ -18,6 +18,11 @@ export class PromptFileSystem implements IPromptFileSystem {
     this.basePath = configManager.getConfig('promptsDir');
   }
 
+  public async initialize(): Promise<void> {
+    this.basePath = configManager.getConfig('promptsDir');
+    await fs.mkdir(this.basePath, { recursive: true });
+  }
+
   private getFilePath({ category, promptName }: { category: string, promptName: string }): string {
     return path.join(this.basePath, category, promptName, 'prompt.json');
   }
