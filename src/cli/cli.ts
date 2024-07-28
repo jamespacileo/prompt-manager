@@ -6,7 +6,6 @@ import chalk from 'chalk';
 import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus, deletePrompt } from './commands.js';
 import { Table } from 'console-table-printer';
 import fs from 'fs-extra';
-import path from 'path';
 import { TextEncoder, TextDecoder } from 'util';
 import { configManager } from "../config/PromptProjectConfigManager"
 import { PromptModel } from '../promptModel.js';
@@ -17,7 +16,11 @@ import { PromptModel } from '../promptModel.js';
 
 async function initializeConfig() {
   try {
-    await configManager.initialize();
+    // check if all deps are initialized
+    if (!await configManager.isInitialized()) {
+      log.error('Project is not initialized. Please run the "init" command first.');
+      process.exit(1);
+    }
   } catch (error) {
     log.error('Failed to initialize configuration:');
     console.error(error);

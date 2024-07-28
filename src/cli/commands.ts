@@ -9,10 +9,7 @@ import { configManager } from '../config/PromptProjectConfigManager';
 import { z } from 'zod';
 import { PromptSchema } from '../schemas/prompts';
 
-const promptManager = PromptManager.getInstance();
-
-// Ensure PromptManager is initialized before use
-await promptManager.initialize();
+let promptManager: PromptManager;
 
 /**
  * This file contains the implementation of various CLI commands for the Prompt Manager.
@@ -25,6 +22,7 @@ await promptManager.initialize();
  * @returns A Promise that resolves when the prompt creation process is complete.
  */
 export async function createPrompt(): Promise<void> {
+  promptManager = await PromptManager.getInstance();
   let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
   try {
     let accepted = false;
@@ -111,7 +109,6 @@ export async function createPrompt(): Promise<void> {
  * Purpose: Provide an overview of all prompts in the system for user reference.
  */
 export async function listPrompts(): Promise<Array<{ name: string; category: string; version: string; filePath: string }>> {
-  await promptManager.initialize();
   const prompts = await promptManager.listPrompts({});
 
   if (prompts.length === 0) {
@@ -131,8 +128,7 @@ export async function listPrompts(): Promise<Array<{ name: string; category: str
  * Purpose: Allow users to inspect the properties and content of a particular prompt.
  */
 export async function getPromptDetails(props: { category: string; name: string }): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
-  const manager = PromptManager.getInstance();
-  await manager.initialize();
+  const manager = await PromptManager.getInstance();
   const prompt = await manager.getPrompt(props);
   return {
     name: prompt.name,
@@ -166,8 +162,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
   }
 
   try {
-    const manager = PromptManager.getInstance();
-    await manager.initialize();
+    const manager = await PromptManager.getInstance();
 
     // Fetch the current prompt
     const currentPrompt = await manager.getPrompt({ category: props.category, name: props.name });
@@ -250,8 +245,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
  */
 export async function generateTypes(): Promise<void> {
   const outputDir = configManager.getConfig('outputDir');
-  const manager = PromptManager.getInstance();
-  await manager.initialize();
+  const manager = await PromptManager.getInstance();
   const prompts = await manager.listPrompts({});
   let typeDefs = 'declare module "prompt-manager" {\n';
 

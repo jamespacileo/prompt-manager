@@ -7,7 +7,7 @@ import { PromptFileSystem } from './promptFileSystem';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 
 // Create a singleton instance of PromptFileSystem
-const fileSystem = PromptFileSystem.getInstance();
+const fileSystem = await PromptFileSystem.getInstance();
 
 /**
  * Represents a single prompt model with all its properties and methods.
@@ -51,7 +51,6 @@ export class PromptModel<
   outputSchema: JSONSchema7;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
-  private fileSystem: IPromptFileSystem = PromptFileSystem.getInstance();
 
   get filePath(): string {
     const promptsDir = configManager.getConfig('promptsDir');
@@ -285,20 +284,20 @@ export class PromptModel<
   }
 
   async save(): Promise<void> {
-    if (!this.fileSystem) {
+    if (!fileSystem) {
       throw new Error('FileSystem is not initialized. Cannot save prompt.');
     }
     let retries = 3;
     while (retries > 0) {
       try {
-        const currentVersion = await this.fileSystem.getCurrentVersion(this);
+        const currentVersion = await fileSystem.getCurrentVersion(this);
         if (this.compareVersions(currentVersion, this.version) > 0) {
           // Merge logic here
           // For now, we'll just increment the version
           this.version = this.incrementVersion(currentVersion);
         }
         const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
-        await this.fileSystem.savePrompt({ promptData: updatedPromptData });
+        await fileSystem.savePrompt({ promptData: updatedPromptData });
         this._isSaved = true;
         // Update the current instance with the saved data
         Object.assign(this, updatedPromptData);
@@ -358,6 +357,18 @@ export class PromptModel<
     return fileSystem.getPromptVersions({ category: this.category, promptName: this.name });
   }
 
+  public async rollbackToVersion(version: string): Promise<void> {
+    try {
+      const versionData = await fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
+      Object.assign(this, versionData);
+      this.version = version;
+      await this.save();
+      console.info(`Rolled back prompt ${this.name} to version ${version}`);
+    } catch (error) {
+      console.error(`Failed to rollback prompt ${this.name} to version ${version}: ${error}`);
+      throw error;
+    }
+  }
   async switchVersion(version: string): Promise<void> {
     const versionData = await fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
     Object.assign(this, versionData);
@@ -386,7 +397,7 @@ export class PromptModel<
   }
 
   static async deletePrompt(category: string, name: string): Promise<void> {
-    const fs = PromptFileSystem.getInstance();
+    const fs = await PromptFileSystem.getInstance();
     await fs.deletePrompt({ category, promptName: name });
   }
 }

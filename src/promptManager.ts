@@ -3,6 +3,9 @@ import { PromptModel } from './promptModel';
 import { PromptFileSystem } from './promptFileSystem';
 import path from 'path';
 
+const fileSystem = await PromptFileSystem.getInstance();
+
+
 /**
  * PromptManager is the central class for managing prompts.
  * It provides methods for creating, retrieving, updating, and deleting prompts,
@@ -18,36 +21,38 @@ export class PromptManager<
   private static instance: PromptManager;
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
   public prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
-  private fileSystem: PromptFileSystem;
+  private initialized: boolean = false;
 
-  private constructor() {
-    this.fileSystem = PromptFileSystem.getInstance();
-  }
+  private constructor() { }
 
-  public static getInstance(): PromptManager {
+  public static async getInstance(): Promise<PromptManager> {
     if (!PromptManager.instance) {
       PromptManager.instance = new PromptManager();
+      await PromptManager.instance.initialize();
     }
     return PromptManager.instance;
   }
 
   /**
    * Initialize the PromptManager by loading all prompts from the file system.
-   * This method must be called before using any other methods of the PromptManager.
+   * This method is called automatically by getInstance().
    * 
    * Purpose: Set up the PromptManager with all existing prompts for further operations.
    * 
    * @throws Error if there's a failure in loading prompts from the file system
    */
-  async initialize(): Promise<void> {
+  private async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    fileSystem = await PromptFileSystem.getInstance();
     try {
-      const prompts = await this.fileSystem.listPrompts();
+      const prompts = await fileSystem.listPrompts();
       for (const prompt of prompts) {
         if (!this.prompts[prompt.category]) {
           this.prompts[prompt.category] = {};
         }
         try {
-          const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
+          const promptData = await fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
           this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
         } catch (error) {
           console.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
@@ -103,7 +108,7 @@ export class PromptManager<
     }
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;
-    await this.fileSystem.savePrompt({ promptData: newPrompt as IPrompt<Record<string, any>, Record<string, any>> });
+    await fileSystem.savePrompt({ promptData: newPrompt as IPrompt<Record<string, any>, Record<string, any>> });
     console.log(`Created new prompt "${prompt.name}" in category "${prompt.category}" with TypeScript definitions.`);
   }
 
@@ -112,9 +117,9 @@ export class PromptManager<
    * Purpose: Modify an existing prompt's properties and persist the changes.
    * @param props An object containing the category, name, updates, and an optional flag to bump the version
    */
-  async updatePrompt(props: { 
-    category: string; 
-    name: string; 
+  async updatePrompt(props: {
+    category: string;
+    name: string;
     updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
     bumpVersion?: boolean;
   }): Promise<void> {
@@ -127,7 +132,7 @@ export class PromptManager<
       prompt.version = this.incrementVersion(prompt.version);
     }
 
-    await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
+    await fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
   }
 
   /**
@@ -140,7 +145,7 @@ export class PromptManager<
       throw new Error(`Prompt "${name}" in category "${category}" does not exist`);
     }
     delete this.prompts[category][name];
-    await this.fileSystem.deletePrompt({ category, promptName: name });
+    await fileSystem.deletePrompt({ category, promptName: name });
   }
 
   async listPrompts(props: { category?: string }): Promise<Array<IPrompt<IPromptInput, IPromptOutput> & { filePath: string }>> {
@@ -153,7 +158,7 @@ export class PromptManager<
       return {
         ...promptData,
         filePath: promptData.category && promptData.name
-          ? path.join((this.fileSystem as any).basePath, promptData.category, promptData.name, 'prompt.json')
+          ? path.join((fileSystem as any).basePath, promptData.category, promptData.name, 'prompt.json')
           : ''
       };
     });
@@ -175,7 +180,7 @@ export class PromptManager<
       case 'create':
         const newVersion = this.incrementVersion(prompt.version);
         prompt.version = newVersion;
-        await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
+        await fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
         console.log(`Created new version ${newVersion} for ${category}/${name}`);
         break;
       case 'switch':
@@ -183,7 +188,7 @@ export class PromptManager<
           throw new Error(`Version is required for switch action`);
         }
         await prompt.switchVersion(version);
-        await this.fileSystem.savePrompt({ promptData: prompt });
+        await fileSystem.savePrompt({ promptData: prompt });
         console.log(`Switched ${category}/${name} to version ${version}`);
         break;
     }
@@ -224,6 +229,4 @@ export class PromptManager<
   }
 }
 
-export function getPromptManager(): PromptManager {
-  return PromptManager.getInstance();
-}
+export const promptManager = await PromptManager.getInstance();

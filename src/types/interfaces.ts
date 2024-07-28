@@ -303,6 +303,13 @@ interface IPromptManagerLibrary<TInput extends IPromptInput<any> = IPromptInput<
 // Export the interfaces so they can be imported and used in other parts of the project
 interface IPromptFileSystem {
   /**
+   * Initializes the PromptFileSystem.
+   * @returns A promise that resolves when initialization is complete.
+   * @throws Error if initialization fails.
+   */
+  initialize(): Promise<void>;
+
+  /**
    * Gets the file path for a prompt.
    * @param props An object containing the category and name of the prompt.
    * @returns The file path for the prompt.
@@ -379,13 +386,6 @@ interface IPromptFileSystem {
   getPromptVersions(props: { category: string; promptName: string }): Promise<string[]>;
 
   /**
-   * Deletes a prompt from the file system.
-   * @param props An object containing the category and name of the prompt to delete.
-   * @returns A promise that resolves when the prompt is deleted.
-   */
-  deletePrompt(props: { category: string; promptName: string }): Promise<void>;
-
-  /**
    * Renames a prompt in the file system.
    * @param props An object containing the current category and name, and the new category and name.
    * @returns A promise that resolves when the prompt is renamed.
@@ -424,6 +424,13 @@ interface IPromptFileSystem {
  * Interface for managing the project configuration for the Prompt Manager.
  */
 interface IPromptProjectConfigManager {
+  /**
+   * Gets an instance of the PromptProjectConfigManager.
+   * @returns A promise that resolves with the PromptProjectConfigManager instance.
+   * @throws Error if initialization fails.
+   */
+  getInstance(): Promise<IPromptProjectConfigManager>;
+
   /**
    * Initializes the configuration manager.
    * This should be called before using any other methods.

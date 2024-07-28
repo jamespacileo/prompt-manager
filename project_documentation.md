@@ -48,6 +48,9 @@ import { PromptModel } from './promptModel';
 import { PromptFileSystem } from './promptFileSystem';
 import path from 'path';
 
+const fileSystem = await PromptFileSystem.getInstance();
+
+
 /**
  * PromptManager is the central class for managing prompts.
  * It provides methods for creating, retrieving, updating, and deleting prompts,
@@ -63,36 +66,38 @@ export class PromptManager<
   private static instance: PromptManager;
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
   public prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
-  private fileSystem: PromptFileSystem;
+  private initialized: boolean = false;
 
-  private constructor() {
-    this.fileSystem = PromptFileSystem.getInstance();
-  }
+  private constructor() { }
 
-  public static getInstance(): PromptManager {
+  public static async getInstance(): Promise<PromptManager> {
     if (!PromptManager.instance) {
       PromptManager.instance = new PromptManager();
+      await PromptManager.instance.initialize();
     }
     return PromptManager.instance;
   }
 
   /**
    * Initialize the PromptManager by loading all prompts from the file system.
-   * This method must be called before using any other methods of the PromptManager.
+   * This method is called automatically by getInstance().
    * 
    * Purpose: Set up the PromptManager with all existing prompts for further operations.
    * 
    * @throws Error if there's a failure in loading prompts from the file system
    */
-  async initialize(): Promise<void> {
+  private async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    fileSystem = await PromptFileSystem.getInstance();
     try {
-      const prompts = await this.fileSystem.listPrompts();
+      const prompts = await fileSystem.listPrompts();
       for (const prompt of prompts) {
         if (!this.prompts[prompt.category]) {
           this.prompts[prompt.category] = {};
         }
         try {
-          const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
+          const promptData = await fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
           this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
         } catch (error) {
           console.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
@@ -148,7 +153,7 @@ export class PromptManager<
     }
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;
-    await this.fileSystem.savePrompt({ promptData: newPrompt as IPrompt<Record<string, any>, Record<string, any>> });
+    await fileSystem.savePrompt({ promptData: newPrompt as IPrompt<Record<string, any>, Record<string, any>> });
     console.log(`Created new prompt "${prompt.name}" in category "${prompt.category}" with TypeScript definitions.`);
   }
 
@@ -157,9 +162,9 @@ export class PromptManager<
    * Purpose: Modify an existing prompt's properties and persist the changes.
    * @param props An object containing the category, name, updates, and an optional flag to bump the version
    */
-  async updatePrompt(props: { 
-    category: string; 
-    name: string; 
+  async updatePrompt(props: {
+    category: string;
+    name: string;
     updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
     bumpVersion?: boolean;
   }): Promise<void> {
@@ -172,7 +177,7 @@ export class PromptManager<
       prompt.version = this.incrementVersion(prompt.version);
     }
 
-    await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
+    await fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
   }
 
   /**
@@ -185,7 +190,7 @@ export class PromptManager<
       throw new Error(`Prompt "${name}" in category "${category}" does not exist`);
     }
     delete this.prompts[category][name];
-    await this.fileSystem.deletePrompt({ category, promptName: name });
+    await fileSystem.deletePrompt({ category, promptName: name });
   }
 
   async listPrompts(props: { category?: string }): Promise<Array<IPrompt<IPromptInput, IPromptOutput> & { filePath: string }>> {
@@ -198,7 +203,7 @@ export class PromptManager<
       return {
         ...promptData,
         filePath: promptData.category && promptData.name
-          ? path.join((this.fileSystem as any).basePath, promptData.category, promptData.name, 'prompt.json')
+          ? path.join((fileSystem as any).basePath, promptData.category, promptData.name, 'prompt.json')
           : ''
       };
     });
@@ -220,7 +225,7 @@ export class PromptManager<
       case 'create':
         const newVersion = this.incrementVersion(prompt.version);
         prompt.version = newVersion;
-        await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
+        await fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
         console.log(`Created new version ${newVersion} for ${category}/${name}`);
         break;
       case 'switch':
@@ -228,7 +233,7 @@ export class PromptManager<
           throw new Error(`Version is required for switch action`);
         }
         await prompt.switchVersion(version);
-        await this.fileSystem.savePrompt({ promptData: prompt });
+        await fileSystem.savePrompt({ promptData: prompt });
         console.log(`Switched ${category}/${name} to version ${version}`);
         break;
     }
@@ -269,9 +274,7 @@ export class PromptManager<
   }
 }
 
-export function getPromptManager(): PromptManager {
-  return PromptManager.getInstance();
-}
+export const promptManager = await PromptManager.getInstance();
 
 ```
 
@@ -289,7 +292,7 @@ import { PromptFileSystem } from './promptFileSystem';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 
 // Create a singleton instance of PromptFileSystem
-const fileSystem = PromptFileSystem.getInstance();
+const fileSystem = await PromptFileSystem.getInstance();
 
 /**
  * Represents a single prompt model with all its properties and methods.
@@ -333,7 +336,6 @@ export class PromptModel<
   outputSchema: JSONSchema7;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
-  private fileSystem: IPromptFileSystem = PromptFileSystem.getInstance();
 
   get filePath(): string {
     const promptsDir = configManager.getConfig('promptsDir');
@@ -567,20 +569,20 @@ export class PromptModel<
   }
 
   async save(): Promise<void> {
-    if (!this.fileSystem) {
+    if (!fileSystem) {
       throw new Error('FileSystem is not initialized. Cannot save prompt.');
     }
     let retries = 3;
     while (retries > 0) {
       try {
-        const currentVersion = await this.fileSystem.getCurrentVersion(this);
+        const currentVersion = await fileSystem.getCurrentVersion(this);
         if (this.compareVersions(currentVersion, this.version) > 0) {
           // Merge logic here
           // For now, we'll just increment the version
           this.version = this.incrementVersion(currentVersion);
         }
         const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
-        await this.fileSystem.savePrompt({ promptData: updatedPromptData });
+        await fileSystem.savePrompt({ promptData: updatedPromptData });
         this._isSaved = true;
         // Update the current instance with the saved data
         Object.assign(this, updatedPromptData);
@@ -716,13 +718,6 @@ export class PromptFileSystem implements IPromptFileSystem {
     log(`PromptFileSystem initialized with basePath: ${this.basePath}`);
   }
 
-  public static getInstance(): PromptFileSystem {
-    if (!PromptFileSystem.instance) {
-      PromptFileSystem.instance = new PromptFileSystem();
-    }
-    return PromptFileSystem.instance;
-  }
-
   getFilePath(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
     return path.join(this.basePath, category, promptName, DEFAULT_PROMPT_FILENAME);
@@ -731,6 +726,14 @@ export class PromptFileSystem implements IPromptFileSystem {
   getVersionFilePath(props: { category: string; promptName: string; version: string }): string {
     const { category, promptName, version } = props;
     return path.join(this.basePath, category, promptName, '.versions', `v${version}.json`);
+  }
+
+  public static async getInstance(): Promise<PromptFileSystem> {
+    if (!PromptFileSystem.instance) {
+      PromptFileSystem.instance = new PromptFileSystem();
+      await PromptFileSystem.instance.initialize();
+    }
+    return PromptFileSystem.instance;
   }
 
   public async initialize(): Promise<void> {
@@ -761,9 +764,16 @@ export class PromptFileSystem implements IPromptFileSystem {
     log('PromptFileSystem initialization complete');
   }
 
-  private ensureInitialized(): void {
+  private async ensureInitialized(): Promise<void> {
     if (!this.initialized) {
-      throw new Error('PromptFileSystem is not initialized. Call initialize() before using it.');
+      const timeout = 30000; // 30 seconds timeout
+      const startTime = Date.now();
+      while (!this.initialized && Date.now() - startTime < timeout) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Wait for 100ms
+      }
+      if (!this.initialized) {
+        throw new Error('PromptFileSystem initialization timed out. Please check for any issues preventing initialization.');
+      }
     }
   }
 
@@ -1262,9 +1272,10 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     return this.verbosity;
   }
 
-  public static getInstance(configPath?: string): PromptProjectConfigManager {
+  public static async getInstance(configPath?: string): Promise<PromptProjectConfigManager> {
     if (!PromptProjectConfigManager.instance) {
       PromptProjectConfigManager.instance = new PromptProjectConfigManager(configPath);
+      await PromptProjectConfigManager.instance.initialize();
     }
     return PromptProjectConfigManager.instance;
   }
@@ -1274,6 +1285,8 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
    * This method loads the configuration, ensures necessary directories exist, and prints the loaded configuration.
    */
   public async initialize(): Promise<void> {
+    if (this.initialized) return;
+
     try {
       await this.loadConfig();
       await this.ensureConfigDirectories();
@@ -1292,7 +1305,18 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
    * @returns A promise that resolves to true if initialized, false otherwise.
    */
   public async isInitialized(): Promise<boolean> {
+    const timeout = 30000; // 30 seconds timeout
+    const startTime = Date.now();
+    while (!this.initialized && Date.now() - startTime < timeout) {
+      await new Promise(resolve => setTimeout(resolve, 100)); // Wait for 100ms
+    }
     return this.initialized;
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!await this.isInitialized()) {
+      throw new Error('PromptProjectConfigManager is not initialized. Please check for any issues preventing initialization.');
+    }
   }
 
   private async performIntegrityCheck(): Promise<void> {
@@ -1481,7 +1505,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 }
 
-export const configManager = PromptProjectConfigManager.getInstance();
+export const configManager = await PromptProjectConfigManager.getInstance();
 
 ```
 
@@ -1509,7 +1533,7 @@ import { PromptModel } from '../promptModel.js';
 
 async function initializeConfig() {
   try {
-    await configManager.initialize();
+    const configManager = await PromptProjectConfigManager.getInstance();
   } catch (error) {
     log.error('Failed to initialize configuration:');
     console.error(error);
@@ -1855,10 +1879,7 @@ import { configManager } from '../config/PromptProjectConfigManager';
 import { z } from 'zod';
 import { PromptSchema } from '../schemas/prompts';
 
-const promptManager = PromptManager.getInstance();
-
-// Ensure PromptManager is initialized before use
-await promptManager.initialize();
+let promptManager: PromptManager;
 
 /**
  * This file contains the implementation of various CLI commands for the Prompt Manager.
@@ -1871,6 +1892,7 @@ await promptManager.initialize();
  * @returns A Promise that resolves when the prompt creation process is complete.
  */
 export async function createPrompt(): Promise<void> {
+  promptManager = await PromptManager.getInstance();
   let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
   try {
     let accepted = false;

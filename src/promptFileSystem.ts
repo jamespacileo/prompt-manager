@@ -34,13 +34,6 @@ export class PromptFileSystem implements IPromptFileSystem {
     log(`PromptFileSystem initialized with basePath: ${this.basePath}`);
   }
 
-  public static getInstance(): PromptFileSystem {
-    if (!PromptFileSystem.instance) {
-      PromptFileSystem.instance = new PromptFileSystem();
-    }
-    return PromptFileSystem.instance;
-  }
-
   getFilePath(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
     return path.join(this.basePath, category, promptName, DEFAULT_PROMPT_FILENAME);
@@ -49,6 +42,14 @@ export class PromptFileSystem implements IPromptFileSystem {
   getVersionFilePath(props: { category: string; promptName: string; version: string }): string {
     const { category, promptName, version } = props;
     return path.join(this.basePath, category, promptName, '.versions', `v${version}.json`);
+  }
+
+  public static async getInstance(): Promise<PromptFileSystem> {
+    if (!PromptFileSystem.instance) {
+      PromptFileSystem.instance = new PromptFileSystem();
+      await PromptFileSystem.instance.initialize();
+    }
+    return PromptFileSystem.instance;
   }
 
   public async initialize(): Promise<void> {
@@ -79,9 +80,16 @@ export class PromptFileSystem implements IPromptFileSystem {
     log('PromptFileSystem initialization complete');
   }
 
-  private ensureInitialized(): void {
+  private async ensureInitialized(): Promise<void> {
     if (!this.initialized) {
-      throw new Error('PromptFileSystem is not initialized. Call initialize() before using it.');
+      const timeout = 30000; // 30 seconds timeout
+      const startTime = Date.now();
+      while (!this.initialized && Date.now() - startTime < timeout) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Wait for 100ms
+      }
+      if (!this.initialized) {
+        throw new Error('PromptFileSystem initialization timed out. Please check for any issues preventing initialization.');
+      }
     }
   }
 

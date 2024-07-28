@@ -1,6 +1,5 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { IPromptProjectConfigManager } from './types/interfaces';
 import { PromptFileSystem } from './promptFileSystem';
 import { PromptProjectConfigManager } from './config/PromptProjectConfigManager';
 
@@ -8,27 +7,22 @@ const fileSystem = await PromptFileSystem.getInstance();
 const configManager = await PromptProjectConfigManager.getInstance();
 
 export class PromptManagerClientGenerator {
-  private configManager: IPromptProjectConfigManager;
-  private promptFileSystem: PromptFileSystem;
   private outputPath: string;
 
-  constructor(configManager: IPromptProjectConfigManager) {
-    this.configManager = configManager;
-    this.promptFileSystem = await PromptFileSystem.getInstance();
-    this.outputPath = path.join(this.configManager.getConfig('promptsDir'), '..', 'client.ts');
+  constructor() {
+    this.outputPath = path.join(configManager.getConfig('promptsDir'), '..', 'client.ts');
   }
 
   async generateClient(): Promise<void> {
-    const categories = await this.promptFileSystem.listCategories();
+    const categories = await fileSystem.listCategories();
     let clientCode = this.generateClientHeader();
 
     for (const category of categories) {
-      const prompts = await this.promptFileSystem.listPrompts({ category });
+      const prompts = await fileSystem.listPrompts({ category });
       clientCode += this.generateCategoryCode(category, prompts.map(p => p.name));
     }
 
     clientCode += this.generateClientFooter();
-
     await this.writeClientFile(clientCode);
   }
 
@@ -66,10 +60,10 @@ export class PromptManagerClient implements IPromptManagerLibrary {
     let categoryCode = `    ${category}: {\n`;
     for (const prompt of prompts) {
       categoryCode += `      ${prompt}: {\n`;
-      categoryCode += `        raw: async () => (await this.getPrompt({ category: '${category}', name: '${prompt}' })).template,\n`;
-      categoryCode += `        version: async () => (await this.getPrompt({ category: '${category}', name: '${prompt}' })).version,\n`;
+      categoryCode += `        raw: async () => (await promptManager.getPrompt({ category: '${category}', name: '${prompt}' })).template,\n`;
+      categoryCode += `        version: async () => (await promptManager.getPrompt({ category: '${category}', name: '${prompt}' })).version,\n`;
       categoryCode += `        format: async (inputs: Record<string, any>) => {\n`;
-      categoryCode += `          const prompt = await this.getPrompt({ category: '${category}', name: '${prompt}' });\n`;
+      categoryCode += `          const prompt = await promptManager.getPrompt({ category: '${category}', name: '${prompt}' });\n`;
       categoryCode += `          return prompt.template.replace(/\\{(\\w+)\\}/g, (_, key) => inputs[key] ?? '');\n`;
       categoryCode += `        },\n`;
       categoryCode += `      },\n`;
@@ -102,11 +96,11 @@ export const promptManager = new PromptManagerClient();
   }
 
   private async generateClientContent(): Promise<string> {
-    const categories = await this.promptFileSystem.listCategories();
+    const categories = await fileSystem.listCategories();
     let clientCode = this.generateClientHeader();
 
     for (const category of categories) {
-      const prompts = await this.promptFileSystem.listPrompts({ category });
+      const prompts = await fileSystem.listPrompts({ category });
       clientCode += this.generateCategoryCode(category, prompts.map(p => p.name));
     }
 

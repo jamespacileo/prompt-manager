@@ -12,6 +12,6 @@ import { PromptManager } from './promptManager';
 
 export async function initializeSystem() {
   await initManager.initialize('configManager', () => configManager.initialize());
-  await initManager.initialize('promptFileSystem', () => PromptFileSystem.getInstance().initialize(), ['configManager']);
-  await initManager.initialize('promptManager', () => PromptManager.getInstance().initialize(), ['promptFileSystem']);
+  await initManager.initialize('promptFileSystem', async () => await PromptFileSystem.getInstance(), ['configManager']);
+  await initManager.initialize('promptManager', async () => await PromptManager.getInstance(), ['promptFileSystem']);
 }

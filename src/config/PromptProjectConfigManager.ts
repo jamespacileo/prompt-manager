@@ -75,11 +75,14 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     return PromptProjectConfigManager.instance;
   }
 
+
   /**
    * Initialize the configuration manager.
    * This method loads the configuration, ensures necessary directories exist, and prints the loaded configuration.
    */
   public async initialize(): Promise<void> {
+    if (this.initialized) return;
+
     try {
       await this.loadConfig();
       await this.ensureConfigDirectories();
@@ -98,7 +101,18 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
    * @returns A promise that resolves to true if initialized, false otherwise.
    */
   public async isInitialized(): Promise<boolean> {
+    const timeout = 30000; // 30 seconds timeout
+    const startTime = Date.now();
+    while (!this.initialized && Date.now() - startTime < timeout) {
+      await new Promise(resolve => setTimeout(resolve, 100)); // Wait for 100ms
+    }
     return this.initialized;
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!await this.isInitialized()) {
+      throw new Error('PromptProjectConfigManager is not initialized. Please check for any issues preventing initialization.');
+    }
   }
 
   private async performIntegrityCheck(): Promise<void> {
@@ -287,4 +301,4 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 }
 
-export const configManager = PromptProjectConfigManager.getInstance();
+export const configManager = await PromptProjectConfigManager.getInstance();
