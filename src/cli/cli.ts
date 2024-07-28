@@ -3,7 +3,10 @@
 import { Command } from 'commander';
 import { input, confirm, select } from '@inquirer/prompts';
 import chalk from 'chalk';
-import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus } from './commands.js';
+import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus, deletePrompt } from './commands.js';
+import { Table } from 'console-table-printer';
+import inquirer from 'inquirer';
+import inquirerPrompt from 'inquirer-autocomplete-prompt';
 import fs from 'fs-extra';
 import path from 'path';
 import { TextEncoder, TextDecoder } from 'text-encoding';
@@ -99,25 +102,94 @@ program
       if (prompts.length === 0) {
         log.warn('No prompts found. Use the "create" command to add new prompts.');
       } else {
-        const selectedPrompt = await select({
-          message: 'Select a prompt to view details:',
-          choices: prompts.map((prompt, index) => ({
-            name: `${index + 1}. ${prompt}`,
-            value: prompt,
-          })),
+        const table = new Table({
+          columns: [
+            { name: 'category', alignment: 'left', color: 'cyan' },
+            { name: 'name', alignment: 'left', color: 'green' },
+            { name: 'version', alignment: 'left', color: 'yellow' },
+          ],
         });
-        const [category, promptName] = selectedPrompt.split('/');
-        const promptDetails = await getPromptDetails({ category, name: promptName });
-        log.info('\nPrompt Details:');
-        Object.entries(promptDetails).forEach(([key, value]) => {
-          log.info(`${key}: ${value}`);
+
+        prompts.forEach((prompt) => {
+          table.addRow({
+            category: prompt.category,
+            name: prompt.name,
+            version: prompt.version,
+          });
         });
+
+        table.printTable();
+
+        const promptChoices = prompts.map((prompt) => ({
+          name: `${prompt.category}/${prompt.name}`,
+          value: prompt,
+        }));
+
+        inquirer.registerPrompt('autocomplete', inquirerPrompt);
+        const { selectedPrompt } = await inquirer.prompt([
+          {
+            type: 'autocomplete',
+            name: 'selectedPrompt',
+            message: 'Select a prompt to view details (type to search):',
+            source: (answersSoFar: any, input: string) =>
+              promptChoices.filter((choice) =>
+                choice.name.toLowerCase().includes((input || '').toLowerCase())
+              ),
+          },
+        ]);
+
+        await displayPromptDetails(selectedPrompt);
       }
     } catch (error) {
       log.error('Failed to list prompts:');
       console.error(error);
     }
   });
+
+async function displayPromptDetails(prompt: any) {
+  const promptDetails = await getPromptDetails({ category: prompt.category, name: prompt.name });
+  log.info('\nPrompt Details:');
+  const detailsTable = new Table({
+    columns: [
+      { name: 'property', alignment: 'left', color: 'cyan' },
+      { name: 'value', alignment: 'left', color: 'green' },
+    ],
+  });
+
+  Object.entries(promptDetails).forEach(([key, value]) => {
+    detailsTable.addRow({ property: key, value: JSON.stringify(value, null, 2) });
+  });
+
+  detailsTable.printTable();
+
+  const { action } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: 'What would you like to do?',
+      choices: [
+        { name: 'Edit prompt', value: 'edit' },
+        { name: 'Delete prompt', value: 'delete' },
+        { name: 'Go back to list', value: 'back' },
+        { name: 'Exit', value: 'exit' },
+      ],
+    },
+  ]);
+
+  switch (action) {
+    case 'edit':
+      await updatePrompt({ category: prompt.category, name: prompt.name, updates: {} });
+      break;
+    case 'delete':
+      await deletePrompt({ category: prompt.category, name: prompt.name });
+      break;
+    case 'back':
+      await program.commands.find((cmd) => cmd.name() === 'list').action();
+      break;
+    case 'exit':
+      process.exit(0);
+  }
+}
 
 program
   .command('update <name>')

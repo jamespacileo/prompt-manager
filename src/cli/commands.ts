@@ -200,3 +200,10 @@ export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput,
     },
   }));
 }
+
+export async function deletePrompt(props: { category: string; name: string }): Promise<void> {
+  const manager = new PromptManager();
+  await manager.initialize();
+  await manager.deletePrompt(props);
+  console.log(`Prompt "${props.category}/${props.name}" deleted successfully.`);
+}
