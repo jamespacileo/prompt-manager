@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
+import chalk from 'chalk';
 import { IPromptProjectConfigManager } from '../types/interfaces';
 import { getDefaultPromptsPath } from './constants';
 import { ensureDirectoryExists } from '../utils/fileUtils';
@@ -96,6 +97,24 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 
     // Ensure directories exist
     await this.ensureConfigDirectories();
+
+    // Pretty print the loaded configuration
+    this.prettyPrintConfig();
+  }
+
+  private prettyPrintConfig(): void {
+    console.log(chalk.bold('\nLoaded Configuration:'));
+    console.log(chalk.white('promptsDir:      ') + chalk.cyan(this.config.promptsDir));
+    console.log(chalk.white('outputDir:       ') + chalk.cyan(this.config.outputDir));
+    console.log(chalk.white('preferredModels: ') + chalk.cyan(this.config.preferredModels.join(', ')));
+    console.log(chalk.white('modelParams:'));
+    Object.entries(this.config.modelParams).forEach(([model, params]) => {
+      console.log(chalk.white(`  ${model}:`));
+      Object.entries(params).forEach(([key, value]) => {
+        console.log(chalk.white(`    ${key}: `) + chalk.cyan(value));
+      });
+    });
+    console.log('\n');
   }
 
   private async ensureConfigDirectories(): Promise<void> {
