@@ -13,7 +13,7 @@ import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
  */
 export class PromptModel<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
-  TOutput extends IPromptOutput<Record<string, any>> | IPromptOutput<string> = IPromptOutput<Record<string, any>> | IPromptOutput<string>
+  TOutput extends IPromptOutput<Record<string, any> | string> = IPromptOutput<Record<string, any> | string>
 > implements IPromptModel<TInput, TOutput> {
   name: string;
   category: string;
