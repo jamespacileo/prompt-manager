@@ -110,7 +110,7 @@ program
           ],
         });
 
-        prompts.forEach((prompt) => {
+        prompts.forEach((prompt: { category: string; name: string; version: string }) => {
           table.addRow({
             category: prompt.category,
             name: prompt.name,
@@ -120,7 +120,7 @@ program
 
         table.printTable();
 
-        const promptChoices = prompts.map((prompt) => ({
+        const promptChoices = prompts.map((prompt: { category: string; name: string }) => ({
           name: `${prompt.category}/${prompt.name}`,
           value: prompt,
         }));
@@ -184,7 +184,12 @@ async function displayPromptDetails(prompt: any) {
       await deletePrompt({ category: prompt.category, name: prompt.name });
       break;
     case 'back':
-      await program.commands.find((cmd) => cmd.name() === 'list').action();
+      const listCommand = program.commands.find((cmd) => cmd.name() === 'list');
+      if (listCommand) {
+        await listCommand.action(listCommand);
+      } else {
+        log.error('List command not found');
+      }
       break;
     case 'exit':
       process.exit(0);
