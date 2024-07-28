@@ -30,7 +30,7 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Save a prompt to the file system.
    * Purpose: Persist prompt data and manage versioning.
    */
-  async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
+  async savePrompt(props: { promptData: IPrompt<any, any> }): Promise<void> {
     const { promptData } = props;
   
     try {
