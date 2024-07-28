@@ -70,7 +70,7 @@ export class PromptModel<
   }
 
   private determineOutputType(outputSchema: JSONSchema7): 'structured' | 'plain' {
-    return outputSchema && Object.keys(outputSchema).length > 0 ? 'structured' : 'plain';
+    return Object.keys(outputSchema).length > 0 ? 'structured' : 'plain';
   }
 
   private initializeConfiguration(): {
@@ -197,13 +197,16 @@ export class PromptModel<
       }
     } catch (error) {
       console.error('Error executing prompt:', error);
-      throw new Error('Failed to execute prompt: ' + (error as Error).message);
+      throw new Error(`Failed to execute prompt: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   updateMetadata(metadata: Partial<IPromptModel['metadata']>): void {
-    this.metadata = { ...this.metadata, ...metadata };
-    this.metadata.lastModified = new Date().toISOString();
+    this.metadata = { 
+      ...this.metadata, 
+      ...metadata,
+      lastModified: new Date().toISOString()
+    };
   }
 
   getSummary(): string {
@@ -211,11 +214,10 @@ export class PromptModel<
   }
 
   async save(): Promise<void> {
-    if (fileSystem) {
-      await fileSystem.savePrompt({ promptData: this as unknown as IPrompt<Record<string, any>, Record<string, any>> });
-    } else {
-      throw new Error('FileSystem is not initialized');
+    if (!this.fileSystem) {
+      throw new Error('FileSystem is not initialized. Cannot save prompt.');
     }
+    await this.fileSystem.savePrompt({ promptData: this as unknown as IPrompt<Record<string, any>, Record<string, any>> });
     this._isSaved = true;
   }
 
