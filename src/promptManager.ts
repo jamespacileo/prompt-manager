@@ -34,7 +34,7 @@ export class PromptManager<
         }
         try {
           const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData as IPromptModelRequired) as unknown as PromptModel<TInput, TOutput>;
+          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
         } catch (error) {
           console.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
           // Continue loading other prompts even if one fails
@@ -72,7 +72,7 @@ export class PromptManager<
     }
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;
-    await this.fileSystem.savePrompt({ promptData: newPrompt as unknown as IPrompt<any, any> });
+    await this.fileSystem.savePrompt({ promptData: newPrompt as IPrompt<Record<string, any>, Record<string, any>> });
     console.log(`Created new prompt "${prompt.name}" in category "${prompt.category}" with TypeScript definitions.`);
   }
 
@@ -85,7 +85,7 @@ export class PromptManager<
     const prompt = this.getPrompt({ category, name });
     Object.assign(prompt, updates);
     prompt.updateMetadata({ lastModified: new Date().toISOString() });
-    await this.fileSystem.savePrompt({ promptData: prompt as unknown as IPrompt<any, any> });
+    await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
   }
 
   /**
@@ -111,7 +111,7 @@ export class PromptManager<
       return {
         ...promptData,
         filePath: promptData.category && promptData.name
-          ? path.join(this.fileSystem.basePath, promptData.category, promptData.name, 'prompt.json')
+          ? path.join((this.fileSystem as any).basePath, promptData.category, promptData.name, 'prompt.json')
           : ''
       };
     });
@@ -133,7 +133,7 @@ export class PromptManager<
       case 'create':
         const newVersion = this.incrementVersion(prompt.version);
         prompt.version = newVersion;
-        await this.fileSystem.savePrompt({ promptData: prompt });
+        await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
         console.log(`Created new version ${newVersion} for ${category}/${name}`);
         break;
       case 'switch':
