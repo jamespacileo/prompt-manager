@@ -68,7 +68,7 @@ export class PromptFileSystem implements IPromptFileSystem {
     const filePath = this.getFilePath({ category, promptName });
     const data = await fs.readFile(filePath, 'utf-8');
     const parsedData = JSON.parse(data);
-    
+
     // Validate the loaded data
     const promptSchema = z.object({
       name: z.string(),
