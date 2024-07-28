@@ -3,6 +3,7 @@ import path from 'path';
 import { z } from 'zod';
 import { IPromptProjectConfigManager } from '../types/interfaces';
 import { CONFIG_FILE_NAME, DEFAULT_CONFIG, getConfigPath, getDefaultPromptsPath } from './constants';
+import { ensureDirectoryExists } from '../utils/fileUtils';
 
 const configSchema = z.object({
   promptsDir: z.string(),
@@ -65,6 +66,14 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
         throw new Error(`Failed to load configuration: ${error.message}`);
       }
     }
+
+    // Ensure directories exist
+    await this.ensureConfigDirectories();
+  }
+
+  private async ensureConfigDirectories(): Promise<void> {
+    await ensureDirectoryExists(this.config.promptsDir);
+    await ensureDirectoryExists(this.config.outputDir);
   }
 
   private async saveConfig(): Promise<void> {
@@ -79,6 +88,7 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
   public async updateConfig(newConfig: Partial<Config>): Promise<void> {
     this.config = { ...this.config, ...newConfig };
     await this.saveConfig();
+    await this.ensureConfigDirectories();
   }
 
   public getConfig<K extends keyof Config>(key: K): Config[K] {
