@@ -79,12 +79,12 @@ export class PromptFileSystem implements IPromptFileSystem {
    * List all prompts, optionally filtered by category.
    * Purpose: Provide an overview of available prompts for management and selection.
    */
-  async listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>> {
+  async listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; filePath: string }>> {
     const category = props?.category;
     const searchPath = category ? path.join(this.basePath, category) : this.basePath;
     const entries = await fs.readdir(searchPath, { withFileTypes: true });
 
-    const prompts: Array<{ name: string; category: string; relativeFilePath: string }> = [];
+    const prompts: Array<{ name: string; category: string; filePath: string }> = [];
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const categoryPath = category ? category : entry.name;
@@ -101,7 +101,7 @@ export class PromptFileSystem implements IPromptFileSystem {
               prompts.push({
                 name: promptEntry.name,
                 category: categoryPath,
-                relativeFilePath: promptJsonPath
+                filePath: promptJsonPath
               });
             } catch {
               // If prompt.json doesn't exist, skip this directory
@@ -120,13 +120,13 @@ export class PromptFileSystem implements IPromptFileSystem {
     return entries.filter(entry => entry.isDirectory()).map(entry => entry.name);
   }
 
-  async searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; relativeFilePath: string }>> {
+  async searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; filePath: string }>> {
     const { query } = props;
     const allPrompts = await this.listPrompts();
     return allPrompts.filter(prompt =>
       prompt.name.toLowerCase().includes(query.toLowerCase()) ||
       prompt.category.toLowerCase().includes(query.toLowerCase()) ||
-      prompt.relativeFilePath.toLowerCase().includes(query.toLowerCase())
+      prompt.filePath.toLowerCase().includes(query.toLowerCase())
     );
   }
 
