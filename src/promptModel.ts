@@ -14,6 +14,9 @@ const fileSystem = new PromptFileSystem();
  * Purpose: Encapsulate all data and behavior related to a specific prompt,
  * including validation, formatting, and execution.
  */
+import path from 'path';
+import { configManager } from './config/PromptProjectConfigManager';
+
 export class PromptModel<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any>> = IPromptOutput<Record<string, any>>
@@ -44,6 +47,11 @@ export class PromptModel<
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
   private fileSystem: IPromptFileSystem;
+
+  get filePath(): string {
+    const promptsDir = configManager.getConfig('promptsDir');
+    return path.join(promptsDir, this.category, this.name, 'prompt.json');
+  }
 
   /**
    * Create a new PromptModel instance.

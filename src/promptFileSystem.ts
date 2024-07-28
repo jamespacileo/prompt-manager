@@ -111,11 +111,11 @@ export class PromptFileSystem implements IPromptFileSystem {
    * List all prompts, optionally filtered by category.
    * Purpose: Provide an overview of available prompts for management and selection.
    */
-  async listPrompts({ category }: { category?: string } = {}): Promise<Array<{ name: string; category: string; filePath: string }>> {
+  async listPrompts({ category }: { category?: string } = {}): Promise<PromptModel[]> {
     const searchPath = category ? path.join(this.basePath, category) : this.basePath;
     const entries = await fs.readdir(searchPath, { withFileTypes: true });
 
-    const prompts: Array<{ name: string; category: string; filePath: string }> = [];
+    const prompts: PromptModel[] = [];
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const categoryPath = category ? category : entry.name;
@@ -127,11 +127,9 @@ export class PromptFileSystem implements IPromptFileSystem {
             const promptJsonPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
             try {
               await fs.access(promptJsonPath);
-              prompts.push({
-                name: promptEntry.name,
-                category: categoryPath,
-                filePath: promptJsonPath
-              });
+              const promptData = await this.loadPrompt({ category: categoryPath, promptName: promptEntry.name });
+              const promptModel = new PromptModel(promptData as IPromptModelRequired);
+              prompts.push(promptModel);
             } catch {
               // If prompt.json doesn't exist, skip this directory
             }
@@ -147,13 +145,13 @@ export class PromptFileSystem implements IPromptFileSystem {
     return entries.filter(entry => entry.isDirectory()).map(entry => entry.name);
   }
 
-  async searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; filePath: string }>> {
+  async searchPrompts(props: { query: string }): Promise<PromptModel[]> {
     const { query } = props;
     const allPrompts = await this.listPrompts();
     return allPrompts.filter(prompt =>
       prompt.name.toLowerCase().includes(query.toLowerCase()) ||
       prompt.category.toLowerCase().includes(query.toLowerCase()) ||
-      prompt.filePath.toLowerCase().includes(query.toLowerCase())
+      prompt.description.toLowerCase().includes(query.toLowerCase())
     );
   }
 
