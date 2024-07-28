@@ -11,8 +11,8 @@ import { TextEncoder, TextDecoder } from 'util';
 import {configManager} from "../config/PromptProjectConfigManager"
 
 // Add TextEncoder and TextDecoder to the global object
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+(global as any).TextEncoder = TextEncoder;
+(global as any).TextDecoder = TextDecoder;
 
 const log = {
   info: (message: string) => console.log(chalk.blue(message)),
