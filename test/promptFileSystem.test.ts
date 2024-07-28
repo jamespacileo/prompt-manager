@@ -33,6 +33,15 @@ const COSMIC_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
     },
     required: ["celestialBody"],
   },
+  configuration: {
+    modelName: "default-model",
+    temperature: 0.7,
+    maxTokens: 100,
+    topP: 1,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    stopSequences: [],
+  },
 };
 
 beforeAll(async () => {
