@@ -116,11 +116,10 @@ export class PromptManager<
         console.log(`Created new version ${newVersion} for ${category}/${name}`);
         break;
       case 'switch':
-        const availableVersions = await prompt.versions();
-        if (!version || !availableVersions.includes(version)) {
-          throw new Error(`Invalid version ${version} for ${category}/${name}`);
+        if (!version) {
+          throw new Error(`Version is required for switch action`);
         }
-        await prompt.switchVersion({ version });
+        await prompt.switchVersion(version);
         await this.fileSystem.savePrompt({ promptData: prompt });
         console.log(`Switched ${category}/${name} to version ${version}`);
         break;

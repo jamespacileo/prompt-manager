@@ -99,12 +99,12 @@ export interface IPromptModel<
   format(inputs: TInput): string;
   stream(inputs: TInput): Promise<IAsyncIterableStream<string>>;
   execute(inputs: TInput): Promise<TOutput>;
-  updateMetadata(props: { metadata: Partial<IPromptModel['metadata']> }): void;
+  updateMetadata(metadata: Partial<IPromptModel['metadata']>): void;
   getSummary(): string;
   save(): Promise<void>;
-  load(props: { filePath: string }): Promise<void>;
-  versions(): string[];
-  switchVersion(props: { version: string }): void;
+  load(filePath: string): Promise<void>;
+  versions(): Promise<string[]>;
+  switchVersion(version: string): Promise<void>;
   get isSaved(): boolean;
   get inputZodSchema(): ZodObject<IPromptInput>;
   get outputZodSchema(): ZodObject<IPromptOutput>;

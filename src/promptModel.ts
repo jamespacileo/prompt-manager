@@ -185,8 +185,8 @@ export class PromptModel<
     }
   }
 
-  updateMetadata(props: { metadata: Partial<IPromptModel['metadata']> }): void {
-    this.metadata = { ...this.metadata, ...props.metadata };
+  updateMetadata(metadata: Partial<IPromptModel['metadata']>): void {
+    this.metadata = { ...this.metadata, ...metadata };
     this.metadata.lastModified = new Date().toISOString();
   }
 
@@ -207,22 +207,20 @@ export class PromptModel<
     return z.object(this.outputSchema as z.ZodRawShape);
   }
 
-  async load(props: { filePath: string }): Promise<void> {
+  async load(filePath: string): Promise<void> {
     const promptData = await this.fileSystem.loadPrompt({ category: this.category, promptName: this.name });
     Object.assign(this, promptData);
     this._isSaved = true;
   }
 
-  versions(): string[] {
-    // Assuming PromptFileSystem doesn't have a getVersions method, we'll need to implement this differently
-    // For now, we'll return an empty array as a placeholder
-    return [];
+  async versions(): Promise<string[]> {
+    return this.fileSystem.getPromptVersions({ category: this.category, promptName: this.name });
   }
 
-  switchVersion(props: { version: string }): void {
-    // Implement version switching logic
-    // This is a placeholder and should be implemented based on your versioning strategy
-    console.log(`Switching to version ${props.version}`);
+  async switchVersion(version: string): Promise<void> {
+    const versionData = await this.fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
+    Object.assign(this, versionData);
+    this._isSaved = true;
   }
 
   get isSaved(): boolean {
