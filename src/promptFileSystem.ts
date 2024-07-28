@@ -74,9 +74,7 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
    */
-  async loadPrompt<TInput extends IPromptInput<any>, TOutput extends IPromptOutput<any>>(
-    props: { category: string; promptName: string }
-  ): Promise<IPrompt<TInput, TOutput>> {
+  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
   
@@ -228,9 +226,7 @@ export class PromptFileSystem implements IPromptFileSystem {
     await fs.rm(categoryPath, { recursive: true, force: true });
   }
 
-  async loadPromptVersion<TInput extends IPromptInput<any>, TOutput extends IPromptOutput<any>>(
-    props: { category: string; promptName: string; version: string }
-  ): Promise<IPrompt<TInput, TOutput>> {
+  async loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt> {
     const { category, promptName, version } = props;
     const versionFilePath = this.getVersionFilePath({ category, promptName, version });
     const data = await fs.readFile(versionFilePath, 'utf-8');
