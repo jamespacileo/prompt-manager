@@ -48,7 +48,7 @@ export class PromptManager<
       }
     } catch (error) {
       console.error('Failed to initialize PromptManager:', error);
-      throw new Error('Failed to initialize PromptManager');
+      throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -68,7 +68,8 @@ export class PromptManager<
     if (!this.prompts[props.category][props.name]) {
       throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
     }
-    return this.prompts[props.category][props.name] as PromptModel<TInput, TOutput>;
+    const prompt = this.prompts[props.category][props.name];
+    return prompt as PromptModel<TInput, TOutput>;
   }
 
   /**
@@ -77,14 +78,20 @@ export class PromptManager<
    */
   async createPrompt(props: { prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'> }): Promise<void> {
     const { prompt } = props;
-    if (!prompt.category || !prompt.name) {
-      throw new Error('Prompt category and name are required');
+    if (!prompt.category || !prompt.name || prompt.category.trim() === '' || prompt.name.trim() === '') {
+      throw new Error('Prompt category and name are required and cannot be empty');
     }
     if (!this.prompts[prompt.category]) {
+      // Create the category if it doesn't exist
       this.prompts[prompt.category] = {};
+      console.log(`Created new category: ${prompt.category}`);
     }
     if (this.prompts[prompt.category][prompt.name]) {
-      throw new Error(`Prompt "${prompt.name}" already exists in category "${prompt.category}"`);
+      throw new Error(`Prompt "${prompt.name}" already exists in category "${prompt.category}".
+        To resolve this:
+        - Choose a different name for your new prompt.
+        - If you meant to update an existing prompt, use the 'update-prompt' command instead.
+        - If you want to replace the existing prompt, delete it first with 'delete-prompt' command.`);
     }
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;

@@ -5,6 +5,7 @@ import { configManager } from './config/PromptProjectConfigManager';
 import { PromptSchema } from './schemas/prompts';
 import { PromptModel } from './promptModel';
 import chalk from 'chalk';
+import { z } from 'zod';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -131,6 +132,8 @@ export class PromptFileSystem implements IPromptFileSystem {
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
 
+      const existingPrompt = await this.loadPrompt({ category: validatedPromptData.category, promptName: validatedPromptData.name }).catch(() => null);
+
       await fs.writeFile(filePath, JSON.stringify(validatedPromptData, null, 2));
       await fs.writeFile(versionFilePath, JSON.stringify(validatedPromptData, null, 2));
 
@@ -145,9 +148,12 @@ export class PromptFileSystem implements IPromptFileSystem {
       }
       await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
 
-      const config = await this.getPromptsFolderConfig();
-      await this.updatePromptsFolderConfig({ promptCount: config.promptCount + 1 });
+      if (!existingPrompt) {
+        const config = await this.getPromptsFolderConfig();
+        await this.updatePromptsFolderConfig({ promptCount: config.promptCount + 1 });
+      }
     } catch (error) {
+      console.error('Error saving prompt:', error);
       if (error instanceof Error) {
         if (error.message.includes('ENOSPC')) {
           throw new Error(`Failed to save prompt due to insufficient disk space. Please free up some space and try again.`);
@@ -155,13 +161,15 @@ export class PromptFileSystem implements IPromptFileSystem {
           throw new Error(`Failed to save prompt due to insufficient permissions. Please check your file system permissions and try again.`);
         } else if (error.message.includes('EBUSY')) {
           throw new Error(`Failed to save prompt because the file is locked or in use. Please close any other applications that might be using the file and try again.`);
+        } else {
+          throw new Error(`Failed to save prompt to ${filePath}: ${error.message}. Please check the console for more details.`);
         }
+      } else {
+        throw new Error(`Failed to save prompt to ${filePath}: An unknown error occurred. Please check the console for more details.`);
       }
-      console.error('Error saving prompt:', error);
-      throw new Error(`Failed to save prompt to ${filePath}: ${error instanceof Error ? error.message : String(error)}. Please check the console for more details.`);
     }
   }
-  
+
   /**
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
@@ -180,10 +188,10 @@ export class PromptFileSystem implements IPromptFileSystem {
         throw new Error(`Prompt not found at ${filePath}. Please verify that the prompt exists and the category (${category}) and promptName (${promptName}) are correct.`);
       }
       if (error instanceof SyntaxError) {
-        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup.`);
+        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup. Error details: ${error.message}`);
       }
       if (error instanceof z.ZodError) {
-        throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt.`);
+        throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt. Error details: ${error.errors.map(e => e.message).join(', ')}`);
       }
       throw new Error(`Failed to load prompt from ${filePath}: ${error instanceof Error ? error.message : String(error)}. Please check file permissions and system integrity.`);
     }
@@ -228,8 +236,15 @@ export class PromptFileSystem implements IPromptFileSystem {
                 } catch (error) {
                   const promptPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
                   console.warn(`Failed to load prompt from ${promptPath}: ${error instanceof Error ? error.message : String(error)}. 
-                    This prompt will be skipped. If this is unexpected, please check the file permissions and contents. 
-                    You may need to manually review and potentially recreate this prompt.`);
+                    This prompt will be skipped. This could be due to:
+                    1. Corrupted prompt file.
+                    2. Incompatible prompt structure from an older version.
+                    
+                    To resolve this:
+                    - Check the contents of ${promptPath} for any obvious issues.
+                    - Try running the 'validate-prompts' command to identify and fix structural issues.
+                    - If the prompt is important, consider manually recreating it using the 'create' command.
+                    - Remove this prompt file if it's no longer needed.`);
                 }
               }
             }
@@ -243,7 +258,7 @@ export class PromptFileSystem implements IPromptFileSystem {
       return prompts;
     } catch (error) {
       console.error(`Failed to list prompts: ${error instanceof Error ? error.message : String(error)}`);
-      return [];
+      throw new Error(`Failed to list prompts: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

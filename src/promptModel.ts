@@ -90,7 +90,10 @@ export class PromptModel<
   }
 
   private determineOutputType(outputSchema: JSONSchema7): 'structured' | 'plain' {
-    return Object.keys(outputSchema).length > 0 ? 'structured' : 'plain';
+    if (outputSchema.type === 'object' && outputSchema.properties && Object.keys(outputSchema.properties).length > 0) {
+      return 'structured';
+    }
+    return 'plain';
   }
 
   private initializeConfiguration(): {
@@ -121,11 +124,30 @@ export class PromptModel<
    * @returns True if the input is valid, false otherwise
    */
   validateInput(input: TInput): boolean {
+    if (!this.inputZodSchema) {
+      throw new Error(`Input schema is not defined for prompt "${this.name}".
+        This could be because:
+        1. The prompt was created without an input schema.
+        2. The schema failed to load correctly.
+        
+        To resolve this:
+        - Review the prompt definition and ensure it includes an input schema.
+        - If the schema exists, try regenerating the Zod schemas using the 'generate-schemas' command.
+        - If the issue persists, consider recreating the prompt with a valid input schema.`);
+    }
     try {
       this.inputZodSchema.parse(input);
       return true;
     } catch (error) {
-      console.error('Input validation error:', error);
+      console.error(`Input validation error for prompt "${this.name}":`, error);
+      console.error(`This could be because:
+        1. The input doesn't match the expected schema.
+        2. The input schema might be outdated or incorrect.
+        
+        To resolve this:
+        - Check the input data against the schema definition.
+        - Review and update the input schema if necessary using the 'update-prompt' command.
+        - If the schema is correct, adjust your input to match the required format.`);
       return false;
     }
   }
@@ -179,7 +201,8 @@ export class PromptModel<
         maxTokens: this.configuration.maxTokens,
         topP: this.configuration.topP,
         frequencyPenalty: this.configuration.frequencyPenalty,
-        presencePenalty: this.configuration.presencePenalty
+        presencePenalty: this.configuration.presencePenalty,
+        stopSequences: this.configuration.stopSequences
       });
 
       return textStream;
@@ -203,36 +226,44 @@ export class PromptModel<
       if (this.outputType === 'structured') {
         const formattedPrompt = this.format(inputs);
         const schema = this.outputZodSchema;
-        const { object } = await generateObject({
-          model: openai(this.configuration.modelName),
-          schema,
-          prompt: formattedPrompt,
-          temperature: this.configuration.temperature,
-          maxTokens: this.configuration.maxTokens,
-          topP: this.configuration.topP,
-          frequencyPenalty: this.configuration.frequencyPenalty,
-          presencePenalty: this.configuration.presencePenalty
-        });
-        const output = object as unknown as TOutput;
-        if (!this.validateOutput(output)) {
-          throw new Error('Invalid output');
+        try {
+          const { object } = await generateObject({
+            model: openai(this.configuration.modelName),
+            schema,
+            prompt: formattedPrompt,
+            temperature: this.configuration.temperature,
+            maxTokens: this.configuration.maxTokens,
+            topP: this.configuration.topP,
+            frequencyPenalty: this.configuration.frequencyPenalty,
+            presencePenalty: this.configuration.presencePenalty
+          });
+          const output = object as unknown as TOutput;
+          if (!this.validateOutput(output)) {
+            throw new Error('Invalid output');
+          }
+          return output;
+        } catch (genError) {
+          throw new Error(`Failed to generate structured output: ${genError instanceof Error ? genError.message : String(genError)}`);
         }
-        return output;
       } else {
-        const { text } = await generateText({
-          model: openai(this.configuration.modelName),
-          prompt: this.format(inputs),
-          temperature: this.configuration.temperature,
-          maxTokens: this.configuration.maxTokens,
-          topP: this.configuration.topP,
-          frequencyPenalty: this.configuration.frequencyPenalty,
-          presencePenalty: this.configuration.presencePenalty
-        });
-        const output = { text } as unknown as TOutput;
-        if (!this.validateOutput(output)) {
-          throw new Error('Invalid output');
+        try {
+          const { text } = await generateText({
+            model: openai(this.configuration.modelName),
+            prompt: this.format(inputs),
+            temperature: this.configuration.temperature,
+            maxTokens: this.configuration.maxTokens,
+            topP: this.configuration.topP,
+            frequencyPenalty: this.configuration.frequencyPenalty,
+            presencePenalty: this.configuration.presencePenalty
+          });
+          const output = { text } as unknown as TOutput;
+          if (!this.validateOutput(output)) {
+            throw new Error('Invalid output');
+          }
+          return output;
+        } catch (genError) {
+          throw new Error(`Failed to generate text output: ${genError instanceof Error ? genError.message : String(genError)}`);
         }
-        return output;
       }
     } catch (error) {
       console.error('Error executing prompt:', error);
@@ -256,7 +287,7 @@ export class PromptModel<
   }
 
   getSummary(): string {
-    return `${this.name} (${this.category}): ${this.description}`;
+    return `${this.name} (${this.category}): ${this.description || 'No description available'}`;
   }
 
   async save(): Promise<void> {

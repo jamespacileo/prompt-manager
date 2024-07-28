@@ -18,6 +18,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private static instance: PromptProjectConfigManager;
   private configPath: string;
   private config: Config;
+  private initialized: boolean = false;
 
   /**
    * Private constructor to prevent direct construction calls with the `new` operator.
@@ -48,10 +49,19 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       await this.ensureConfigDirectories();
       await this.validatePromptsFolder();
       this.prettyPrintConfig();
+      this.initialized = true;
     } catch (error: any) {
       console.error(chalk.red('Failed to initialize config:'), error.message);
       throw error;
     }
+  }
+
+  /**
+   * Checks if the configuration manager has been initialized.
+   * @returns A promise that resolves to true if initialized, false otherwise.
+   */
+  public async isInitialized(): Promise<boolean> {
+    return this.initialized;
   }
 
   private async performIntegrityCheck(): Promise<void> {
@@ -65,16 +75,26 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
         throw error;
       } else if (error instanceof z.ZodError) {
         console.error(chalk.red('Invalid configuration file:'), error.errors);
-        throw new Error(`Invalid configuration file. Please check the file contents and ensure it matches the expected schema.`);
-      } else {
+        throw new Error(`Invalid configuration file. This could be due to:
+          1. Manual edits that introduced errors.
+          2. Partial updates that left the config in an inconsistent state.
+          
+          To resolve this:
+          - Review your fury-config.json file for any obvious mistakes.
+          - Run the 'config --reset' command to restore default settings.
+          - If you need to keep your current settings, use 'config --validate' to get more details on the specific issues.`);
+      } else if (error instanceof Error) {
         console.warn(chalk.yellow('⚠ Configuration integrity check failed:'), error.message);
         console.log(chalk.yellow('Attempting to create necessary directories...'));
         try {
           await this.ensureConfigDirectories();
         } catch (dirError) {
           console.error(chalk.red('Failed to create necessary directories:'), dirError);
-          throw new Error(`Failed to create necessary directories. Please check your file system permissions.`);
+          throw dirError;
         }
+      } else {
+        console.warn(chalk.yellow('⚠ Configuration integrity check failed with an unknown error'));
+        throw error;
       }
     }
   }
@@ -126,10 +146,14 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
         throw new Error(`Project not initialized. Configuration file not found at ${this.configPath}. Please run the initialization command first.`);
       } else if (error instanceof z.ZodError) {
         console.error(chalk.red('Invalid configuration file:'), error.errors);
-        throw new Error(`Invalid configuration file at ${this.configPath}: ${error.message}. Please check the file contents and ensure it matches the expected schema.`);
+        const invalidFields = error.errors.map(err => err.path.join('.'));
+        throw new Error(`Invalid configuration file at ${this.configPath}: ${error.message}. Invalid fields: ${invalidFields.join(', ')}. Please check these fields and ensure they match the expected schema.`);
+      } else if (error instanceof SyntaxError) {
+        console.error(chalk.red('Invalid JSON in configuration file:'), error);
+        throw new Error(`Invalid JSON in configuration file at ${this.configPath}: ${error.message}. Please check the file contents and ensure it is valid JSON.`);
       } else {
         console.error(chalk.red('Failed to load configuration:'), error);
-        throw new Error(`Failed to load configuration from ${this.configPath}: ${error.message}. This could be due to a corrupted configuration file.`);
+        throw new Error(`Failed to load configuration from ${this.configPath}: ${error instanceof Error ? error.message : String(error)}. This could be due to a corrupted configuration file or insufficient permissions.`);
       }
     }
   }

@@ -416,6 +416,12 @@ interface IPromptProjectConfigManager {
   initialize(): Promise<void>;
 
   /**
+   * Checks if the configuration manager has been initialized.
+   * @returns A promise that resolves to true if initialized, false otherwise.
+   */
+  isInitialized(): Promise<boolean>;
+
+  /**
    * Retrieves the entire configuration object.
    * @returns The complete configuration object.
    */

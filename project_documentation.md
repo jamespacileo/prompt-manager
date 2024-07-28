@@ -1,5 +1,42 @@
 # Project Documentation
 
+## Project Structure
+
+```
+./src
+├── cli
+│   ├── aiHelpers.ts
+│   ├── cli_generate.ts
+│   ├── cli.ts
+│   └── commands.ts
+├── config
+│   ├── constants.ts
+│   └── PromptProjectConfigManager.ts
+├── config.ts
+├── generated
+│   ├── index.ts
+│   └── promptManagerBase.ts
+├── generated.ts
+├── index.ts
+├── promptFileSystem.ts
+├── PromptManagerClientGenerator.ts
+├── promptManager.ts
+├── promptModel.ts
+├── schemas
+│   ├── config.ts
+│   └── prompts.ts
+├── scripts
+│   └── generatePromptManager.ts
+├── types
+│   ├── index.ts
+│   └── interfaces.ts
+└── utils
+    ├── fileUtils.ts
+    └── jsonSchemaToZod.ts
+
+7 directories, 22 files
+```
+
 ## src/promptManager.ts
 
 **Description:** Main class for managing prompts
@@ -55,7 +92,7 @@ export class PromptManager<
       }
     } catch (error) {
       console.error('Failed to initialize PromptManager:', error);
-      throw new Error('Failed to initialize PromptManager');
+      throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -75,7 +112,8 @@ export class PromptManager<
     if (!this.prompts[props.category][props.name]) {
       throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
     }
-    return this.prompts[props.category][props.name] as PromptModel<TInput, TOutput>;
+    const prompt = this.prompts[props.category][props.name];
+    return prompt as PromptModel<TInput, TOutput>;
   }
 
   /**
@@ -84,14 +122,20 @@ export class PromptManager<
    */
   async createPrompt(props: { prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'> }): Promise<void> {
     const { prompt } = props;
-    if (!prompt.category || !prompt.name) {
-      throw new Error('Prompt category and name are required');
+    if (!prompt.category || !prompt.name || prompt.category.trim() === '' || prompt.name.trim() === '') {
+      throw new Error('Prompt category and name are required and cannot be empty');
     }
     if (!this.prompts[prompt.category]) {
+      // Create the category if it doesn't exist
       this.prompts[prompt.category] = {};
+      console.log(`Created new category: ${prompt.category}`);
     }
     if (this.prompts[prompt.category][prompt.name]) {
-      throw new Error(`Prompt "${prompt.name}" already exists in category "${prompt.category}"`);
+      throw new Error(`Prompt "${prompt.name}" already exists in category "${prompt.category}".
+        To resolve this:
+        - Choose a different name for your new prompt.
+        - If you meant to update an existing prompt, use the 'update-prompt' command instead.
+        - If you want to replace the existing prompt, delete it first with 'delete-prompt' command.`);
     }
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;
@@ -308,7 +352,10 @@ export class PromptModel<
   }
 
   private determineOutputType(outputSchema: JSONSchema7): 'structured' | 'plain' {
-    return Object.keys(outputSchema).length > 0 ? 'structured' : 'plain';
+    if (outputSchema.type === 'object' && outputSchema.properties && Object.keys(outputSchema.properties).length > 0) {
+      return 'structured';
+    }
+    return 'plain';
   }
 
   private initializeConfiguration(): {
@@ -339,11 +386,30 @@ export class PromptModel<
    * @returns True if the input is valid, false otherwise
    */
   validateInput(input: TInput): boolean {
+    if (!this.inputZodSchema) {
+      throw new Error(`Input schema is not defined for prompt "${this.name}".
+        This could be because:
+        1. The prompt was created without an input schema.
+        2. The schema failed to load correctly.
+        
+        To resolve this:
+        - Review the prompt definition and ensure it includes an input schema.
+        - If the schema exists, try regenerating the Zod schemas using the 'generate-schemas' command.
+        - If the issue persists, consider recreating the prompt with a valid input schema.`);
+    }
     try {
       this.inputZodSchema.parse(input);
       return true;
     } catch (error) {
-      console.error('Input validation error:', error);
+      console.error(`Input validation error for prompt "${this.name}":`, error);
+      console.error(`This could be because:
+        1. The input doesn't match the expected schema.
+        2. The input schema might be outdated or incorrect.
+        
+        To resolve this:
+        - Check the input data against the schema definition.
+        - Review and update the input schema if necessary using the 'update-prompt' command.
+        - If the schema is correct, adjust your input to match the required format.`);
       return false;
     }
   }
@@ -397,7 +463,8 @@ export class PromptModel<
         maxTokens: this.configuration.maxTokens,
         topP: this.configuration.topP,
         frequencyPenalty: this.configuration.frequencyPenalty,
-        presencePenalty: this.configuration.presencePenalty
+        presencePenalty: this.configuration.presencePenalty,
+        stopSequences: this.configuration.stopSequences
       });
 
       return textStream;
@@ -421,36 +488,44 @@ export class PromptModel<
       if (this.outputType === 'structured') {
         const formattedPrompt = this.format(inputs);
         const schema = this.outputZodSchema;
-        const { object } = await generateObject({
-          model: openai(this.configuration.modelName),
-          schema,
-          prompt: formattedPrompt,
-          temperature: this.configuration.temperature,
-          maxTokens: this.configuration.maxTokens,
-          topP: this.configuration.topP,
-          frequencyPenalty: this.configuration.frequencyPenalty,
-          presencePenalty: this.configuration.presencePenalty
-        });
-        const output = object as unknown as TOutput;
-        if (!this.validateOutput(output)) {
-          throw new Error('Invalid output');
+        try {
+          const { object } = await generateObject({
+            model: openai(this.configuration.modelName),
+            schema,
+            prompt: formattedPrompt,
+            temperature: this.configuration.temperature,
+            maxTokens: this.configuration.maxTokens,
+            topP: this.configuration.topP,
+            frequencyPenalty: this.configuration.frequencyPenalty,
+            presencePenalty: this.configuration.presencePenalty
+          });
+          const output = object as unknown as TOutput;
+          if (!this.validateOutput(output)) {
+            throw new Error('Invalid output');
+          }
+          return output;
+        } catch (genError) {
+          throw new Error(`Failed to generate structured output: ${genError instanceof Error ? genError.message : String(genError)}`);
         }
-        return output;
       } else {
-        const { text } = await generateText({
-          model: openai(this.configuration.modelName),
-          prompt: this.format(inputs),
-          temperature: this.configuration.temperature,
-          maxTokens: this.configuration.maxTokens,
-          topP: this.configuration.topP,
-          frequencyPenalty: this.configuration.frequencyPenalty,
-          presencePenalty: this.configuration.presencePenalty
-        });
-        const output = { text } as unknown as TOutput;
-        if (!this.validateOutput(output)) {
-          throw new Error('Invalid output');
+        try {
+          const { text } = await generateText({
+            model: openai(this.configuration.modelName),
+            prompt: this.format(inputs),
+            temperature: this.configuration.temperature,
+            maxTokens: this.configuration.maxTokens,
+            topP: this.configuration.topP,
+            frequencyPenalty: this.configuration.frequencyPenalty,
+            presencePenalty: this.configuration.presencePenalty
+          });
+          const output = { text } as unknown as TOutput;
+          if (!this.validateOutput(output)) {
+            throw new Error('Invalid output');
+          }
+          return output;
+        } catch (genError) {
+          throw new Error(`Failed to generate text output: ${genError instanceof Error ? genError.message : String(genError)}`);
         }
-        return output;
       }
     } catch (error) {
       console.error('Error executing prompt:', error);
@@ -474,7 +549,7 @@ export class PromptModel<
   }
 
   getSummary(): string {
-    return `${this.name} (${this.category}): ${this.description}`;
+    return `${this.name} (${this.category}): ${this.description || 'No description available'}`;
   }
 
   async save(): Promise<void> {
@@ -564,6 +639,7 @@ import { configManager } from './config/PromptProjectConfigManager';
 import { PromptSchema } from './schemas/prompts';
 import { PromptModel } from './promptModel';
 import chalk from 'chalk';
+import { z } from 'zod';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -690,6 +766,8 @@ export class PromptFileSystem implements IPromptFileSystem {
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
 
+      const existingPrompt = await this.loadPrompt({ category: validatedPromptData.category, promptName: validatedPromptData.name }).catch(() => null);
+
       await fs.writeFile(filePath, JSON.stringify(validatedPromptData, null, 2));
       await fs.writeFile(versionFilePath, JSON.stringify(validatedPromptData, null, 2));
 
@@ -704,9 +782,12 @@ export class PromptFileSystem implements IPromptFileSystem {
       }
       await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
 
-      const config = await this.getPromptsFolderConfig();
-      await this.updatePromptsFolderConfig({ promptCount: config.promptCount + 1 });
+      if (!existingPrompt) {
+        const config = await this.getPromptsFolderConfig();
+        await this.updatePromptsFolderConfig({ promptCount: config.promptCount + 1 });
+      }
     } catch (error) {
+      console.error('Error saving prompt:', error);
       if (error instanceof Error) {
         if (error.message.includes('ENOSPC')) {
           throw new Error(`Failed to save prompt due to insufficient disk space. Please free up some space and try again.`);
@@ -714,13 +795,15 @@ export class PromptFileSystem implements IPromptFileSystem {
           throw new Error(`Failed to save prompt due to insufficient permissions. Please check your file system permissions and try again.`);
         } else if (error.message.includes('EBUSY')) {
           throw new Error(`Failed to save prompt because the file is locked or in use. Please close any other applications that might be using the file and try again.`);
+        } else {
+          throw new Error(`Failed to save prompt to ${filePath}: ${error.message}. Please check the console for more details.`);
         }
+      } else {
+        throw new Error(`Failed to save prompt to ${filePath}: An unknown error occurred. Please check the console for more details.`);
       }
-      console.error('Error saving prompt:', error);
-      throw new Error(`Failed to save prompt to ${filePath}: ${error instanceof Error ? error.message : String(error)}. Please check the console for more details.`);
     }
   }
-  
+
   /**
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
@@ -739,10 +822,10 @@ export class PromptFileSystem implements IPromptFileSystem {
         throw new Error(`Prompt not found at ${filePath}. Please verify that the prompt exists and the category (${category}) and promptName (${promptName}) are correct.`);
       }
       if (error instanceof SyntaxError) {
-        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup.`);
+        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup. Error details: ${error.message}`);
       }
       if (error instanceof z.ZodError) {
-        throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt.`);
+        throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt. Error details: ${error.errors.map(e => e.message).join(', ')}`);
       }
       throw new Error(`Failed to load prompt from ${filePath}: ${error instanceof Error ? error.message : String(error)}. Please check file permissions and system integrity.`);
     }
@@ -787,8 +870,15 @@ export class PromptFileSystem implements IPromptFileSystem {
                 } catch (error) {
                   const promptPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
                   console.warn(`Failed to load prompt from ${promptPath}: ${error instanceof Error ? error.message : String(error)}. 
-                    This prompt will be skipped. If this is unexpected, please check the file permissions and contents. 
-                    You may need to manually review and potentially recreate this prompt.`);
+                    This prompt will be skipped. This could be due to:
+                    1. Corrupted prompt file.
+                    2. Incompatible prompt structure from an older version.
+                    
+                    To resolve this:
+                    - Check the contents of ${promptPath} for any obvious issues.
+                    - Try running the 'validate-prompts' command to identify and fix structural issues.
+                    - If the prompt is important, consider manually recreating it using the 'create' command.
+                    - Remove this prompt file if it's no longer needed.`);
                 }
               }
             }
@@ -802,7 +892,7 @@ export class PromptFileSystem implements IPromptFileSystem {
       return prompts;
     } catch (error) {
       console.error(`Failed to list prompts: ${error instanceof Error ? error.message : String(error)}`);
-      return [];
+      throw new Error(`Failed to list prompts: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -968,6 +1058,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private static instance: PromptProjectConfigManager;
   private configPath: string;
   private config: Config;
+  private initialized: boolean = false;
 
   /**
    * Private constructor to prevent direct construction calls with the `new` operator.
@@ -998,10 +1089,19 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       await this.ensureConfigDirectories();
       await this.validatePromptsFolder();
       this.prettyPrintConfig();
+      this.initialized = true;
     } catch (error: any) {
       console.error(chalk.red('Failed to initialize config:'), error.message);
       throw error;
     }
+  }
+
+  /**
+   * Checks if the configuration manager has been initialized.
+   * @returns A promise that resolves to true if initialized, false otherwise.
+   */
+  public async isInitialized(): Promise<boolean> {
+    return this.initialized;
   }
 
   private async performIntegrityCheck(): Promise<void> {
@@ -1015,16 +1115,26 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
         throw error;
       } else if (error instanceof z.ZodError) {
         console.error(chalk.red('Invalid configuration file:'), error.errors);
-        throw new Error(`Invalid configuration file. Please check the file contents and ensure it matches the expected schema.`);
-      } else {
+        throw new Error(`Invalid configuration file. This could be due to:
+          1. Manual edits that introduced errors.
+          2. Partial updates that left the config in an inconsistent state.
+          
+          To resolve this:
+          - Review your fury-config.json file for any obvious mistakes.
+          - Run the 'config --reset' command to restore default settings.
+          - If you need to keep your current settings, use 'config --validate' to get more details on the specific issues.`);
+      } else if (error instanceof Error) {
         console.warn(chalk.yellow('⚠ Configuration integrity check failed:'), error.message);
         console.log(chalk.yellow('Attempting to create necessary directories...'));
         try {
           await this.ensureConfigDirectories();
         } catch (dirError) {
           console.error(chalk.red('Failed to create necessary directories:'), dirError);
-          throw new Error(`Failed to create necessary directories. Please check your file system permissions.`);
+          throw dirError;
         }
+      } else {
+        console.warn(chalk.yellow('⚠ Configuration integrity check failed with an unknown error'));
+        throw error;
       }
     }
   }
@@ -1076,10 +1186,14 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
         throw new Error(`Project not initialized. Configuration file not found at ${this.configPath}. Please run the initialization command first.`);
       } else if (error instanceof z.ZodError) {
         console.error(chalk.red('Invalid configuration file:'), error.errors);
-        throw new Error(`Invalid configuration file at ${this.configPath}: ${error.message}. Please check the file contents and ensure it matches the expected schema.`);
+        const invalidFields = error.errors.map(err => err.path.join('.'));
+        throw new Error(`Invalid configuration file at ${this.configPath}: ${error.message}. Invalid fields: ${invalidFields.join(', ')}. Please check these fields and ensure they match the expected schema.`);
+      } else if (error instanceof SyntaxError) {
+        console.error(chalk.red('Invalid JSON in configuration file:'), error);
+        throw new Error(`Invalid JSON in configuration file at ${this.configPath}: ${error.message}. Please check the file contents and ensure it is valid JSON.`);
       } else {
         console.error(chalk.red('Failed to load configuration:'), error);
-        throw new Error(`Failed to load configuration from ${this.configPath}: ${error.message}. This could be due to a corrupted configuration file.`);
+        throw new Error(`Failed to load configuration from ${this.configPath}: ${error instanceof Error ? error.message : String(error)}. This could be due to a corrupted configuration file or insufficient permissions.`);
       }
     }
   }
@@ -1186,7 +1300,8 @@ import { Table } from 'console-table-printer';
 import fs from 'fs-extra';
 import path from 'path';
 import { TextEncoder, TextDecoder } from 'util';
-import {configManager} from "../config/PromptProjectConfigManager"
+import { configManager } from "../config/PromptProjectConfigManager"
+import { PromptModel } from '../promptModel.js';
 
 // Add TextEncoder and TextDecoder to the global object
 (global as any).TextEncoder = TextEncoder;
@@ -1250,6 +1365,11 @@ program
     log.info('Please describe the prompt you want to create. AI will generate a prompt based on your description.');
 
     try {
+      // Check if the project is initialized
+      if (!await configManager.isInitialized()) {
+        throw new Error('Project is not initialized. Please run the "init" command first.');
+      }
+
       await createPrompt();
       log.success('Prompt created successfully.');
       log.info('You can now use this prompt in your project.');
@@ -1319,67 +1439,71 @@ program
   });
 
 async function displayPromptDetails(prompt: any) {
-  const promptDetails = await getPromptDetails({ category: prompt.category, name: prompt.name });
-  log.info('\nPrompt Details:');
-  const detailsTable = new Table({
-    columns: [
-      { name: 'property', alignment: 'left', color: 'cyan' },
-      { name: 'value', alignment: 'left', color: 'green' },
-    ],
-  });
+  try {
+    const promptDetails = await getPromptDetails({ category: prompt.category, name: prompt.name });
+    log.info('\nPrompt Details:');
+    const detailsTable = new Table({
+      columns: [
+        { name: 'property', alignment: 'left', color: 'cyan' },
+        { name: 'value', alignment: 'left', color: 'green' },
+      ],
+    });
 
-  Object.entries(promptDetails).forEach(([key, value]) => {
-    detailsTable.addRow({ property: key, value: JSON.stringify(value, null, 2) });
-  });
+    Object.entries(promptDetails).forEach(([key, value]) => {
+      detailsTable.addRow({ property: key, value: JSON.stringify(value ?? 'N/A', null, 2) });
+    });
 
-  detailsTable.printTable();
+    detailsTable.printTable();
 
-  const action = await expand({
-    message: 'What would you like to do?',
-    default: 'e',
-    choices: [
-      {
-        key: 'e',
-        name: 'Edit prompt',
-        value: 'edit',
-      },
-      {
-        key: 'd',
-        name: 'Delete prompt',
-        value: 'delete',
-      },
-      {
-        key: 'b',
-        name: 'Go back to list',
-        value: 'back',
-      },
-      {
-        key: 'x',
-        name: 'Exit',
-        value: 'exit',
-      },
-    ],
-  });
+    const action = await expand({
+      message: 'What would you like to do?',
+      default: 'e',
+      choices: [
+        {
+          key: 'e',
+          name: 'Edit prompt',
+          value: 'edit',
+        },
+        {
+          key: 'd',
+          name: 'Delete prompt',
+          value: 'delete',
+        },
+        {
+          key: 'b',
+          name: 'Go back to list',
+          value: 'back',
+        },
+        {
+          key: 'x',
+          name: 'Exit',
+          value: 'exit',
+        },
+      ],
+    });
 
-  switch (action) {
-    case 'edit':
-      await updatePrompt({ category: prompt.category, name: prompt.name, updates: {} });
-      break;
-    case 'delete':
-      await deletePrompt({ category: prompt.category, name: prompt.name });
-      break;
-    case 'back':
-      const listCommand = program.commands.find((cmd) => cmd.name() === 'list');
-      if (listCommand && typeof listCommand.action === 'function') {
-        await listCommand.action(async () => {
-          // Implement list command logic here
-        });
-      } else {
-        log.error('List command not found or is not a function');
-      }
-      break;
-    case 'exit':
-      process.exit(0);
+    switch (action) {
+      case 'edit':
+        await updatePrompt({ category: prompt.category, name: prompt.name, updates: {} });
+        break;
+      case 'delete':
+        await deletePrompt({ category: prompt.category, name: prompt.name });
+        break;
+      case 'back':
+        const listCommand = program.commands.find((cmd) => cmd.name() === 'list');
+        if (listCommand && typeof listCommand.action === 'function') {
+          await listCommand.action(async () => {
+            // Implement list command logic here
+          });
+        } else {
+          log.error('List command not found or is not a function');
+        }
+        break;
+      case 'exit':
+        process.exit(0);
+    }
+  } catch (error) {
+    log.error(`Failed to display prompt details: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -1392,6 +1516,9 @@ program
 
     try {
       const [category, promptName] = name.split('/');
+      if (!category || !promptName) {
+        throw new Error('Invalid prompt name format. Please use "category/promptName".');
+      }
       const promptExists = await PromptModel.promptExists(name);
       if (!promptExists) {
         throw new Error(`Prompt "${name}" does not exist.`);
@@ -1408,7 +1535,7 @@ program
       });
 
       const newValue = await input({ message: `Enter new value for ${updateField}:` });
-      await updatePrompt({ category: promptDetails.category!, name, updates: { [updateField]: newValue } });
+      await updatePrompt({ category, name: promptName, updates: { [updateField]: newValue } });
       log.success(`Prompt "${name}" updated successfully.`);
       log.info('The new content has been saved and is ready to use.');
     } catch (error) {
@@ -1507,10 +1634,12 @@ import { PromptManager } from '../promptManager';
 import { PromptModel } from '../promptModel';
 import fs from 'fs-extra';
 import path from 'path';
-import { input, confirm } from '@inquirer/prompts';
+import { input, confirm, select } from '@inquirer/prompts';
 import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './aiHelpers';
 import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
 import { configManager } from '../config/PromptProjectConfigManager';
+import { z } from 'zod';
+import { PromptSchema } from '../schemas/prompts';
 
 /**
  * This file contains the implementation of various CLI commands for the Prompt Manager.
@@ -1533,6 +1662,12 @@ export async function createPrompt(): Promise<void> {
       promptData = await generatePromptWithAI(description);
       prettyPrintPrompt(promptData);
 
+      // Validate required fields before asking for acceptance
+      if (!promptData.name || !promptData.category) {
+        console.log('The generated prompt is missing required fields (name or category). Regenerating...');
+        continue;
+      }
+
       accepted = await confirm({ message: 'Do you accept this prompt?' });
 
       if (!accepted) {
@@ -1553,8 +1688,8 @@ export async function createPrompt(): Promise<void> {
 
     const prompt = new PromptModel({
       ...validatedPromptData,
-      name: validatedPromptData.name || '',
-      category: validatedPromptData.category || '',
+      name: validatedPromptData.name,
+      category: validatedPromptData.category,
       description: validatedPromptData.description || '',
       template: validatedPromptData.template || '',
       parameters: validatedPromptData.parameters || [],
@@ -1572,9 +1707,28 @@ export async function createPrompt(): Promise<void> {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Invalid prompt data generated:', error.errors);
+      console.error(`This could be because:
+        1. The AI-generated prompt doesn't meet the required schema.
+        2. Manual edits introduced invalid data.
+        
+        To resolve this:
+        - Review the generated prompt data and ensure all required fields are present and valid.
+        - Try regenerating the prompt with a more specific description.
+        - If you made manual edits, double-check them against the prompt schema.`);
     } else {
       console.error('An error occurred while creating the prompt:', error);
+      console.error(`This could be due to:
+        1. File system issues (e.g., permissions, disk space).
+        2. Conflicts with existing prompts.
+        3. Unexpected data format issues.
+        
+        To resolve this:
+        - Check your file system permissions and available disk space.
+        - Ensure the prompt name and category are unique.
+        - Try creating a simpler prompt to isolate the issue.
+        - If the problem persists, run 'status' to check the overall project health.`);
     }
+    throw error; // Re-throw the error to be caught by the caller
   }
 }
 
@@ -1586,11 +1740,11 @@ export async function listPrompts(): Promise<Array<{ name: string; category: str
   const manager = new PromptManager();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
-  
+
   if (prompts.length === 0) {
     console.log('No prompts found. Use the "create" command to add new prompts.');
   }
-  
+
   return prompts.map(prompt => ({
     name: prompt.name,
     category: prompt.category,
@@ -1631,8 +1785,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
     const currentPrompt = await manager.getPrompt({ category: props.category, name: props.name });
 
     if (!currentPrompt) {
-      console.error(`Prompt "${props.category}/${props.name}" not found.`);
-      return;
+      throw new Error(`Prompt "${props.category}/${props.name}" not found.`);
     }
 
     // Determine the type of update (major, minor, or patch)
@@ -1644,20 +1797,6 @@ export async function updatePrompt(props: { category: string; name: string; upda
         { name: 'Major (breaking changes)', value: 'major' },
       ],
     });
-
-    // Update the version
-    const [major, minor, patch] = (currentPrompt.version || '1.0.0').split('.').map(Number);
-    switch (updateType) {
-      case 'major':
-        props.updates.version = `${major + 1}.0.0`;
-        break;
-      case 'minor':
-        props.updates.version = `${major}.${minor + 1}.0`;
-        break;
-      case 'patch':
-        props.updates.version = `${major}.${minor}.${patch + 1}`;
-        break;
-    }
 
     if (props.updates.template) {
       const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
@@ -1674,10 +1813,42 @@ export async function updatePrompt(props: { category: string; name: string; upda
       lastModified: new Date().toISOString()
     };
 
-    await manager.updatePrompt(props);
-    console.log(`Prompt "${props.category}/${props.name}" updated successfully to version ${props.updates.version}.`);
+    // Validate the updated prompt data
+    const updatedPromptData = { ...currentPrompt, ...props.updates };
+    const validatedPromptData = PromptSchema.parse(updatedPromptData);
+
+    // Confirm changes with the user
+    console.log('Proposed changes:');
+    console.log(JSON.stringify(props.updates, null, 2));
+    const confirmUpdate = await confirm({ message: 'Do you want to apply these changes?' });
+
+    if (confirmUpdate) {
+      // Update the version only if the user confirms the changes
+      const [major, minor, patch] = (currentPrompt.version || '1.0.0').split('.').map(Number);
+      switch (updateType) {
+        case 'major':
+          validatedPromptData.version = `${major + 1}.0.0`;
+          break;
+        case 'minor':
+          validatedPromptData.version = `${major}.${minor + 1}.0`;
+          break;
+        case 'patch':
+          validatedPromptData.version = `${major}.${minor}.${patch + 1}`;
+          break;
+      }
+
+      await manager.updatePrompt({ category: props.category, name: props.name, updates: validatedPromptData });
+      console.log(`Prompt "${props.category}/${props.name}" updated successfully to version ${validatedPromptData.version}.`);
+    } else {
+      console.log('Update cancelled.');
+    }
   } catch (error) {
-    console.error('An error occurred while updating the prompt:', error);
+    if (error instanceof z.ZodError) {
+      console.error('Invalid prompt data:', error.errors);
+    } else {
+      console.error('An error occurred while updating the prompt:', error);
+    }
+    throw error; // Re-throw the error to be caught by the caller
   }
 }
 
@@ -1705,7 +1876,13 @@ export async function generateTypes(): Promise<void> {
 
   typeDefs += '}\n';
 
-  await fs.writeFile(path.join(outputDir, 'prompts.d.ts'), typeDefs);
+  try {
+    await fs.writeFile(path.join(outputDir, 'prompts.d.ts'), typeDefs);
+    console.log(`Type definitions generated successfully at ${path.join(outputDir, 'prompts.d.ts')}`);
+  } catch (error) {
+    console.error('Failed to write type definitions file:', error);
+    throw new Error(`Failed to generate type definitions: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function generateInputType(schema: any): string {

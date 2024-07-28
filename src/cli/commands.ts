@@ -2,10 +2,12 @@ import { PromptManager } from '../promptManager';
 import { PromptModel } from '../promptModel';
 import fs from 'fs-extra';
 import path from 'path';
-import { input, confirm } from '@inquirer/prompts';
+import { input, confirm, select } from '@inquirer/prompts';
 import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './aiHelpers';
 import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
 import { configManager } from '../config/PromptProjectConfigManager';
+import { z } from 'zod';
+import { PromptSchema } from '../schemas/prompts';
 
 /**
  * This file contains the implementation of various CLI commands for the Prompt Manager.
@@ -28,6 +30,12 @@ export async function createPrompt(): Promise<void> {
       promptData = await generatePromptWithAI(description);
       prettyPrintPrompt(promptData);
 
+      // Validate required fields before asking for acceptance
+      if (!promptData.name || !promptData.category) {
+        console.log('The generated prompt is missing required fields (name or category). Regenerating...');
+        continue;
+      }
+
       accepted = await confirm({ message: 'Do you accept this prompt?' });
 
       if (!accepted) {
@@ -48,8 +56,8 @@ export async function createPrompt(): Promise<void> {
 
     const prompt = new PromptModel({
       ...validatedPromptData,
-      name: validatedPromptData.name || '',
-      category: validatedPromptData.category || '',
+      name: validatedPromptData.name,
+      category: validatedPromptData.category,
       description: validatedPromptData.description || '',
       template: validatedPromptData.template || '',
       parameters: validatedPromptData.parameters || [],
@@ -67,9 +75,28 @@ export async function createPrompt(): Promise<void> {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Invalid prompt data generated:', error.errors);
+      console.error(`This could be because:
+        1. The AI-generated prompt doesn't meet the required schema.
+        2. Manual edits introduced invalid data.
+        
+        To resolve this:
+        - Review the generated prompt data and ensure all required fields are present and valid.
+        - Try regenerating the prompt with a more specific description.
+        - If you made manual edits, double-check them against the prompt schema.`);
     } else {
       console.error('An error occurred while creating the prompt:', error);
+      console.error(`This could be due to:
+        1. File system issues (e.g., permissions, disk space).
+        2. Conflicts with existing prompts.
+        3. Unexpected data format issues.
+        
+        To resolve this:
+        - Check your file system permissions and available disk space.
+        - Ensure the prompt name and category are unique.
+        - Try creating a simpler prompt to isolate the issue.
+        - If the problem persists, run 'status' to check the overall project health.`);
     }
+    throw error; // Re-throw the error to be caught by the caller
   }
 }
 
@@ -81,11 +108,11 @@ export async function listPrompts(): Promise<Array<{ name: string; category: str
   const manager = new PromptManager();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
-  
+
   if (prompts.length === 0) {
     console.log('No prompts found. Use the "create" command to add new prompts.');
   }
-  
+
   return prompts.map(prompt => ({
     name: prompt.name,
     category: prompt.category,
@@ -126,8 +153,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
     const currentPrompt = await manager.getPrompt({ category: props.category, name: props.name });
 
     if (!currentPrompt) {
-      console.error(`Prompt "${props.category}/${props.name}" not found.`);
-      return;
+      throw new Error(`Prompt "${props.category}/${props.name}" not found.`);
     }
 
     // Determine the type of update (major, minor, or patch)
@@ -139,20 +165,6 @@ export async function updatePrompt(props: { category: string; name: string; upda
         { name: 'Major (breaking changes)', value: 'major' },
       ],
     });
-
-    // Update the version
-    const [major, minor, patch] = (currentPrompt.version || '1.0.0').split('.').map(Number);
-    switch (updateType) {
-      case 'major':
-        props.updates.version = `${major + 1}.0.0`;
-        break;
-      case 'minor':
-        props.updates.version = `${major}.${minor + 1}.0`;
-        break;
-      case 'patch':
-        props.updates.version = `${major}.${minor}.${patch + 1}`;
-        break;
-    }
 
     if (props.updates.template) {
       const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
@@ -169,10 +181,42 @@ export async function updatePrompt(props: { category: string; name: string; upda
       lastModified: new Date().toISOString()
     };
 
-    await manager.updatePrompt(props);
-    console.log(`Prompt "${props.category}/${props.name}" updated successfully to version ${props.updates.version}.`);
+    // Validate the updated prompt data
+    const updatedPromptData = { ...currentPrompt, ...props.updates };
+    const validatedPromptData = PromptSchema.parse(updatedPromptData);
+
+    // Confirm changes with the user
+    console.log('Proposed changes:');
+    console.log(JSON.stringify(props.updates, null, 2));
+    const confirmUpdate = await confirm({ message: 'Do you want to apply these changes?' });
+
+    if (confirmUpdate) {
+      // Update the version only if the user confirms the changes
+      const [major, minor, patch] = (currentPrompt.version || '1.0.0').split('.').map(Number);
+      switch (updateType) {
+        case 'major':
+          validatedPromptData.version = `${major + 1}.0.0`;
+          break;
+        case 'minor':
+          validatedPromptData.version = `${major}.${minor + 1}.0`;
+          break;
+        case 'patch':
+          validatedPromptData.version = `${major}.${minor}.${patch + 1}`;
+          break;
+      }
+
+      await manager.updatePrompt({ category: props.category, name: props.name, updates: validatedPromptData });
+      console.log(`Prompt "${props.category}/${props.name}" updated successfully to version ${validatedPromptData.version}.`);
+    } else {
+      console.log('Update cancelled.');
+    }
   } catch (error) {
-    console.error('An error occurred while updating the prompt:', error);
+    if (error instanceof z.ZodError) {
+      console.error('Invalid prompt data:', error.errors);
+    } else {
+      console.error('An error occurred while updating the prompt:', error);
+    }
+    throw error; // Re-throw the error to be caught by the caller
   }
 }
 
@@ -200,7 +244,13 @@ export async function generateTypes(): Promise<void> {
 
   typeDefs += '}\n';
 
-  await fs.writeFile(path.join(outputDir, 'prompts.d.ts'), typeDefs);
+  try {
+    await fs.writeFile(path.join(outputDir, 'prompts.d.ts'), typeDefs);
+    console.log(`Type definitions generated successfully at ${path.join(outputDir, 'prompts.d.ts')}`);
+  } catch (error) {
+    console.error('Failed to write type definitions file:', error);
+    throw new Error(`Failed to generate type definitions: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function generateInputType(schema: any): string {

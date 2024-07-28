@@ -1,5 +1,5 @@
 {
-  "promptsDir": "/workspaces/prompt-manager/test_prompts",
+  "promptsDir": "/workspaces/prompt-manager/test-prompts-manager",
   "outputDir": "",
   "preferredModels": [
     "gpt-4",

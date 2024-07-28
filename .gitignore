@@ -1,6 +1,8 @@
 # Bun
 bun.lockb
 
+project_documentation.md
+
 # Dependency directories
 node_modules/
 
