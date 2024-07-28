@@ -56,7 +56,7 @@ describe('PromptManager', () => {
         },
         required: ['adventure'],
       },
-      outputType: 'json',
+      outputType: 'structured',
       metadata: {
         created: new Date().toISOString(),
         lastModified: new Date().toISOString(),
@@ -84,7 +84,7 @@ describe('PromptManager', () => {
 
   test('List all prompts', async () => {
     const allPrompts = await manager.listPrompts({});
-    expect(allPrompts).toContainEqual({
+    expect(allPrompts.map(({ name, category, filePath }) => ({ name, category, filePath }))).toContainEqual({
       name: 'cosmicVoyager',
       category: 'spaceExploration',
       filePath: path.join(testDir, 'spaceExploration', 'cosmicVoyager', 'prompt.json'),
@@ -134,12 +134,12 @@ describe('PromptManager', () => {
 
   test('Create and delete category', async () => {
     await manager.createCategory({ categoryName: 'alienCivilizations' });
-    
+
     let categories = await manager.listCategories();
     expect(categories).toContain('alienCivilizations');
 
     await manager.deleteCategory({ categoryName: 'alienCivilizations' });
-    
+
     categories = await manager.listCategories();
     expect(categories).not.toContain('alienCivilizations');
   });
