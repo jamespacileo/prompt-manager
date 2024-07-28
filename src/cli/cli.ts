@@ -111,26 +111,19 @@ program
         });
 
         prompts.forEach((prompt) => {
-          if (typeof prompt === 'object' && prompt !== null) {
-            table.addRow({
-              category: prompt.category || '',
-              name: prompt.name || '',
-              version: prompt.version || '',
-            });
-          }
+          table.addRow({
+            category: prompt.category,
+            name: prompt.name,
+            version: prompt.version,
+          });
         });
 
         table.printTable();
 
-        const promptChoices = prompts.map((prompt) => {
-          if (typeof prompt === 'object' && prompt !== null) {
-            return {
-              name: `${prompt.category || ''}/${prompt.name || ''}`,
-              value: prompt,
-            };
-          }
-          return { name: 'Unknown', value: {} };
-        });
+        const promptChoices = prompts.map((prompt) => ({
+          name: `${prompt.category}/${prompt.name}`,
+          value: prompt,
+        }));
 
         inquirer.registerPrompt('autocomplete', inquirerPrompt);
         const { selectedPrompt } = await inquirer.prompt([
