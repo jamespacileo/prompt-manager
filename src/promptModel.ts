@@ -1,4 +1,4 @@
-import { IPromptModel, IPromptModelRequired, IPromptModelStatic, IPromptInput, IPromptOutput, IAsyncIterableStream } from './types/interfaces';
+import { IPromptModel, IPromptModelRequired, IPromptModelStatic, IPromptInput, IPromptOutput, IAsyncIterableStream, IPromptFileSystem } from './types/interfaces';
 import { JSONSchema7 } from 'json-schema';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
@@ -38,7 +38,7 @@ export class PromptModel<
   outputType: 'structured' | 'plain';
   inputSchema: JSONSchema7;
   outputSchema: JSONSchema7;
-  fileSystem?: PromptFileSystem;
+  fileSystem: IPromptFileSystem;
   _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
 
