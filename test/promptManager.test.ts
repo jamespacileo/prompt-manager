@@ -1,101 +1,139 @@
-import { expect, test, describe, mock, jest, beforeEach } from "bun:test";
-import { PromptManager, getPromptManager } from '../src/promptManager';
-
-const mockPromptManager = {
-  Category1: {
-    PROMPT1: {
-      name: 'PROMPT1',
-      category: 'Category1',
-      version: '1.0.0',
-      content: 'This is prompt 1: {{param1}}',
-      parameters: ['param1'],
-      format: jest.fn((inputs: { param1: string }) => `Formatted: ${inputs.param1}`),
-    },
-  },
-  Category2: {
-    PROMPT2: {
-      name: 'PROMPT2',
-      category: 'Category2',
-      version: '1.0.0',
-      content: 'This is prompt 2: {{param2}}',
-      parameters: ['param2'],
-      format: jest.fn((inputs: { param2: string }) => `Formatted: ${inputs.param2}`),
-    },
-  },
-};
-
-mock.module('../src/promptManager', () => ({
-  getPromptManager: () => mockPromptManager,
-  PromptManager: jest.fn().mockImplementation(() => mockPromptManager),
-}));
+import { expect, test, describe, beforeAll, afterAll } from "bun:test";
+import { PromptManager } from '../src/promptManager';
+import { PromptFileSystem } from '../src/promptFileSystem';
+import fs from 'fs/promises';
+import path from 'path';
 
 describe('PromptManager', () => {
   let manager: PromptManager;
+  let testDir: string;
 
-  beforeEach(() => {
+  beforeAll(async () => {
+    testDir = path.join(process.cwd(), 'test-prompts-manager');
+    await fs.mkdir(testDir, { recursive: true });
+    process.env.PROMPTS_DIR = testDir;
     manager = new PromptManager();
+    await manager.initialize();
   });
 
-  test('PromptManager returns the correct prompt', () => {
-    expect(manager.prompts.Category1.PROMPT1).toBe(mockPromptManager.prompts.Category1.PROMPT1);
-    expect(manager.prompts.Category2.PROMPT2).toBe(mockPromptManager.prompts.Category2.PROMPT2);
+  afterAll(async () => {
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
-  test('Prompt format function is called correctly', () => {
-    const formattedPrompt = manager.Category1.PROMPT1.format({ param1: 'test' });
-    expect(formattedPrompt).toBe('Formatted: test');
-    expect(mockPromptManager.Category1.PROMPT1.format).toHaveBeenCalledWith({ param1: 'test' });
-  });
-
-  test('Accessing non-existent category throws an error', () => {
-    expect(() => (manager as any).NonExistentCategory).toThrow();
-  });
-
-  test('Accessing non-existent prompt throws an error', () => {
-    expect(() => (manager.Category1 as any).NON_EXISTENT_PROMPT).toThrow();
-  });
-
-  test('Prompt format function handles missing parameters', () => {
-    const formattedPrompt = manager.Category1.PROMPT1.format({});
-    expect(formattedPrompt).toBe('Formatted: undefined');
-  });
-
-  test('Prompt format function ignores extra parameters', () => {
-    const formattedPrompt = manager.Category1.PROMPT1.format({ param1: 'test', extraParam: 'ignored' });
-    expect(formattedPrompt).toBe('Formatted: test');
-  });
-
-  test('List all prompts', () => {
-    const allPrompts = manager.listAllPrompts();
-    expect(allPrompts).toEqual([
-      { category: 'Category1', name: 'PROMPT1' },
-      { category: 'Category2', name: 'PROMPT2' },
-    ]);
-  });
-
-  test('List prompts by category', () => {
-    const category1Prompts = manager.listPromptsByCategory('Category1');
-    expect(category1Prompts).toEqual(['PROMPT1']);
-  });
-
-  test('Get prompt details', () => {
-    const promptDetails = manager.getPromptDetails('Category1', 'PROMPT1');
-    expect(promptDetails).toEqual({
-      name: 'PROMPT1',
-      category: 'Category1',
+  test('Create and retrieve prompt', async () => {
+    const cosmicPrompt = {
+      name: 'cosmicVoyager',
+      category: 'spaceExploration',
+      description: 'A prompt for interstellar adventures',
       version: '1.0.0',
-      content: 'This is prompt 1: {{param1}}',
-      parameters: ['param1'],
+      template: 'Embark on a journey to {{planet}} in the {{galaxy}} galaxy',
+      parameters: ['planet', 'galaxy'],
+      inputSchema: {
+        type: 'object',
+        properties: {
+          planet: { type: 'string' },
+          galaxy: { type: 'string' },
+        },
+        required: ['planet', 'galaxy'],
+      },
+      outputSchema: {
+        type: 'object',
+        properties: {
+          adventure: { type: 'string' },
+        },
+        required: ['adventure'],
+      },
+      outputType: 'json',
+    };
+
+    await manager.createPrompt(cosmicPrompt);
+
+    const retrievedPrompt = await manager.getPrompt({
+      category: 'spaceExploration',
+      name: 'cosmicVoyager',
+    });
+
+    expect(retrievedPrompt).toEqual(cosmicPrompt);
+  });
+
+  test('List all prompts', async () => {
+    const allPrompts = await manager.listPrompts({});
+    expect(allPrompts).toContainEqual({
+      name: 'cosmicVoyager',
+      category: 'spaceExploration',
+      filePath: expect.stringContaining('/test-prompts-manager/spaceExploration/cosmicVoyager/prompt.json'),
     });
   });
 
-  test('Update prompt', () => {
-    manager.updatePrompt('Category1', 'PROMPT1', {
-      content: 'Updated prompt 1: {{param1}}',
+  test('List prompts by category', async () => {
+    const spacePrompts = await manager.listPrompts({ category: 'spaceExploration' });
+    expect(spacePrompts).toHaveLength(1);
+    expect(spacePrompts[0].name).toBe('cosmicVoyager');
+  });
+
+  test('Update prompt', async () => {
+    const updatedPrompt = {
+      name: 'cosmicVoyager',
+      category: 'spaceExploration',
+      description: 'An updated prompt for grand space odysseys',
       version: '1.1.0',
+      template: 'Embark on an epic odyssey to {{planet}} in the vast {{galaxy}} galaxy',
+      parameters: ['planet', 'galaxy'],
+      inputSchema: {
+        type: 'object',
+        properties: {
+          planet: { type: 'string' },
+          galaxy: { type: 'string' },
+        },
+        required: ['planet', 'galaxy'],
+      },
+      outputSchema: {
+        type: 'object',
+        properties: {
+          odyssey: { type: 'string' },
+        },
+        required: ['odyssey'],
+      },
+      outputType: 'json',
+    };
+
+    await manager.updatePrompt({
+      category: 'spaceExploration',
+      name: 'cosmicVoyager',
+      promptData: updatedPrompt,
     });
-    const updatedPrompt = manager.Category1.PROMPT1;
-    expect(updatedPrompt.content).toBe('Updated prompt 1: {{param1}}');
-    expect(updatedPrompt.version).toBe('1.1.0');
+
+    const retrievedPrompt = await manager.getPrompt({
+      category: 'spaceExploration',
+      name: 'cosmicVoyager',
+    });
+
+    expect(retrievedPrompt).toEqual(updatedPrompt);
+  });
+
+  test('Delete prompt', async () => {
+    await manager.deletePrompt({
+      category: 'spaceExploration',
+      name: 'cosmicVoyager',
+    });
+
+    const promptExists = await manager.promptExists({
+      category: 'spaceExploration',
+      name: 'cosmicVoyager',
+    });
+
+    expect(promptExists).toBe(false);
+  });
+
+  test('Create and delete category', async () => {
+    await manager.createCategory({ categoryName: 'alienCivilizations' });
+    
+    let categories = await manager.listCategories();
+    expect(categories).toContain('alienCivilizations');
+
+    await manager.deleteCategory({ categoryName: 'alienCivilizations' });
+    
+    categories = await manager.listCategories();
+    expect(categories).not.toContain('alienCivilizations');
   });
 });

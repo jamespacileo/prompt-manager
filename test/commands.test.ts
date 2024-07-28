@@ -1,102 +1,177 @@
-import { expect, test, mock } from "bun:test";
+import { expect, test, describe, beforeAll, afterAll } from "bun:test";
 import * as commands from "../src/cli/commands";
 import { PromptManager } from "../src/promptManager";
-import { PromptModel } from "../src/promptModel";
-import * as aiHelpers from "../src/cli/aiHelpers";
-import configManager from "../src/config/PromptProjectConfigManager";
+import fs from 'fs/promises';
+import path from 'path';
 
-// Mock external dependencies
-mock.module("@inquirer/prompts", () => ({
-  input: async () => "test input",
-  confirm: async () => true,
-}));
+describe('CLI Commands', () => {
+  let testDir: string;
 
-mock.module("fs-extra", () => ({
-  writeFile: async () => {},
-  readFile: async () => "mock file content",
-  stat: async () => ({ mtime: new Date() }),
-}));
+  beforeAll(async () => {
+    testDir = path.join(process.cwd(), 'test-prompts-cli');
+    await fs.mkdir(testDir, { recursive: true });
+    process.env.PROMPTS_DIR = testDir;
+  });
 
-test("createPrompt creates a new prompt", async () => {
-  const mockGeneratePromptWithAI = mock(() => Promise.resolve({
-    name: "testPrompt",
-    category: "testCategory",
-    description: "Test description",
-    template: "Test template",
-    parameters: ["param1", "param2"],
-    inputSchema: {},
-    outputSchema: {},
-    version: "1.0.0",
-  }));
-  mock.module("../src/cli/aiHelpers", () => ({
-    ...aiHelpers,
-    generatePromptWithAI: mockGeneratePromptWithAI,
-  }));
+  afterAll(async () => {
+    await fs.rm(testDir, { recursive: true, force: true });
+  });
 
-  const mockCreatePrompt = mock(() => Promise.resolve());
-  mock.module("../src/promptManager", () => ({
-    PromptManager: class {
-      async initialize() {}
-      createPrompt = mockCreatePrompt;
-    },
-  }));
+  test("createPrompt creates a new prompt", async () => {
+    const promptData = {
+      name: "stardustSymphony",
+      category: "cosmicCompositions",
+      description: "A prompt that composes melodies inspired by celestial bodies",
+      version: "1.0.0",
+      template: "Compose a {{genre}} melody inspired by the {{celestialBody}}",
+      parameters: ["genre", "celestialBody"],
+      inputSchema: {
+        type: "object",
+        properties: {
+          genre: { type: "string" },
+          celestialBody: { type: "string" },
+        },
+        required: ["genre", "celestialBody"],
+      },
+      outputSchema: {
+        type: "object",
+        properties: {
+          melody: { type: "string" },
+        },
+        required: ["melody"],
+      },
+      outputType: "json",
+    };
 
-  await commands.createPrompt();
+    await commands.createPrompt(promptData);
 
-  expect(mockGeneratePromptWithAI).toHaveBeenCalled();
-  expect(mockCreatePrompt).toHaveBeenCalled();
-});
+    const manager = new PromptManager();
+    await manager.initialize();
+    const createdPrompt = await manager.getPrompt({
+      category: "cosmicCompositions",
+      name: "stardustSymphony",
+    });
 
-test("listPrompts returns a list of prompts", async () => {
-  const mockListPrompts = mock(() => Promise.resolve([
-    { category: "cat1", name: "prompt1", version: "1.0.0", filePath: "/path/to/prompt1" },
-    { category: "cat2", name: "prompt2", version: "1.1.0", filePath: "/path/to/prompt2" },
-  ]));
-  mock.module("../src/promptManager", () => ({
-    PromptManager: class {
-      async initialize() {}
-      listPrompts = mockListPrompts;
-    },
-  }));
+    expect(createdPrompt).toEqual(promptData);
+  });
 
-  const result = await commands.listPrompts();
+  test("listPrompts returns a list of prompts", async () => {
+    const result = await commands.listPrompts();
 
-  expect(mockListPrompts).toHaveBeenCalled();
-  expect(result).toEqual([
-    { category: "cat1", name: "prompt1", version: "1.0.0", filePath: "/path/to/prompt1" },
-    { category: "cat2", name: "prompt2", version: "1.1.0", filePath: "/path/to/prompt2" },
-  ]);
-});
+    expect(result).toContainEqual({
+      category: "cosmicCompositions",
+      name: "stardustSymphony",
+      filePath: expect.stringContaining("/test-prompts-cli/cosmicCompositions/stardustSymphony/prompt.json"),
+    });
+  });
 
-test("getPromptDetails returns prompt details", async () => {
-  const mockGetPrompt = mock(() => Promise.resolve({
-    name: "testPrompt",
-    category: "testCategory",
-    description: "Test description",
-    version: "1.0.0",
-    template: "Test template",
-    parameters: ["param1", "param2"],
-    metadata: { created: "2023-01-01", lastModified: "2023-01-02" },
-  }));
-  mock.module("../src/promptManager", () => ({
-    PromptManager: class {
-      async initialize() {}
-      getPrompt = mockGetPrompt;
-    },
-  }));
+  test("getPromptDetails returns prompt details", async () => {
+    const result = await commands.getPromptDetails({
+      category: "cosmicCompositions",
+      name: "stardustSymphony",
+    });
 
-  const result = await commands.getPromptDetails({ category: "testCategory", name: "testPrompt" });
+    expect(result).toEqual({
+      name: "stardustSymphony",
+      category: "cosmicCompositions",
+      description: "A prompt that composes melodies inspired by celestial bodies",
+      version: "1.0.0",
+      template: "Compose a {{genre}} melody inspired by the {{celestialBody}}",
+      parameters: ["genre", "celestialBody"],
+      inputSchema: {
+        type: "object",
+        properties: {
+          genre: { type: "string" },
+          celestialBody: { type: "string" },
+        },
+        required: ["genre", "celestialBody"],
+      },
+      outputSchema: {
+        type: "object",
+        properties: {
+          melody: { type: "string" },
+        },
+        required: ["melody"],
+      },
+      outputType: "json",
+    });
+  });
 
-  expect(mockGetPrompt).toHaveBeenCalledWith({ category: "testCategory", name: "testPrompt" });
-  expect(result).toEqual({
-    name: "testPrompt",
-    category: "testCategory",
-    description: "Test description",
-    version: "1.0.0",
-    template: "Test template",
-    parameters: ["param1", "param2"],
-    metadata: { created: "2023-01-01", lastModified: "2023-01-02" },
+  test("updatePrompt updates an existing prompt", async () => {
+    const updatedPromptData = {
+      name: "stardustSymphony",
+      category: "cosmicCompositions",
+      description: "An updated prompt that orchestrates cosmic melodies",
+      version: "1.1.0",
+      template: "Orchestrate a {{genre}} symphony inspired by the {{celestialEvent}}",
+      parameters: ["genre", "celestialEvent"],
+      inputSchema: {
+        type: "object",
+        properties: {
+          genre: { type: "string" },
+          celestialEvent: { type: "string" },
+        },
+        required: ["genre", "celestialEvent"],
+      },
+      outputSchema: {
+        type: "object",
+        properties: {
+          symphony: { type: "string" },
+        },
+        required: ["symphony"],
+      },
+      outputType: "json",
+    };
+
+    await commands.updatePrompt({
+      category: "cosmicCompositions",
+      name: "stardustSymphony",
+      promptData: updatedPromptData,
+    });
+
+    const manager = new PromptManager();
+    await manager.initialize();
+    const updatedPrompt = await manager.getPrompt({
+      category: "cosmicCompositions",
+      name: "stardustSymphony",
+    });
+
+    expect(updatedPrompt).toEqual(updatedPromptData);
+  });
+
+  test("deletePrompt removes a prompt", async () => {
+    await commands.deletePrompt({
+      category: "cosmicCompositions",
+      name: "stardustSymphony",
+    });
+
+    const manager = new PromptManager();
+    await manager.initialize();
+    const promptExists = await manager.promptExists({
+      category: "cosmicCompositions",
+      name: "stardustSymphony",
+    });
+
+    expect(promptExists).toBe(false);
+  });
+
+  test("createCategory creates a new category", async () => {
+    await commands.createCategory({ categoryName: "quantumQueries" });
+
+    const manager = new PromptManager();
+    await manager.initialize();
+    const categories = await manager.listCategories();
+
+    expect(categories).toContain("quantumQueries");
+  });
+
+  test("deleteCategory removes a category", async () => {
+    await commands.deleteCategory({ categoryName: "quantumQueries" });
+
+    const manager = new PromptManager();
+    await manager.initialize();
+    const categories = await manager.listCategories();
+
+    expect(categories).not.toContain("quantumQueries");
   });
 });
-
-// Add more tests for other functions in commands.ts
