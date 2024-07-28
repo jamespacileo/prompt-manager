@@ -3,6 +3,7 @@ import { PromptModel } from "../src/promptModel";
 import { PromptFileSystem } from "../src/promptFileSystem";
 import fs from "fs/promises";
 import path from "path";
+import path from "path";
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
 
 const TEST_PROMPTS_PATH = path.join(process.cwd(), "test_prompts");
@@ -119,24 +120,24 @@ describe("PromptModel", () => {
     expect(prompts).toContainEqual({
       name: "prompt1",
       category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/test_prompts/${dummyPromptData.category}/prompt1/prompt.json`)
+      filePath: path.join(TEST_PROMPTS_PATH, dummyPromptData.category, "prompt1", "prompt.json")
     });
     expect(prompts).toContainEqual({
       name: "prompt2",
       category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/test_prompts/${dummyPromptData.category}/prompt2/prompt.json`)
+      filePath: path.join(TEST_PROMPTS_PATH, dummyPromptData.category, "prompt2", "prompt.json")
     });
 
     const allPrompts = await PromptModel.listPrompts();
     expect(allPrompts).toContainEqual({
       name: "prompt1",
       category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/test_prompts/${dummyPromptData.category}/prompt1/prompt.json`)
+      filePath: path.join(TEST_PROMPTS_PATH, dummyPromptData.category, "prompt1", "prompt.json")
     });
     expect(allPrompts).toContainEqual({
       name: "prompt2",
       category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/test_prompts/${dummyPromptData.category}/prompt2/prompt.json`)
+      filePath: path.join(TEST_PROMPTS_PATH, dummyPromptData.category, "prompt2", "prompt.json")
     });
   });
 
