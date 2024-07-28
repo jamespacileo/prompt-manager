@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { IPromptFileSystem, IPrompt } from './types/interfaces';
+import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import { configManager } from './config/PromptProjectConfigManager';
 import { PromptSchema } from './schemas/prompts';
 
@@ -30,7 +30,7 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Save a prompt to the file system.
    * Purpose: Persist prompt data and manage versioning.
    */
-  async savePrompt(props: { promptData: IPrompt }): Promise<void> {
+  async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
   
     try {
@@ -72,14 +72,14 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
    */
-  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt> {
+  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
   
     try {
       const data = await fs.readFile(filePath, 'utf-8');
       const parsedData = JSON.parse(data);
-      return PromptSchema.parse(parsedData) as IPrompt<TInput, TOutput>;
+      return PromptSchema.parse(parsedData) as IPrompt<IPromptInput, IPromptOutput>;
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         throw new Error(`Prompt not found: ${category}/${promptName}`);
@@ -224,7 +224,7 @@ export class PromptFileSystem implements IPromptFileSystem {
     await fs.rm(categoryPath, { recursive: true, force: true });
   }
 
-  async loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt> {
+  async loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
     const { category, promptName, version } = props;
     const versionFilePath = this.getVersionFilePath({ category, promptName, version });
     const data = await fs.readFile(versionFilePath, 'utf-8');
