@@ -1,6 +1,7 @@
 import { IPromptCategory, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import { PromptModel } from './promptModel';
 import { PromptFileSystem } from './promptFileSystem';
+import path from 'path';
 
 /**
  * PromptManager is the central class for managing prompts.
@@ -105,10 +106,15 @@ export class PromptManager<
       ? Object.values(this.prompts[props.category] || {})
       : Object.values(this.prompts).flatMap(categoryPrompts => Object.values(categoryPrompts));
 
-    return prompts.map(prompt => ({
-      ...prompt,
-      filePath: prompt.category && prompt.name ? path.join(this.fileSystem.basePath, prompt.category, prompt.name, 'prompt.json') : ''
-    }));
+    return prompts.map(prompt => {
+      const promptData = prompt as unknown as IPrompt<IPromptInput, IPromptOutput>;
+      return {
+        ...promptData,
+        filePath: promptData.category && promptData.name
+          ? path.join(this.fileSystem.basePath, promptData.category, promptData.name, 'prompt.json')
+          : ''
+      };
+    });
   }
 
   /**

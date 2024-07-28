@@ -122,9 +122,10 @@ export async function generateTypes(): Promise<void> {
   let typeDefs = 'declare module "prompt-manager" {\n';
 
   for (const prompt of prompts) {
-    typeDefs += `  export namespace ${prompt.category} {\n`;
-    typeDefs += `    export const ${prompt.name}: {\n`;
-    typeDefs += `      format: (inputs: { ${prompt.parameters.map(p => `${p}: string`).join('; ')} }) => string;\n`;
+    const promptData = prompt as IPrompt<IPromptInput, IPromptOutput>;
+    typeDefs += `  export namespace ${promptData.category} {\n`;
+    typeDefs += `    export const ${promptData.name}: {\n`;
+    typeDefs += `      format: (inputs: ${generateInputType(promptData.inputSchema)}) => ${generateOutputType(promptData.outputSchema)};\n`;
     typeDefs += `      description: string;\n`;
     typeDefs += `      version: string;\n`;
     typeDefs += `    };\n`;
@@ -134,6 +135,43 @@ export async function generateTypes(): Promise<void> {
   typeDefs += '}\n';
 
   await fs.writeFile(path.join(outputDir, 'prompts.d.ts'), typeDefs);
+}
+
+function generateInputType(schema: any): string {
+  if (schema.type === 'object' && schema.properties) {
+    const props = Object.entries(schema.properties)
+      .map(([key, value]: [string, any]) => `${key}: ${getTypeFromSchema(value)}`)
+      .join('; ');
+    return `{ ${props} }`;
+  }
+  return 'any';
+}
+
+function generateOutputType(schema: any): string {
+  return getTypeFromSchema(schema);
+}
+
+function getTypeFromSchema(schema: any): string {
+  switch (schema.type) {
+    case 'string':
+      return 'string';
+    case 'number':
+      return 'number';
+    case 'boolean':
+      return 'boolean';
+    case 'array':
+      return `Array<${getTypeFromSchema(schema.items)}>`;
+    case 'object':
+      if (schema.properties) {
+        const props = Object.entries(schema.properties)
+          .map(([key, value]: [string, any]) => `${key}: ${getTypeFromSchema(value)}`)
+          .join('; ');
+        return `{ ${props} }`;
+      }
+      return 'Record<string, any>';
+    default:
+      return 'any';
+  }
 }
 
 export async function getGeneratedTypes(): Promise<string> {
