@@ -380,56 +380,30 @@ interface IPromptFileSystem {
  * Interface for managing the project configuration for the Prompt Manager.
  */
 interface IPromptProjectConfigManager {
-  /** The path to the project configuration file */
-  configPath: string;
-  /** The loaded and validated configuration object */
-  config: {
-    /** The absolute path to the directory where prompts are stored */
-    promptsDir: string;
-    /** The preferred AI models for the project */
-    preferredModels: string[];
-    /** Model-specific parameters */
-    modelParams: Record<string, {
-      temperature?: number;
-      maxTokens?: number;
-      topP?: number;
-      frequencyPenalty?: number;
-      presencePenalty?: number;
-    }>;
-  };
+  /**
+   * Initializes the configuration manager.
+   * This should be called before using any other methods.
+   */
+  initialize(): Promise<void>;
 
   /**
-   * Loads the configuration file and validates its contents.
-   * @returns A promise that resolves when the configuration is loaded and validated.
+   * Retrieves the entire configuration object.
+   * @returns The complete configuration object.
    */
-  loadConfig(): Promise<void>;
-
-  /**
-   * Saves the current configuration to the config file.
-   * @returns A promise that resolves when the configuration is saved.
-   */
-  saveConfig(): Promise<void>;
-
-  /**
-   * Updates a specific configuration value.
-   * @param key The configuration key to update.
-   * @param value The new value for the configuration key.
-   */
-  updateConfig(key: string, value: any): void;
+  getAllConfig(): Config;
 
   /**
    * Retrieves a specific configuration value.
    * @param key The configuration key to retrieve.
    * @returns The value of the specified configuration key.
    */
-  getConfig(key: string): any;
+  getConfig<K extends keyof Config>(key: K): Config[K];
 
   /**
-   * Validates the configuration object against the defined schema.
-   * @param config The configuration object to validate.
-   * @returns A boolean indicating whether the configuration is valid.
+   * Updates the configuration with new values.
+   * @param newConfig Partial configuration object with updated values.
    */
-  validateConfig(config: any): boolean;
+  updateConfig(newConfig: Partial<Config>): Promise<void>;
 }
 
 export type {
