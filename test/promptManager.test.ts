@@ -1,8 +1,8 @@
 import { expect, test, describe, beforeAll, afterAll } from "bun:test";
 import { PromptManager } from '../src/promptManager';
-import { PromptFileSystem } from '../src/promptFileSystem';
 import fs from 'fs/promises';
 import path from 'path';
+import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
 
 describe('PromptManager', () => {
   let manager: PromptManager;
@@ -21,7 +21,7 @@ describe('PromptManager', () => {
   });
 
   test('Create and retrieve prompt', async () => {
-    const cosmicPrompt = {
+    const cosmicPrompt: IPrompt<IPromptInput, IPromptOutput> = {
       name: 'cosmicVoyager',
       category: 'spaceExploration',
       description: 'A prompt for interstellar adventures',
@@ -44,9 +44,22 @@ describe('PromptManager', () => {
         required: ['adventure'],
       },
       outputType: 'json',
+      metadata: {
+        created: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+      },
+      configuration: {
+        modelName: 'default-model',
+        temperature: 0.7,
+        maxTokens: 100,
+        topP: 1,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+        stopSequences: [],
+      },
     };
 
-    await manager.createPrompt(cosmicPrompt);
+    await manager.createPrompt({ prompt: cosmicPrompt });
 
     const retrievedPrompt = await manager.getPrompt({
       category: 'spaceExploration',
@@ -72,35 +85,16 @@ describe('PromptManager', () => {
   });
 
   test('Update prompt', async () => {
-    const updatedPrompt = {
-      name: 'cosmicVoyager',
-      category: 'spaceExploration',
+    const updatedPrompt: Partial<IPrompt<IPromptInput, IPromptOutput>> = {
       description: 'An updated prompt for grand space odysseys',
       version: '1.1.0',
       template: 'Embark on an epic odyssey to {{planet}} in the vast {{galaxy}} galaxy',
-      parameters: ['planet', 'galaxy'],
-      inputSchema: {
-        type: 'object',
-        properties: {
-          planet: { type: 'string' },
-          galaxy: { type: 'string' },
-        },
-        required: ['planet', 'galaxy'],
-      },
-      outputSchema: {
-        type: 'object',
-        properties: {
-          odyssey: { type: 'string' },
-        },
-        required: ['odyssey'],
-      },
-      outputType: 'json',
     };
 
     await manager.updatePrompt({
       category: 'spaceExploration',
       name: 'cosmicVoyager',
-      promptData: updatedPrompt,
+      updates: updatedPrompt,
     });
 
     const retrievedPrompt = await manager.getPrompt({
@@ -108,7 +102,9 @@ describe('PromptManager', () => {
       name: 'cosmicVoyager',
     });
 
-    expect(retrievedPrompt).toEqual(updatedPrompt);
+    expect(retrievedPrompt.description).toBe(updatedPrompt.description);
+    expect(retrievedPrompt.version).toBe(updatedPrompt.version);
+    expect(retrievedPrompt.template).toBe(updatedPrompt.template);
   });
 
   test('Delete prompt', async () => {
@@ -117,12 +113,10 @@ describe('PromptManager', () => {
       name: 'cosmicVoyager',
     });
 
-    const promptExists = await manager.promptExists({
+    await expect(manager.getPrompt({
       category: 'spaceExploration',
       name: 'cosmicVoyager',
-    });
-
-    expect(promptExists).toBe(false);
+    })).rejects.toThrow();
   });
 
   test('Create and delete category', async () => {
