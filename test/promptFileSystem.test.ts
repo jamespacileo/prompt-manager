@@ -25,7 +25,7 @@ const COSMIC_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
     },
     required: ["cosmicTruth"],
   },
-  outputType: "json",
+  outputType: "structured",
   inputSchema: {
     type: "object",
     properties: {

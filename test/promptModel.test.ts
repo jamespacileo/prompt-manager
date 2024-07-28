@@ -153,7 +153,7 @@ describe("PromptModel", () => {
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     };
-    prompt.updateMetadata({ metadata: newMetadata });
+    prompt.updateMetadata(newMetadata);
     expect(prompt.metadata).toEqual(newMetadata);
   });
 
