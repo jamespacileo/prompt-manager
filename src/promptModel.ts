@@ -201,10 +201,10 @@ export class PromptModel<
     }
   }
 
-  updateMetadata(metadata: Partial<IPromptModel>): void {
-    Object.assign(this, metadata);
+  updateMetadata(metadata: Partial<IPromptModel['metadata']>): void {
     this.metadata = { 
       ...this.metadata,
+      ...metadata,
       lastModified: new Date().toISOString()
     };
   }

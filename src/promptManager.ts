@@ -84,7 +84,7 @@ export class PromptManager<
     const { category, name, updates } = props;
     const prompt = this.getPrompt({ category, name });
     Object.assign(prompt, updates);
-    prompt.updateMetadata({ lastModified: new Date().toISOString() });
+    prompt.updateMetadata({ metadata: { lastModified: new Date().toISOString() } });
     await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
   }
 
