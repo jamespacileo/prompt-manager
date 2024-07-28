@@ -2,7 +2,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
 import { IPromptProjectConfigManager } from '../types/interfaces';
-import { CONFIG_FILE_NAME, getConfigPath, getDefaultPromptsPath } from './constants';
+import { getDefaultPromptsPath } from './constants';
+import path from 'path';
 import { ensureDirectoryExists } from '../utils/fileUtils';
 
 const DEFAULT_CONFIG: Config = {
@@ -48,7 +49,8 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private config: Config;
 
   private constructor(configPath?: string) {
-    this.configPath = configPath || getConfigPath();
+    const configFileName = process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
+    this.configPath = configPath || path.join(process.cwd(), configFileName);
     this.config = { ...DEFAULT_CONFIG };
   }
 
