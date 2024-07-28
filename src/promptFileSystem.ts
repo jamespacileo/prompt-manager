@@ -30,12 +30,12 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Save a prompt to the file system.
    * Purpose: Persist prompt data and manage versioning.
    */
-  async savePrompt(props: { promptData: IPrompt<any, any> }): Promise<void> {
+  async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
   
     try {
       // Validate the prompt data against the schema
-      const validatedPromptData = PromptSchema.parse(promptData);
+      const validatedPromptData = PromptSchema.parse(promptData) as IPrompt<IPromptInput, IPromptOutput>;
 
       const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
       const versionFilePath = this.getVersionFilePath({
@@ -231,7 +231,7 @@ export class PromptFileSystem implements IPromptFileSystem {
     return JSON.parse(data);
   }
 
-  private async generateTypeDefinitionFile(promptData: IPrompt<any, any>, filePath: string): Promise<void> {
+  private async generateTypeDefinitionFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
     const inputType = this.generateTypeFromSchema(promptData.inputSchema, 'Input');
     const outputType = this.generateTypeFromSchema(promptData.outputSchema, 'Output');
 
