@@ -125,18 +125,14 @@ program
           value: prompt,
         }));
 
-        inquirer.registerPrompt('autocomplete', inquirerPrompt);
-        const { selectedPrompt } = await inquirer.prompt([
-          {
-            type: 'autocomplete',
-            name: 'selectedPrompt',
-            message: 'Select a prompt to view details (type to search):',
-            source: (answersSoFar: any, input: string) =>
-              promptChoices.filter((choice) =>
-                choice.name.toLowerCase().includes((input || '').toLowerCase())
-              ),
+        const selectedPrompt = await search({
+          message: 'Select a prompt to view details (type to search):',
+          source: async (input, { signal }) => {
+            return promptChoices.filter((choice) =>
+              choice.name.toLowerCase().includes((input || '').toLowerCase())
+            );
           },
-        ]);
+        });
 
         await displayPromptDetails(selectedPrompt);
       }
@@ -162,19 +158,32 @@ async function displayPromptDetails(prompt: any) {
 
   detailsTable.printTable();
 
-  const { action } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: 'What would you like to do?',
-      choices: [
-        { name: 'Edit prompt', value: 'edit' },
-        { name: 'Delete prompt', value: 'delete' },
-        { name: 'Go back to list', value: 'back' },
-        { name: 'Exit', value: 'exit' },
-      ],
-    },
-  ]);
+  const action = await expand({
+    message: 'What would you like to do?',
+    default: 'e',
+    choices: [
+      {
+        key: 'e',
+        name: 'Edit prompt',
+        value: 'edit',
+      },
+      {
+        key: 'd',
+        name: 'Delete prompt',
+        value: 'delete',
+      },
+      {
+        key: 'b',
+        name: 'Go back to list',
+        value: 'back',
+      },
+      {
+        key: 'x',
+        name: 'Exit',
+        value: 'exit',
+      },
+    ],
+  });
 
   switch (action) {
     case 'edit':
