@@ -1,8 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
+import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput, IPromptModelRequired } from './types/interfaces';
 import { configManager } from './config/PromptProjectConfigManager';
 import { PromptSchema } from './schemas/prompts';
+import { PromptModel } from './promptModel';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -37,7 +38,7 @@ export class PromptFileSystem implements IPromptFileSystem {
    */
   async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
-  
+
     try {
       // Validate the prompt data against the schema
       const validatedPromptData = PromptSchema.parse(promptData) as IPrompt<IPromptInput, IPromptOutput>;
@@ -80,7 +81,7 @@ export class PromptFileSystem implements IPromptFileSystem {
   async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
-  
+
     try {
       const data = await fs.readFile(filePath, 'utf-8');
       const parsedData = JSON.parse(data);

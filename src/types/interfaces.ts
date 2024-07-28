@@ -101,7 +101,7 @@ export interface IPromptModel<
     stopSequences: string[];
   };
   outputType: 'structured' | 'plain';
-  fileSystem: IPromptFileSystem;
+  // fileSystem: IPromptFileSystem;
   isLoadedFromStorage: boolean;
 
   validateInput(input: TInput): boolean;
