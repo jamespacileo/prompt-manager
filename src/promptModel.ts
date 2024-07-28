@@ -1,9 +1,9 @@
-import { IPromptModel, IPromptModelRequired, IPromptModelStatic, IPromptInput, IPromptOutput, IAsyncIterableStream, IPromptFileSystem } from './types/interfaces';
+import { IPromptModel, IPromptModelRequired, IPromptModelStatic, IPromptInput, IPromptOutput, IAsyncIterableStream, IPromptFileSystem, IPrompt } from './types/interfaces';
 import { JSONSchema7 } from 'json-schema';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { PROMPT_FILENAME, PromptFileSystem } from './promptFileSystem';
+import { PromptFileSystem } from './promptFileSystem';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 
 /**
@@ -13,7 +13,7 @@ import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
  */
 export class PromptModel<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
-  TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
+  TOutput extends IPromptOutput<Record<string, any> | string> = IPromptOutput<Record<string, any> | string>
 > implements IPromptModel<TInput, TOutput> {
   name: string;
   category: string;
@@ -48,7 +48,7 @@ export class PromptModel<
    * @param promptData Required data to initialize the prompt
    * @param fileSystem Optional PromptFileSystem instance for file operations
    */
-  constructor(promptData: IPromptModelRequired, fileSystem?: PromptFileSystem) {
+  constructor(promptData: IPromptModelRequired, fileSystem?: IPromptFileSystem) {
     if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {
       throw new Error('Invalid prompt data: missing required fields');
     }
@@ -244,7 +244,7 @@ export class PromptModel<
     return this._isSaved;
   }
 
-  static async loadPromptByName(name: string, fileSystem: PromptFileSystem): Promise<PromptModel> {
+  static async loadPromptByName(name: string, fileSystem: IPromptFileSystem): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
     const promptData = await fileSystem.loadPrompt({ category, promptName });
     const prompt = new PromptModel(promptData as IPromptModelRequired, fileSystem);
@@ -252,22 +252,18 @@ export class PromptModel<
     return prompt;
   }
 
-  static async promptExists(name: string, fileSystem: PromptFileSystem): Promise<boolean> {
+  static async promptExists(name: string, fileSystem: IPromptFileSystem): Promise<boolean> {
     const [category, promptName] = name.split('/');
     return fileSystem.promptExists({ category, promptName });
   }
 
-  static async listPrompts(category?: string, fileSystem?: PromptFileSystem): Promise<Array<{ name: string; category: string; filePath: string }>> {
-    if (!fileSystem) {
-      fileSystem = new PromptFileSystem();
-    }
+  static async listPrompts(category?: string, fileSystem?: IPromptFileSystem): Promise<Array<{ name: string; category: string; filePath: string }>> {
+    const fs = fileSystem || new PromptFileSystem();
     return await fileSystem.listPrompts({ category });
   }
 
-  static async deletePrompt(category: string, name: string, fileSystem?: PromptFileSystem): Promise<void> {
-    if (!fileSystem) {
-      fileSystem = new PromptFileSystem();
-    }
+  static async deletePrompt(category: string, name: string, fileSystem?: IPromptFileSystem): Promise<void> {
+    const fs = fileSystem || new PromptFileSystem();
     await fileSystem.deletePrompt({ category, promptName: name });
   }
 }
