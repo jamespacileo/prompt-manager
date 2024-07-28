@@ -49,8 +49,8 @@ test("createPrompt creates a new prompt", async () => {
 
 test("listPrompts returns a list of prompts", async () => {
   const mockListPrompts = mock(() => Promise.resolve([
-    { category: "cat1", name: "prompt1" },
-    { category: "cat2", name: "prompt2" },
+    { category: "cat1", name: "prompt1", version: "1.0.0", filePath: "/path/to/prompt1" },
+    { category: "cat2", name: "prompt2", version: "1.1.0", filePath: "/path/to/prompt2" },
   ]));
   mock.module("../src/promptManager", () => ({
     PromptManager: class {
@@ -62,7 +62,10 @@ test("listPrompts returns a list of prompts", async () => {
   const result = await commands.listPrompts();
 
   expect(mockListPrompts).toHaveBeenCalled();
-  expect(result).toEqual(["cat1/prompt1", "cat2/prompt2"]);
+  expect(result).toEqual([
+    { category: "cat1", name: "prompt1", version: "1.0.0", filePath: "/path/to/prompt1" },
+    { category: "cat2", name: "prompt2", version: "1.1.0", filePath: "/path/to/prompt2" },
+  ]);
 });
 
 test("getPromptDetails returns prompt details", async () => {

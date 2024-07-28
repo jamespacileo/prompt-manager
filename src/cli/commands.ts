@@ -66,8 +66,8 @@ export async function listPrompts(): Promise<Array<{ name: string; category: str
   return prompts.map(prompt => ({
     name: prompt.name,
     category: prompt.category,
-    version: prompt.version,
-    filePath: prompt.filePath
+    version: prompt.version || '',
+    filePath: prompt.filePath || ''
   }));
 }
 
