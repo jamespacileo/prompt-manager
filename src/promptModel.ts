@@ -4,6 +4,7 @@ import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { PROMPT_FILENAME, PromptFileSystem } from './promptFileSystem';
+import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 
 /**
  * Represents a single prompt model with all its properties and methods.
@@ -199,12 +200,21 @@ export class PromptModel<
     this._isSaved = true;
   }
 
-  get inputZodSchema(): z.ZodObject<IPromptInput> {
-    return z.object(this.inputSchema as z.ZodRawShape);
+  private _inputZodSchema: z.ZodType<any> | null = null;
+  private _outputZodSchema: z.ZodType<any> | null = null;
+
+  get inputZodSchema(): z.ZodType<any> {
+    if (!this._inputZodSchema) {
+      this._inputZodSchema = jsonSchemaToZod(this.inputSchema);
+    }
+    return this._inputZodSchema;
   }
 
-  get outputZodSchema(): z.ZodObject<IPromptOutput> {
-    return z.object(this.outputSchema as z.ZodRawShape);
+  get outputZodSchema(): z.ZodType<any> {
+    if (!this._outputZodSchema) {
+      this._outputZodSchema = jsonSchemaToZod(this.outputSchema);
+    }
+    return this._outputZodSchema;
   }
 
   async load(filePath: string): Promise<void> {

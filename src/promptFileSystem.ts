@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import { configManager } from './config/PromptProjectConfigManager';
+import { z } from 'zod';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -66,7 +67,39 @@ export class PromptFileSystem implements IPromptFileSystem {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
     const data = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(data);
+    const parsedData = JSON.parse(data);
+    
+    // Validate the loaded data
+    const promptSchema = z.object({
+      name: z.string(),
+      category: z.string(),
+      description: z.string(),
+      version: z.string(),
+      template: z.string(),
+      parameters: z.array(z.string()),
+      inputSchema: z.object({}).passthrough(),
+      outputSchema: z.object({}).passthrough(),
+      metadata: z.object({
+        created: z.string(),
+        lastModified: z.string()
+      }),
+      configuration: z.object({
+        modelName: z.string(),
+        temperature: z.number(),
+        maxTokens: z.number(),
+        topP: z.number(),
+        frequencyPenalty: z.number(),
+        presencePenalty: z.number(),
+        stopSequences: z.array(z.string())
+      }),
+      outputType: z.enum(['structured', 'plain'])
+    });
+
+    try {
+      return promptSchema.parse(parsedData);
+    } catch (error) {
+      throw new Error(`Invalid prompt data: ${error.message}`);
+    }
   }
 
   async promptExists(props: { category: string; promptName: string }): Promise<boolean> {
