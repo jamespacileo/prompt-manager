@@ -11,11 +11,10 @@ import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
  * Purpose: Encapsulate all data and behavior related to a specific prompt,
  * including validation, formatting, and execution.
  */
-export class PromptModel<TInput extends IPromptInput<any> = IPromptInput<any>, TOutput extends IPromptOutput<any> = IPromptOutput<any>> implements IPromptModel<TInput, TOutput> {
-  private _isSaved: boolean;
-  TInput extends IPromptInput<Record<string, any >> = IPromptInput<Record<string, any>>,
-  TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput < Record<string, any> & string >
-> implements IPromptModel < TInput, TOutput > {
+export class PromptModel<
+  TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
+  TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
+> implements IPromptModel<TInput, TOutput> {
   name: string;
   category: string;
   description: string;
@@ -40,7 +39,7 @@ export class PromptModel<TInput extends IPromptInput<any> = IPromptInput<any>, T
   inputSchema: JSONSchema7;
   outputSchema: JSONSchema7;
   fileSystem: IPromptFileSystem;
-  private _isSaved: boolean = false;
+  private _isSaved: boolean;
   isLoadedFromStorage: boolean = false;
 
   /**
@@ -164,7 +163,7 @@ export class PromptModel<TInput extends IPromptInput<any> = IPromptInput<any>, T
   async execute(inputs: TInput): Promise<TOutput> {
     if (this.outputType === 'structured') {
       const formattedPrompt = this.format(inputs);
-      const schema = z.object(this.outputSchema as z.ZodRawShape);
+      const schema = this.outputZodSchema;
       const { object } = await generateObject({
         model: openai(this.configuration.modelName),
         schema,
