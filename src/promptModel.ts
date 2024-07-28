@@ -39,7 +39,7 @@ export class PromptModel<
   inputSchema: JSONSchema7;
   outputSchema: JSONSchema7;
   fileSystem: IPromptFileSystem;
-  _isSaved: boolean = false;
+  private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
 
   /**
