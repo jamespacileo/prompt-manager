@@ -52,6 +52,16 @@ interface IPrompt<PromptInput extends IPromptInput<any>, PromptOutput extends IP
   inputSchema: JSONSchema7;
   /** Type of output expected by the prompt */
   outputSchema: JSONSchema7;
+  /** Configuration for the AI model */
+  configuration: {
+    modelName: string;
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    frequencyPenalty: number;
+    presencePenalty: number;
+    stopSequences: string[];
+  };
 }
 
 type IAsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
