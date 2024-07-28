@@ -17,35 +17,30 @@ const configSchema = z.object({
   })),
 });
 
-class PromptProjectConfigManager implements IPromptProjectConfigManager {
-  configPath: string;
-  config: {
-    promptsDir: string;
-    outputDir: string;
-    preferredModels: string[];
-    modelParams: Record<string, {
-      temperature?: number;
-      maxTokens?: number;
-      topP?: number;
-      frequencyPenalty?: number;
-      presencePenalty?: number;
-    }>;
-  };
+export type Config = z.infer<typeof configSchema>;
 
-  /**
-   * Creates a new PromptProjectConfigManager instance.
-   * @param configPath Optional path to the configuration file. If not provided, uses the default path.
-   */
-  constructor(configPath?: string) {
+class PromptProjectConfigManager implements IPromptProjectConfigManager {
+  private static instance: PromptProjectConfigManager;
+  private configPath: string;
+  private config: Config;
+
+  private constructor(configPath?: string) {
     this.configPath = configPath || getConfigPath();
     this.config = { ...DEFAULT_CONFIG };
   }
 
-  /**
-   * Loads the configuration from the file system.
-   * If the file doesn't exist, it creates a new one with default values.
-   */
-  async loadConfig(): Promise<void> {
+  public static getInstance(configPath?: string): PromptProjectConfigManager {
+    if (!PromptProjectConfigManager.instance) {
+      PromptProjectConfigManager.instance = new PromptProjectConfigManager(configPath);
+    }
+    return PromptProjectConfigManager.instance;
+  }
+
+  public async initialize(): Promise<void> {
+    await this.loadConfig();
+  }
+
+  private async loadConfig(): Promise<void> {
     try {
       const configData = await fs.readFile(this.configPath, 'utf-8');
       const parsedConfig = JSON.parse(configData);
@@ -53,13 +48,14 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
       if (this.validateConfig(parsedConfig)) {
         this.config = parsedConfig;
         this.config.promptsDir = path.resolve(path.dirname(this.configPath), this.config.promptsDir);
+        this.config.outputDir = path.resolve(path.dirname(this.configPath), this.config.outputDir);
       } else {
         throw new Error('Invalid configuration file');
       }
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         // File doesn't exist, create a new one with default values
-        this.config = { ...DEFAULT_CONFIG, outputDir: '' };
+        this.config = { ...DEFAULT_CONFIG };
         this.config.promptsDir = getDefaultPromptsPath();
         this.config.outputDir = path.join(path.dirname(this.configPath), 'output');
         await this.saveConfig();
@@ -69,10 +65,7 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
     }
   }
 
-  /**
-   * Saves the current configuration to the file system.
-   */
-  async saveConfig(): Promise<void> {
+  private async saveConfig(): Promise<void> {
     try {
       const configData = JSON.stringify(this.config, null, 2);
       await fs.writeFile(this.configPath, configData, 'utf-8');
@@ -81,30 +74,20 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
     }
   }
 
-  /**
-   * Updates a specific configuration value.
-   * @param key The configuration key to update.
-   * @param value The new value for the configuration key.
-   */
-  updateConfig<K extends keyof typeof this.config>(key: K, value: typeof this.config[K]): void {
+  public async updateConfig<K extends keyof Config>(key: K, value: Config[K]): Promise<void> {
     this.config[key] = value;
+    await this.saveConfig();
   }
 
-  /**
-   * Retrieves a specific configuration value.
-   * @param key The configuration key to retrieve.
-   * @returns The value of the specified configuration key.
-   */
-  getConfig<K extends keyof typeof this.config>(key: K): typeof this.config[K] {
+  public getConfig<K extends keyof Config>(key: K): Config[K] {
     return this.config[key];
   }
 
-  /**
-   * Validates the configuration object against the defined schema.
-   * @param config The configuration object to validate.
-   * @returns A boolean indicating whether the configuration is valid.
-   */
-  validateConfig(config: any): boolean {
+  public getAllConfig(): Config {
+    return { ...this.config };
+  }
+
+  private validateConfig(config: any): config is Config {
     try {
       configSchema.parse(config);
       return true;
@@ -115,9 +98,4 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 }
 
-// Create a singleton instance
-const config = new PromptProjectConfigManager();
-void config.loadConfig();
-
-// Export the singleton instance
-export default config;
+export const configManager = PromptProjectConfigManager.getInstance();

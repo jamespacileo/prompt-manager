@@ -1,48 +1,19 @@
-import { cosmiconfig } from 'cosmiconfig';
-import path from 'path';
+import { configManager, Config } from './config/PromptProjectConfigManager';
 
-export interface PromptManagerConfig {
-  promptsDir: string;
-  outputDir: string;
+export async function initializeConfig(): Promise<void> {
+  await configManager.initialize();
 }
 
-const defaultConfig: PromptManagerConfig = {
-  promptsDir: 'prompts',
-  outputDir: 'src/generated',
-};
-
-export async function loadConfig(): Promise<PromptManagerConfig> {
-  const explorer = cosmiconfig('prompt-manager', {
-    searchPlaces: [
-      'package.json',
-      '.prompt-managerrc',
-      '.prompt-managerrc.json',
-      '.prompt-managerrc.yaml',
-      '.prompt-managerrc.yml',
-      '.prompt-managerrc.js',
-      'prompt-manager.config.js',
-    ],
-  });
-
-  try {
-    const result = await explorer.search();
-    if (result) {
-      return {
-        ...defaultConfig,
-        ...result.config,
-        promptsDir: path.resolve(process.cwd(), result.config?.promptsDir || defaultConfig.promptsDir),
-        outputDir: path.resolve(process.cwd(), result.config?.outputDir || defaultConfig.outputDir),
-      };
-    }
-  } catch (error) {
-    console.warn('Error loading config:', error);
-  }
-
-  return {
-    ...defaultConfig,
-    promptsDir: path.resolve(process.cwd(), defaultConfig.promptsDir),
-    outputDir: path.resolve(process.cwd(), defaultConfig.outputDir),
-  };
+export function getConfig<K extends keyof Config>(key: K): Config[K] {
+  return configManager.getConfig(key);
 }
 
-export const config = await loadConfig();
+export function getAllConfig(): Config {
+  return configManager.getAllConfig();
+}
+
+export async function updateConfig<K extends keyof Config>(key: K, value: Config[K]): Promise<void> {
+  await configManager.updateConfig(key, value);
+}
+
+export { Config };
