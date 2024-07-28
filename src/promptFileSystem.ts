@@ -200,4 +200,11 @@ export class PromptFileSystem implements IPromptFileSystem {
     const categoryPath = path.join(this.basePath, categoryName);
     await fs.rm(categoryPath, { recursive: true, force: true });
   }
+
+  async loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
+    const { category, promptName, version } = props;
+    const versionFilePath = this.getVersionFilePath({ category, promptName, version });
+    const data = await fs.readFile(versionFilePath, 'utf-8');
+    return JSON.parse(data);
+  }
 }

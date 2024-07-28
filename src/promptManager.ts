@@ -12,7 +12,7 @@ export class PromptManager<
   TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > {
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
-  private prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
+  public prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
   private fileSystem: PromptFileSystem;
 
   constructor() {
@@ -72,7 +72,7 @@ export class PromptManager<
     const { category, name, updates } = props;
     const prompt = this.getPrompt({ category, name });
     Object.assign(prompt, updates);
-    prompt.updateMetadata({ metadata: { lastModified: new Date().toISOString() } });
+    prompt.updateMetadata({ lastModified: new Date().toISOString() });
     await this.fileSystem.savePrompt({ promptData: prompt });
   }
 
