@@ -129,6 +129,12 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     return { ...this.config };
   }
 
+  public async setConfig<K extends keyof Config>(key: K, value: Config[K]): Promise<void> {
+    this.config[key] = value;
+    await this.saveConfig();
+    await this.ensureConfigDirectories();
+  }
+
   private validateConfig(config: any): config is Config {
     try {
       configSchema.parse(config);
