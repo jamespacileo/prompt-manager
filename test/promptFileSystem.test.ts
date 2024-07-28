@@ -1,11 +1,13 @@
-import { expect, test, beforeAll, afterAll, describe } from "bun:test";
+import { expect, test, beforeAll, afterAll, beforeEach, describe } from "bun:test";
 import { PromptFileSystem } from "../src/promptFileSystem";
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
 import fs from "fs/promises";
 import path from "path";
+import { PromptProjectConfigManager } from "../src/config/PromptProjectConfigManager";
 
 let promptFileSystem: PromptFileSystem;
 let testDir: string;
+let originalPromptsDir: string | undefined;
 
 const COSMIC_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
   name: "cosmicWhisper",
@@ -45,14 +47,25 @@ const COSMIC_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
 };
 
 beforeAll(async () => {
+  originalPromptsDir = process.env.PROMPTS_DIR;
   testDir = path.join(process.cwd(), 'test-prompts');
   await fs.mkdir(testDir, { recursive: true });
   process.env.PROMPTS_DIR = testDir;
+  PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);
+});
+
+beforeEach(() => {
   promptFileSystem = new PromptFileSystem();
 });
 
 afterAll(async () => {
   await fs.rm(testDir, { recursive: true, force: true });
+  if (originalPromptsDir) {
+    process.env.PROMPTS_DIR = originalPromptsDir;
+  } else {
+    delete process.env.PROMPTS_DIR;
+  }
+  PromptProjectConfigManager.getInstance().setConfig('promptsDir', originalPromptsDir || '');
 });
 
 describe("PromptFileSystem", () => {

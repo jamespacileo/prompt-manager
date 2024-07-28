@@ -1,20 +1,38 @@
-import { expect, test, describe, beforeAll, afterAll } from "bun:test";
+import { expect, test, describe, beforeAll, afterAll, beforeEach } from "bun:test";
 import * as commands from "../src/cli/commands";
 import { PromptManager } from "../src/promptManager";
 import fs from 'fs/promises';
 import path from 'path';
+import { PromptProjectConfigManager } from "../src/config/PromptProjectConfigManager";
 
 describe('CLI Commands', () => {
   let testDir: string;
+  let originalPromptsDir: string | undefined;
 
   beforeAll(async () => {
+    originalPromptsDir = process.env.PROMPTS_DIR;
     testDir = path.join(process.cwd(), 'test-prompts-cli');
     await fs.mkdir(testDir, { recursive: true });
     process.env.PROMPTS_DIR = testDir;
+    PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);
+  });
+
+  beforeEach(async () => {
+    // Clear the test directory before each test
+    const files = await fs.readdir(testDir);
+    for (const file of files) {
+      await fs.rm(path.join(testDir, file), { recursive: true, force: true });
+    }
   });
 
   afterAll(async () => {
     await fs.rm(testDir, { recursive: true, force: true });
+    if (originalPromptsDir) {
+      process.env.PROMPTS_DIR = originalPromptsDir;
+    } else {
+      delete process.env.PROMPTS_DIR;
+    }
+    PromptProjectConfigManager.getInstance().setConfig('promptsDir', originalPromptsDir || '');
   });
 
   test("createPrompt creates a new prompt", async () => {

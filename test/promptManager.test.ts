@@ -1,23 +1,36 @@
-import { expect, test, describe, beforeAll, afterAll } from "bun:test";
+import { expect, test, describe, beforeAll, afterAll, beforeEach } from "bun:test";
 import { PromptManager } from '../src/promptManager';
 import fs from 'fs/promises';
 import path from 'path';
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
+import { PromptProjectConfigManager } from "../src/config/PromptProjectConfigManager";
 
 describe('PromptManager', () => {
   let manager: PromptManager;
   let testDir: string;
+  let originalPromptsDir: string | undefined;
 
   beforeAll(async () => {
+    originalPromptsDir = process.env.PROMPTS_DIR;
     testDir = path.join(process.cwd(), 'test-prompts-manager');
     await fs.mkdir(testDir, { recursive: true });
     process.env.PROMPTS_DIR = testDir;
+    PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);
+  });
+
+  beforeEach(async () => {
     manager = new PromptManager();
     await manager.initialize();
   });
 
   afterAll(async () => {
     await fs.rm(testDir, { recursive: true, force: true });
+    if (originalPromptsDir) {
+      process.env.PROMPTS_DIR = originalPromptsDir;
+    } else {
+      delete process.env.PROMPTS_DIR;
+    }
+    PromptProjectConfigManager.getInstance().setConfig('promptsDir', originalPromptsDir || '');
   });
 
   test('Create and retrieve prompt', async () => {

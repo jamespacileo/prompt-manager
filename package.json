@@ -32,7 +32,8 @@
     "dev:watch": "concurrently \"bun run dev\" \"bun run install-global\" \"bun run install-example\"",
     "install-example": "cd examples/test-project && npm install",
     "lint": "oxlint . --ext .ts",
-    "lint:fix": "oxlint --quiet --fix ."
+    "lint:fix": "oxlint --quiet --fix .",
+    "test:cleanup": "bun run scripts/cleanupTests.ts"
   },
   "keywords": [
     "prompt",
