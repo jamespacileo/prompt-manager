@@ -12,8 +12,8 @@ export function getAllConfig(): Config {
   return configManager.getAllConfig();
 }
 
-export async function updateConfig<K extends keyof Config>(key: K, value: Config[K]): Promise<void> {
-  await configManager.updateConfig(key, value);
+export async function updateConfig(updates: Partial<Config>): Promise<void> {
+  await configManager.updateConfig(updates);
 }
 
 export type { Config };
