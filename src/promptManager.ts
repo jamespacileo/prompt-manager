@@ -33,7 +33,7 @@ export class PromptManager<
         }
         try {
           const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
+          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData as IPromptModelRequired) as unknown as PromptModel<TInput, TOutput>;
         } catch (error) {
           console.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
           // Continue loading other prompts even if one fails
@@ -71,7 +71,7 @@ export class PromptManager<
     }
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;
-    await this.fileSystem.savePrompt({ promptData: newPrompt });
+    await this.fileSystem.savePrompt({ promptData: newPrompt as unknown as IPrompt<any, any> });
     console.log(`Created new prompt "${prompt.name}" in category "${prompt.category}" with TypeScript definitions.`);
   }
 
@@ -84,7 +84,7 @@ export class PromptManager<
     const prompt = this.getPrompt({ category, name });
     Object.assign(prompt, updates);
     prompt.updateMetadata({ lastModified: new Date().toISOString() });
-    await this.fileSystem.savePrompt({ promptData: prompt });
+    await this.fileSystem.savePrompt({ promptData: prompt as unknown as IPrompt<any, any> });
   }
 
   /**
@@ -107,7 +107,7 @@ export class PromptManager<
 
     return prompts.map(prompt => ({
       ...prompt,
-      filePath: this.fileSystem.getFilePath({ category: prompt.category, promptName: prompt.name })
+      filePath: prompt.category && prompt.name ? path.join(this.fileSystem.basePath, prompt.category, prompt.name, 'prompt.json') : ''
     }));
   }
 

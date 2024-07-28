@@ -38,7 +38,7 @@ export class PromptModel<
   outputType: 'structured' | 'plain';
   inputSchema: JSONSchema7;
   outputSchema: JSONSchema7;
-  fileSystem: PromptFileSystem;
+  fileSystem?: PromptFileSystem;
   _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
 
@@ -199,7 +199,11 @@ export class PromptModel<
   }
 
   async save(): Promise<void> {
-    await this.fileSystem.savePrompt({ promptData: this });
+    if (this.fileSystem) {
+      await this.fileSystem.savePrompt({ promptData: this as unknown as IPrompt<any, any> });
+    } else {
+      throw new Error('FileSystem is not initialized');
+    }
     this._isSaved = true;
   }
 

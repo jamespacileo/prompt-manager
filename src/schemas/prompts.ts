@@ -33,4 +33,4 @@ export const PromptSchema = z.object({
     tags: z.array(z.string()).optional().describe('Optional list of tags or keywords associated with this prompt'),
 });
 
-export type IPrompt = z.infer<typeof PromptSchema>;
+export type IPrompt<TInput = any, TOutput = any> = z.infer<typeof PromptSchema>;

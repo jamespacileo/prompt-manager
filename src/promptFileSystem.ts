@@ -30,7 +30,7 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Save a prompt to the file system.
    * Purpose: Persist prompt data and manage versioning.
    */
-  async savePrompt(props: { promptData: IPrompt }): Promise<void> {
+  async savePrompt(props: { promptData: IPrompt<any, any> }): Promise<void> {
     const { promptData } = props;
     
     try {
@@ -64,7 +64,7 @@ export class PromptFileSystem implements IPromptFileSystem {
       await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
     } catch (error) {
       console.error('Error saving prompt:', error);
-      throw new Error(`Failed to save prompt: ${error.message}`);
+      throw new Error(`Failed to save prompt: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -72,7 +72,7 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
    */
-  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt> {
+  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<any, any>> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
     
@@ -87,7 +87,7 @@ export class PromptFileSystem implements IPromptFileSystem {
       if (error instanceof SyntaxError) {
         throw new Error(`Invalid JSON in prompt file: ${category}/${promptName}`);
       }
-      throw new Error(`Failed to load prompt ${category}/${promptName}: ${error.message}`);
+      throw new Error(`Failed to load prompt ${category}/${promptName}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -228,14 +228,14 @@ export class PromptFileSystem implements IPromptFileSystem {
     await fs.rm(categoryPath, { recursive: true, force: true });
   }
 
-  async loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
+  async loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt<any, any>> {
     const { category, promptName, version } = props;
     const versionFilePath = this.getVersionFilePath({ category, promptName, version });
     const data = await fs.readFile(versionFilePath, 'utf-8');
     return JSON.parse(data);
   }
 
-  private async generateTypeDefinitionFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
+  private async generateTypeDefinitionFile(promptData: IPrompt<any, any>, filePath: string): Promise<void> {
     const inputType = this.generateTypeFromSchema(promptData.inputSchema, 'Input');
     const outputType = this.generateTypeFromSchema(promptData.outputSchema, 'Output');
 

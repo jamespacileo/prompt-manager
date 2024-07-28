@@ -74,7 +74,7 @@ export interface IPromptModelRequired {
 export interface IPromptModel<
   TInput extends IPromptInput<any> = IPromptInput<any>,
   TOutput extends IPromptOutput<any> = IPromptOutput<any>
-> extends IPrompt<TInput, TOutput>, IPromptModelRequired {
+> extends Omit<IPrompt<TInput, TOutput>, 'inputSchema' | 'outputSchema'>, IPromptModelRequired {
   version: string;
   defaultModelName?: string;
   metadata: {
@@ -91,7 +91,7 @@ export interface IPromptModel<
     stopSequences: string[];
   };
   outputType: 'structured' | 'plain';
-  fileSystem: IPromptFileSystem;
+  fileSystem?: IPromptFileSystem;
   _isSaved: boolean;
 
   validateInput(input: TInput): boolean;
@@ -106,8 +106,8 @@ export interface IPromptModel<
   versions(): Promise<string[]>;
   switchVersion(version: string): Promise<void>;
   get isSaved(): boolean;
-  get inputZodSchema(): ZodObject<IPromptInput>;
-  get outputZodSchema(): ZodObject<IPromptOutput>;
+  get inputZodSchema(): z.ZodType<any>;
+  get outputZodSchema(): z.ZodType<any>;
 }
 
 export interface IPromptModelStatic {
