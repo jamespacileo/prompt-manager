@@ -5,7 +5,7 @@ import path from 'path';
 import { input, confirm } from '@inquirer/prompts';
 import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './aiHelpers';
 import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
-import configManager from '../config/PromptProjectConfigManager';
+import { configManager } from '../config/PromptProjectConfigManager';
 
 /**
  * Create a new prompt with AI assistance.

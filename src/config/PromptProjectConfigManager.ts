@@ -75,8 +75,8 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
     }
   }
 
-  public async updateConfig<K extends keyof Config>(key: K, value: Config[K]): Promise<void> {
-    this.config[key] = value;
+  public async updateConfig(newConfig: Partial<Config>): Promise<void> {
+    this.config = { ...this.config, ...newConfig };
     await this.saveConfig();
   }
 

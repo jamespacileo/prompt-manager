@@ -16,4 +16,4 @@ export async function updateConfig<K extends keyof Config>(key: K, value: Config
   await configManager.updateConfig(key, value);
 }
 
-export { Config };
+export type { Config };
