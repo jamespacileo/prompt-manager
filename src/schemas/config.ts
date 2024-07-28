@@ -14,6 +14,7 @@ export const configSchema = z.object({
 });
 
 export type Config = z.infer<typeof configSchema>;
+export { z };
 
 export const DEFAULT_CONFIG: Config = {
   promptsDir: '',

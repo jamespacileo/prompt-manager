@@ -1,6 +1,6 @@
 import type { JSONSchema7 } from 'json-schema';
 import { ZodObject, ZodType } from 'zod';
-import { Config } from '../config/PromptProjectConfigManager';
+import { Config } from '../schemas/config';
 /**
  * This file contains the core interfaces for the Prompt Manager project.
  * It serves as a single source of truth for the expected behavior of both

@@ -1,11 +1,12 @@
-import { configManager, Config } from './config/PromptProjectConfigManager';
+import { configManager } from './config/PromptProjectConfigManager';
+import { Config } from './schemas/config';
 
 export async function initializeConfig(): Promise<void> {
   await configManager.initialize();
 }
 
 export function getConfig<K extends keyof Config>(key: K): Config[K] {
-  return configManager.getConfig(key);
+  return configManager.getConfigTyped(key);
 }
 
 export function getAllConfig(): Config {

@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { IPromptProjectConfigManager } from '../types/interfaces';
 import { getDefaultPromptsPath } from './constants';
 import { ensureDirectoryExists } from '../utils/fileUtils';
-import { Config, configSchema, DEFAULT_CONFIG } from '../schemas/config';
+import { Config, configSchema, DEFAULT_CONFIG, z } from '../schemas/config';
 
 export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private static instance: PromptProjectConfigManager;
@@ -117,6 +117,10 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 
   public getConfig<K extends keyof Config>(key: K): Config[K] {
+    return this.config[key];
+  }
+
+  public getConfigTyped<K extends keyof Config>(key: K): Config[K] {
     return this.config[key];
   }
 
