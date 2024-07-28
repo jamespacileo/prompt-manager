@@ -11,10 +11,11 @@ import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
  * Purpose: Encapsulate all data and behavior related to a specific prompt,
  * including validation, formatting, and execution.
  */
-export class PromptModel<
-  TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
-  TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
-> implements IPromptModel<TInput, TOutput> {
+export class PromptModel<TInput extends IPromptInput<any> = IPromptInput<any>, TOutput extends IPromptOutput<any> = IPromptOutput<any>> implements IPromptModel<TInput, TOutput> {
+  private _isSaved: boolean;
+  TInput extends IPromptInput<Record<string, any >> = IPromptInput<Record<string, any>>,
+  TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput < Record<string, any> & string >
+> implements IPromptModel < TInput, TOutput > {
   name: string;
   category: string;
   description: string;
@@ -59,7 +60,7 @@ export class PromptModel<
     this.parameters = promptData.parameters || [];
     this.inputSchema = promptData.inputSchema || {};
     this.outputSchema = promptData.outputSchema || {};
-    this.fileSystem = fileSystem ?? new PromptFileSystem();
+    this.fileSystem = fileSystem ?? new PromptFileSystem() as IPromptFileSystem;
     this.version = promptData.version || '1.0.0';
     this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = 'plain';
@@ -200,7 +201,7 @@ export class PromptModel<
 
   async save(): Promise<void> {
     if (this.fileSystem) {
-      await this.fileSystem.savePrompt({ promptData: this as unknown as IPrompt<any, any> });
+      await this.fileSystem.savePrompt({ promptData: this as unknown as IPrompt<Record<string, any>, Record<string, any>> });
     } else {
       throw new Error('FileSystem is not initialized');
     }
