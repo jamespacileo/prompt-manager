@@ -181,4 +181,43 @@ describe("PromptModel", () => {
       filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt2/prompt.json`)
     });
   });
+
+  test("create and delete prompt", async () => {
+    const newPrompt = new PromptModel({ ...dummyPromptData, name: "newPrompt" }, fileSystem);
+    await newPrompt.save();
+
+    const loadedPrompt = await PromptModel.loadPromptByName(`${newPrompt.category}/${newPrompt.name}`, fileSystem);
+    expect(loadedPrompt.name).toBe("newPrompt");
+
+    await PromptModel.deletePrompt(newPrompt.category, newPrompt.name, fileSystem);
+    await expect(PromptModel.loadPromptByName(`${newPrompt.category}/${newPrompt.name}`, fileSystem)).rejects.toThrow();
+  });
+
+  test("update prompt", async () => {
+    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    await prompt.save();
+
+    prompt.description = "Updated description";
+    await prompt.save();
+
+    const loadedPrompt = await PromptModel.loadPromptByName(`${prompt.category}/${prompt.name}`, fileSystem);
+    expect(loadedPrompt.description).toBe("Updated description");
+  });
+
+  test("version management", async () => {
+    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    await prompt.save();
+
+    const initialVersion = prompt.version;
+    prompt.template = "Updated template";
+    await prompt.save();
+
+    const versions = await prompt.versions();
+    expect(versions).toContain(initialVersion);
+    expect(versions).toContain(prompt.version);
+    expect(versions.length).toBe(2);
+
+    await prompt.switchVersion({ version: initialVersion });
+    expect(prompt.template).toBe(dummyPromptData.template);
+  });
 });
