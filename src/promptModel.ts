@@ -40,9 +40,10 @@ export class PromptModel<
   };
   outputType: 'structured' | 'plain';
   inputSchema: JSONSchema7;
-  outputSchema: JSONSchema7;;
+  outputSchema: JSONSchema7;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
+  private fileSystem: IPromptFileSystem;
 
   /**
    * Create a new PromptModel instance.
@@ -50,7 +51,7 @@ export class PromptModel<
    * @param promptData Required data to initialize the prompt
    * @param fileSystem Optional PromptFileSystem instance for file operations
    */
-  constructor(promptData: IPromptModelRequired) {
+  constructor(promptData: IPromptModelRequired, fileSystem?: IPromptFileSystem) {
     if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {
       throw new Error('Invalid prompt data: missing required fields');
     }
@@ -61,11 +62,15 @@ export class PromptModel<
     this.parameters = promptData.parameters || [];
     this.inputSchema = promptData.inputSchema || {};
     this.outputSchema = promptData.outputSchema || {};
-    // fileSystem = fileSystem 
+    this.fileSystem = fileSystem || new PromptFileSystem();
     this.version = promptData.version || '1.0.0';
     this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
-    this.outputType = 'plain';
+    this.outputType = this.determineOutputType(promptData.outputSchema);
     this.configuration = this.initializeConfiguration();
+  }
+
+  private determineOutputType(outputSchema: JSONSchema7): 'structured' | 'plain' {
+    return outputSchema && Object.keys(outputSchema).length > 0 ? 'structured' : 'plain';
   }
 
   private initializeConfiguration(): {
@@ -163,31 +168,36 @@ export class PromptModel<
    * @returns The execution result, either structured or plain text
    */
   async execute(inputs: TInput): Promise<TOutput> {
-    if (this.outputType === 'structured') {
-      const formattedPrompt = this.format(inputs);
-      const schema = this.outputZodSchema;
-      const { object } = await generateObject({
-        model: openai(this.configuration.modelName),
-        schema,
-        prompt: formattedPrompt,
-        temperature: this.configuration.temperature,
-        maxTokens: this.configuration.maxTokens,
-        topP: this.configuration.topP,
-        frequencyPenalty: this.configuration.frequencyPenalty,
-        presencePenalty: this.configuration.presencePenalty
-      });
-      return object as unknown as TOutput;
-    } else {
-      const { text } = await generateText({
-        model: openai(this.configuration.modelName),
-        prompt: this.format(inputs),
-        temperature: this.configuration.temperature,
-        maxTokens: this.configuration.maxTokens,
-        topP: this.configuration.topP,
-        frequencyPenalty: this.configuration.frequencyPenalty,
-        presencePenalty: this.configuration.presencePenalty
-      });
-      return { text } as unknown as TOutput;
+    try {
+      if (this.outputType === 'structured') {
+        const formattedPrompt = this.format(inputs);
+        const schema = this.outputZodSchema;
+        const { object } = await generateObject({
+          model: openai(this.configuration.modelName),
+          schema,
+          prompt: formattedPrompt,
+          temperature: this.configuration.temperature,
+          maxTokens: this.configuration.maxTokens,
+          topP: this.configuration.topP,
+          frequencyPenalty: this.configuration.frequencyPenalty,
+          presencePenalty: this.configuration.presencePenalty
+        });
+        return object as unknown as TOutput;
+      } else {
+        const { text } = await generateText({
+          model: openai(this.configuration.modelName),
+          prompt: this.format(inputs),
+          temperature: this.configuration.temperature,
+          maxTokens: this.configuration.maxTokens,
+          topP: this.configuration.topP,
+          frequencyPenalty: this.configuration.frequencyPenalty,
+          presencePenalty: this.configuration.presencePenalty
+        });
+        return { text } as unknown as TOutput;
+      }
+    } catch (error) {
+      console.error('Error executing prompt:', error);
+      throw new Error('Failed to execute prompt: ' + (error as Error).message);
     }
   }
 
@@ -259,10 +269,8 @@ export class PromptModel<
     return fileSystem.promptExists({ category, promptName });
   }
 
-  static async listPrompts(category?: string, fileSystem?: IPromptFileSystem): Promise<Array<{ name: string; category: string; filePath: string }>> {
-    const fs = fileSystem || new PromptFileSystem();
-    if (!fs) throw Error(`No file system provided`);
-    return await fs.listPrompts({ category });
+  static async listPrompts(category?: string): Promise<Array<{ name: string; category: string; filePath: string }>> {
+    return await fileSystem.listPrompts({ category });
   }
 
   static async deletePrompt(category: string, name: string, fileSystem?: IPromptFileSystem): Promise<void> {
