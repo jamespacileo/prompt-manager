@@ -75,6 +75,10 @@ export class PromptModel<
     this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = this.determineOutputType(promptData.outputSchema);
     this.configuration = this.initializeConfiguration();
+
+    if (!this.fileSystem) {
+      throw new Error('FileSystem is not initialized. Cannot create PromptModel.');
+    }
   }
 
   private determineOutputType(outputSchema: JSONSchema7): 'structured' | 'plain' {

@@ -113,32 +113,41 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Purpose: Provide an overview of available prompts for management and selection.
    */
   async listPrompts({ category }: { category?: string } = {}): Promise<PromptModel[]> {
-    const searchPath = category ? path.join(this.basePath, category) : this.basePath;
-    const entries = await fs.readdir(searchPath, { withFileTypes: true });
+    try {
+      const searchPath = category ? path.join(this.basePath, category) : this.basePath;
+      const entries = await fs.readdir(searchPath, { withFileTypes: true });
 
-    const prompts: PromptModel[] = [];
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const categoryPath = category ? category : entry.name;
-        const promptDir = path.join(this.basePath, categoryPath);
-        const promptEntries = await fs.readdir(promptDir, { withFileTypes: true });
+      const prompts: PromptModel[] = [];
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const categoryPath = category ? category : entry.name;
+          const promptDir = path.join(this.basePath, categoryPath);
+          try {
+            const promptEntries = await fs.readdir(promptDir, { withFileTypes: true });
 
-        for (const promptEntry of promptEntries) {
-          if (promptEntry.isDirectory()) {
-            const promptJsonPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
-            try {
-              await fs.access(promptJsonPath);
-              const promptData = await this.loadPrompt({ category: categoryPath, promptName: promptEntry.name });
-              const promptModel = new PromptModel(promptData as IPromptModelRequired);
-              prompts.push(promptModel);
-            } catch {
-              // If prompt.json doesn't exist, skip this directory
+            for (const promptEntry of promptEntries) {
+              if (promptEntry.isDirectory()) {
+                const promptJsonPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
+                try {
+                  await fs.access(promptJsonPath);
+                  const promptData = await this.loadPrompt({ category: categoryPath, promptName: promptEntry.name });
+                  const promptModel = new PromptModel(promptData as IPromptModelRequired);
+                  prompts.push(promptModel);
+                } catch (error) {
+                  console.warn(`Failed to load prompt ${promptEntry.name}: ${error instanceof Error ? error.message : String(error)}`);
+                }
+              }
             }
+          } catch (error) {
+            console.warn(`Failed to read prompt directory ${promptDir}: ${error instanceof Error ? error.message : String(error)}`);
           }
         }
       }
+      return prompts;
+    } catch (error) {
+      console.error(`Failed to list prompts: ${error instanceof Error ? error.message : String(error)}`);
+      return [];
     }
-    return prompts;
   }
 
   async listCategories(): Promise<string[]> {

@@ -110,6 +110,7 @@ export interface IPromptModel<
   stream(inputs: TInput): Promise<IAsyncIterableStream<string>>;
   execute(inputs: TInput): Promise<TOutput>;
   updateMetadata(metadata: Partial<IPromptModel['metadata']>): void;
+  updateConfiguration(config: Partial<IPromptModel['configuration']>): void;
   getSummary(): string;
   save(): Promise<void>;
   load(filePath: string): Promise<void>;
