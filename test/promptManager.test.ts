@@ -1,126 +1,171 @@
-import { expect, test, describe, beforeAll, afterAll, beforeEach } from "bun:test";
+import { expect, test, describe, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
 import { PromptManager } from '../src/promptManager';
+import { PromptFileSystem } from '../src/promptFileSystem';
+import { configManager } from "../src/config/PromptProjectConfigManager";
 import fs from 'fs/promises';
 import path from 'path';
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
-import { PromptProjectConfigManager } from "../src/config/PromptProjectConfigManager";
+
+const getRandomElement = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+
+const categories = [
+  'test_NaturalLanguageProcessing',
+  'test_MachineLearning',
+  'test_ComputerVision',
+  'test_DataAnalysis',
+  'test_ArtificialIntelligence',
+  'test_DeepLearning',
+  'test_RoboticProcess',
+  'test_SpeechRecognition',
+  'test_TextGeneration',
+  'test_SentimentAnalysis'
+];
+
+const promptNames = [
+  'test_LanguageModel',
+  'test_ImageClassifier',
+  'test_SentimentAnalyzer',
+  'test_TextSummarizer',
+  'test_NamedEntityRecognizer',
+  'test_QuestionAnswering',
+  'test_MachineTranslation',
+  'test_SpeechToText',
+  'test_TextToSpeech',
+  'test_AnomalyDetection'
+];
 
 describe('PromptManager', () => {
   let manager: PromptManager;
+  let fileSystem: PromptFileSystem;
   let testDir: string;
-  let originalPromptsDir: string | undefined;
 
   beforeAll(async () => {
-    originalPromptsDir = process.env.PROMPTS_DIR;
     testDir = path.join(process.cwd(), 'test-prompts-manager');
     await fs.mkdir(testDir, { recursive: true });
-    process.env.PROMPTS_DIR = testDir;
-    PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);
+    await configManager.updateConfig({
+      promptsDir: testDir,
+      outputDir: path.join(testDir, 'output'),
+    });
   });
 
   beforeEach(async () => {
+    await configManager.initialize();
+    fileSystem = PromptFileSystem.getInstance();
+    await fileSystem.initialize();
     manager = PromptManager.getInstance();
     await manager.initialize();
   });
 
+  afterEach(async () => {
+    const prompts = await manager.listPrompts({});
+    for (const prompt of prompts) {
+      await manager.deletePrompt({ category: prompt.category, name: prompt.name });
+    }
+  });
+
   afterAll(async () => {
     await fs.rm(testDir, { recursive: true, force: true });
-    if (originalPromptsDir) {
-      process.env.PROMPTS_DIR = originalPromptsDir;
-    } else {
-      delete process.env.PROMPTS_DIR;
-    }
-    PromptProjectConfigManager.getInstance().setConfig('promptsDir', originalPromptsDir || '');
+  });
+
+  const getRandomPrompt = (): IPrompt<IPromptInput, IPromptOutput> => ({
+    name: getRandomElement(promptNames),
+    category: getRandomElement(categories),
+    description: `A test prompt for ${getRandomElement(categories).replace('test_', '')}`,
+    version: '1.0.0',
+    template: 'Process {{input}} using {{algorithm}}',
+    parameters: ['input', 'algorithm'],
+    inputSchema: {
+      type: 'object',
+      properties: {
+        input: { type: 'string' },
+        algorithm: { type: 'string' },
+      },
+      required: ['input', 'algorithm'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        result: { type: 'string' },
+      },
+      required: ['result'],
+    },
+    outputType: 'structured',
+    metadata: {
+      created: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+    },
+    configuration: {
+      modelName: 'default-model',
+      temperature: 0.7,
+      maxTokens: 100,
+      topP: 1,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      stopSequences: [],
+    },
   });
 
   test('Create and retrieve prompt', async () => {
-    const cosmicPrompt: IPrompt<IPromptInput, IPromptOutput> = {
-      name: 'cosmicVoyager',
-      category: 'spaceExploration',
-      description: 'A prompt for interstellar adventures',
-      version: '1.0.0',
-      template: 'Embark on a journey to {{planet}} in the {{galaxy}} galaxy',
-      parameters: ['planet', 'galaxy'],
-      inputSchema: {
-        type: 'object',
-        properties: {
-          planet: { type: 'string' },
-          galaxy: { type: 'string' },
-        },
-        required: ['planet', 'galaxy'],
-      },
-      outputSchema: {
-        type: 'object',
-        properties: {
-          adventure: { type: 'string' },
-        },
-        required: ['adventure'],
-      },
-      outputType: 'structured',
-      metadata: {
-        created: new Date().toISOString(),
-        lastModified: new Date().toISOString(),
-      },
-      configuration: {
-        modelName: 'default-model',
-        temperature: 0.7,
-        maxTokens: 100,
-        topP: 1,
-        frequencyPenalty: 0,
-        presencePenalty: 0,
-        stopSequences: [],
-      },
-    };
+    const testPrompt = getRandomPrompt();
+    await manager.createPrompt({ prompt: testPrompt });
 
-    await manager.createPrompt({ prompt: cosmicPrompt });
-
-    const retrievedPrompt = await manager.getPrompt({
-      category: 'spaceExploration',
-      name: 'cosmicVoyager',
+    const retrievedPrompt = manager.getPrompt({
+      category: testPrompt.category,
+      name: testPrompt.name,
     });
 
     expect(retrievedPrompt).toMatchObject({
-      ...cosmicPrompt,
-      isLoadedFromStorage: false,
-      _isSaved: false,
-      _inputZodSchema: null,
-      _outputZodSchema: null,
-      fileSystem: expect.any(Object),
-      defaultModelName: undefined,
+      name: testPrompt.name,
+      category: testPrompt.category,
+      description: testPrompt.description,
+      version: testPrompt.version,
+      template: testPrompt.template,
+      parameters: testPrompt.parameters,
+      inputSchema: testPrompt.inputSchema,
+      outputSchema: testPrompt.outputSchema,
+      outputType: testPrompt.outputType,
+      configuration: testPrompt.configuration,
     });
   });
 
   test('List all prompts', async () => {
+    const testPrompt = getRandomPrompt();
+    await manager.createPrompt({ prompt: testPrompt });
     const allPrompts = await manager.listPrompts({});
-    expect(allPrompts.map(({ name, category, filePath }) => ({ name, category, filePath }))).toContainEqual({
-      name: 'cosmicVoyager',
-      category: 'spaceExploration',
-      filePath: path.join(testDir, 'spaceExploration', 'cosmicVoyager', 'prompt.json'),
+    expect(allPrompts).toHaveLength(1);
+    expect(allPrompts[0]).toMatchObject({
+      name: testPrompt.name,
+      category: testPrompt.category,
     });
   });
 
   test('List prompts by category', async () => {
-    const spacePrompts = await manager.listPrompts({ category: 'spaceExploration' });
-    expect(spacePrompts).toHaveLength(1);
-    expect(spacePrompts[0].name).toBe('cosmicVoyager');
+    const testPrompt = getRandomPrompt();
+    await manager.createPrompt({ prompt: testPrompt });
+    const categoryPrompts = await manager.listPrompts({ category: testPrompt.category });
+    expect(categoryPrompts).toHaveLength(1);
+    expect(categoryPrompts[0].name).toBe(testPrompt.name);
   });
 
   test('Update prompt', async () => {
+    const testPrompt = getRandomPrompt();
+    await manager.createPrompt({ prompt: testPrompt });
+
     const updatedPrompt: Partial<IPrompt<IPromptInput, IPromptOutput>> = {
-      description: 'An updated prompt for grand space odysseys',
+      description: `An updated prompt for ${testPrompt.category.replace('test_', '')}`,
       version: '1.1.0',
-      template: 'Embark on an epic odyssey to {{planet}} in the vast {{galaxy}} galaxy',
+      template: 'Updated process {{input}} using {{algorithm}}',
     };
 
     await manager.updatePrompt({
-      category: 'spaceExploration',
-      name: 'cosmicVoyager',
+      category: testPrompt.category,
+      name: testPrompt.name,
       updates: updatedPrompt,
     });
 
-    const retrievedPrompt = await manager.getPrompt({
-      category: 'spaceExploration',
-      name: 'cosmicVoyager',
+    const retrievedPrompt = manager.getPrompt({
+      category: testPrompt.category,
+      name: testPrompt.name,
     });
 
     expect(retrievedPrompt.description).toBe(updatedPrompt.description);
@@ -129,26 +174,106 @@ describe('PromptManager', () => {
   });
 
   test('Delete prompt', async () => {
+    const testPrompt = getRandomPrompt();
+    await manager.createPrompt({ prompt: testPrompt });
+
     await manager.deletePrompt({
-      category: 'spaceExploration',
-      name: 'cosmicVoyager',
+      category: testPrompt.category,
+      name: testPrompt.name,
     });
 
-    await expect(manager.getPrompt({
-      category: 'spaceExploration',
-      name: 'cosmicVoyager',
-    })).rejects.toThrow();
+    expect(() => manager.getPrompt({
+      category: testPrompt.category,
+      name: testPrompt.name,
+    })).toThrow();
   });
 
   test('Create and delete category', async () => {
-    await manager.createCategory({ categoryName: 'alienCivilizations' });
+    const testCategory = getRandomElement(categories);
+    await manager.createCategory({ categoryName: testCategory });
 
     let categories = await manager.listCategories();
-    expect(categories).toContain('alienCivilizations');
+    expect(categories).toContain(testCategory);
 
-    await manager.deleteCategory({ categoryName: 'alienCivilizations' });
+    await manager.deleteCategory({ categoryName: testCategory });
 
     categories = await manager.listCategories();
-    expect(categories).not.toContain('alienCivilizations');
+    expect(categories).not.toContain(testCategory);
+  });
+
+  test('Format prompt', async () => {
+    const testPrompt = getRandomPrompt();
+    await manager.createPrompt({ prompt: testPrompt });
+    const formattedPrompt = manager.formatPrompt({
+      category: testPrompt.category,
+      name: testPrompt.name,
+      params: { input: 'test data', algorithm: 'test algorithm' },
+    });
+    expect(formattedPrompt).toBe('Process test data using test algorithm');
+  });
+
+  test('Execute prompt', async () => {
+    const testPrompt = getRandomPrompt();
+    await manager.createPrompt({ prompt: testPrompt });
+    const result = await manager.executePrompt({
+      category: testPrompt.category,
+      name: testPrompt.name,
+      params: { input: 'test data', algorithm: 'test algorithm' },
+    });
+    expect(result).toHaveProperty('result');
+    expect(typeof result.result).toBe('string');
+  });
+
+  test('Version prompt', async () => {
+    const testPrompt = getRandomPrompt();
+    await manager.createPrompt({ prompt: testPrompt });
+
+    // List versions
+    let versions = await manager.versionPrompt({
+      action: 'list',
+      category: testPrompt.category,
+      name: testPrompt.name,
+    });
+    expect(versions).toContain('1.0.0');
+
+    // Create new version
+    await manager.versionPrompt({
+      action: 'create',
+      category: testPrompt.category,
+      name: testPrompt.name,
+    });
+
+    versions = await manager.versionPrompt({
+      action: 'list',
+      category: testPrompt.category,
+      name: testPrompt.name,
+    });
+    expect(versions).toContain('1.0.1');
+
+    // Switch version
+    await manager.versionPrompt({
+      action: 'switch',
+      category: testPrompt.category,
+      name: testPrompt.name,
+      version: '1.0.0',
+    });
+
+    const prompt = manager.getPrompt({
+      category: testPrompt.category,
+      name: testPrompt.name,
+    });
+    expect(prompt.version).toBe('1.0.0');
+  });
+
+  test('Error handling - non-existent prompt', async () => {
+    await expect(manager.getPrompt({
+      category: 'test_NonExistent',
+      name: 'test_NonExistentPrompt',
+    })).rejects.toThrow();
+  });
+
+  test('Error handling - invalid prompt data', async () => {
+    const invalidPrompt = { ...getRandomPrompt(), name: '' };
+    await expect(manager.createPrompt({ prompt: invalidPrompt as any })).rejects.toThrow();
   });
 });

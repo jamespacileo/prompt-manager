@@ -417,6 +417,7 @@ interface IPromptFileSystem {
    * @returns A promise that resolves with the loaded prompt data for the specified version.
    */
   loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt<IPromptInput, IPromptOutput>>;
+  getCurrentVersion(prompt: IPrompt<IPromptInput, IPromptOutput>): Promise<string>;
 }
 
 /**

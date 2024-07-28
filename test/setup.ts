@@ -141,24 +141,21 @@ console.log("TextDecoderStream polyfill is working");
 
 import fs from 'fs/promises';
 import path from 'path';
-
-// Prompts project config setup
-process.env.FURY_PROJECT_CONFIG_FILENAME = "test-fury-config.json";
-
+import "./setupEnvs"
 // Create test directories
 const testDirs = ['test_prompts', 'test_output'];
 Promise.all(testDirs.map(dir => fs.mkdir(dir, { recursive: true })))
-  .then(() => console.log('Test directories created'))
-  .catch(console.error);
+    .then(() => console.log('Test directories created'))
+    .catch(console.error);
 
 // Create test-fury-config.json
 const testConfig = {
-  promptsDir: 'test_prompts',
-  outputDir: 'test_output'
+    promptsDir: 'test_prompts',
+    outputDir: 'test_output'
 };
 
 fs.writeFile('test-fury-config.json', JSON.stringify(testConfig, null, 2))
-  .then(() => console.log('test-fury-config.json created'))
-  .catch(console.error);
+    .then(() => console.log('test-fury-config.json created'))
+    .catch(console.error);
 
 export { };

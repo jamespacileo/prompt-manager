@@ -288,12 +288,47 @@ export class PromptModel<
     if (!this.fileSystem) {
       throw new Error('FileSystem is not initialized. Cannot save prompt.');
     }
-    const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
-    await this.fileSystem.savePrompt({ promptData: updatedPromptData });
-    this._isSaved = true;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const currentVersion = await this.fileSystem.getCurrentVersion(this);
+        if (this.compareVersions(currentVersion, this.version) > 0) {
+          // Merge logic here
+          // For now, we'll just increment the version
+          this.version = this.incrementVersion(currentVersion);
+        }
+        const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
+        await this.fileSystem.savePrompt({ promptData: updatedPromptData });
+        this._isSaved = true;
+        // Update the current instance with the saved data
+        Object.assign(this, updatedPromptData);
+        break;
+      } catch (error) {
+        if (error instanceof Error && error.message === 'VERSION_CONFLICT' && retries > 1) {
+          retries--;
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
 
-    // Update the current instance with the saved data
-    Object.assign(this, updatedPromptData);
+  private compareVersions(a: string, b: string): number {
+    const partsA = a.split('.').map(Number);
+    const partsB = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+      const partA = partsA[i] || 0;
+      const partB = partsB[i] || 0;
+      if (partA > partB) return 1;
+      if (partA < partB) return -1;
+    }
+    return 0;
+  }
+
+  private incrementVersion(version: string): string {
+    const parts = version.split('.').map(Number);
+    parts[parts.length - 1]++;
+    return parts.join('.');
   }
 
   private _inputZodSchema: z.ZodType<any> | null = null;

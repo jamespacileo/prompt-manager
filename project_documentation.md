@@ -18,6 +18,7 @@
 │   └── promptManagerBase.ts
 ├── generated.ts
 ├── index.ts
+├── initializationManager.ts
 ├── promptFileSystem.ts
 ├── PromptManagerClientGenerator.ts
 ├── promptManager.ts
@@ -34,7 +35,7 @@
     ├── fileUtils.ts
     └── jsonSchemaToZod.ts
 
-7 directories, 22 files
+7 directories, 23 files
 ```
 
 ## src/promptManager.ts
@@ -154,12 +155,23 @@ export class PromptManager<
   /**
    * Update an existing prompt with new data and save the changes.
    * Purpose: Modify an existing prompt's properties and persist the changes.
+   * @param props An object containing the category, name, updates, and an optional flag to bump the version
    */
-  async updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
-    const { category, name, updates } = props;
+  async updatePrompt(props: { 
+    category: string; 
+    name: string; 
+    updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
+    bumpVersion?: boolean;
+  }): Promise<void> {
+    const { category, name, updates, bumpVersion } = props;
     const prompt = this.getPrompt({ category, name });
     Object.assign(prompt, updates);
     prompt.updateMetadata({ lastModified: new Date().toISOString() });
+
+    if (bumpVersion) {
+      prompt.version = this.incrementVersion(prompt.version);
+    }
+
     await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
   }
 
@@ -258,7 +270,7 @@ export class PromptManager<
 }
 
 export function getPromptManager(): PromptManager {
-  return new PromptManager();
+  return PromptManager.getInstance();
 }
 
 ```
@@ -321,7 +333,7 @@ export class PromptModel<
   outputSchema: JSONSchema7;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
-  private fileSystem: IPromptFileSystem;
+  private fileSystem: IPromptFileSystem = PromptFileSystem.getInstance();
 
   get filePath(): string {
     const promptsDir = configManager.getConfig('promptsDir');
@@ -331,13 +343,12 @@ export class PromptModel<
   /**
    * Create a new PromptModel instance.
    * 
-   * Purpose: Initialize a new prompt with all necessary data and optional file system access.
+   * Purpose: Initialize a new prompt with all necessary data.
    * 
    * @param promptData Required data to initialize the prompt
-   * @param fileSystem Optional PromptFileSystem instance for file operations
-   * @throws Error if required fields are missing in promptData or if FileSystem is not initialized
+   * @throws Error if required fields are missing in promptData
    */
-  constructor(promptData: IPromptModelRequired, fileSystem?: IPromptFileSystem) {
+  constructor(promptData: IPromptModelRequired) {
     if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {
       throw new Error('Invalid prompt data: missing required fields');
     }
@@ -348,15 +359,10 @@ export class PromptModel<
     this.parameters = promptData.parameters || [];
     this.inputSchema = promptData.inputSchema || {};
     this.outputSchema = promptData.outputSchema || {};
-    this.fileSystem = fileSystem || new PromptFileSystem();
     this.version = promptData.version || '1.0.0';
     this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = this.determineOutputType(promptData.outputSchema);
     this.configuration = this.initializeConfiguration();
-
-    if (!this.fileSystem) {
-      throw new Error('FileSystem is not initialized. Cannot create PromptModel.');
-    }
   }
 
   private determineOutputType(outputSchema: JSONSchema7): 'structured' | 'plain' {
@@ -564,12 +570,47 @@ export class PromptModel<
     if (!this.fileSystem) {
       throw new Error('FileSystem is not initialized. Cannot save prompt.');
     }
-    const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
-    await this.fileSystem.savePrompt({ promptData: updatedPromptData });
-    this._isSaved = true;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const currentVersion = await this.fileSystem.getCurrentVersion(this);
+        if (this.compareVersions(currentVersion, this.version) > 0) {
+          // Merge logic here
+          // For now, we'll just increment the version
+          this.version = this.incrementVersion(currentVersion);
+        }
+        const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
+        await this.fileSystem.savePrompt({ promptData: updatedPromptData });
+        this._isSaved = true;
+        // Update the current instance with the saved data
+        Object.assign(this, updatedPromptData);
+        break;
+      } catch (error) {
+        if (error instanceof Error && error.message === 'VERSION_CONFLICT' && retries > 1) {
+          retries--;
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
 
-    // Update the current instance with the saved data
-    Object.assign(this, updatedPromptData);
+  private compareVersions(a: string, b: string): number {
+    const partsA = a.split('.').map(Number);
+    const partsB = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+      const partA = partsA[i] || 0;
+      const partB = partsB[i] || 0;
+      if (partA > partB) return 1;
+      if (partA < partB) return -1;
+    }
+    return 0;
+  }
+
+  private incrementVersion(version: string): string {
+    const parts = version.split('.').map(Number);
+    parts[parts.length - 1]++;
+    return parts.join('.');
   }
 
   private _inputZodSchema: z.ZodType<any> | null = null;
@@ -626,9 +667,8 @@ export class PromptModel<
     return await fileSystem.listPrompts({ category });
   }
 
-  static async deletePrompt(category: string, name: string, fileSystem?: IPromptFileSystem): Promise<void> {
-    const fs = fileSystem || new PromptFileSystem();
-    if (!fs) throw Error(`No file system provided`);
+  static async deletePrompt(category: string, name: string): Promise<void> {
+    const fs = PromptFileSystem.getInstance();
     await fs.deletePrompt({ category, promptName: name });
   }
 }
@@ -648,6 +688,8 @@ import { PromptSchema } from './schemas/prompts';
 import { PromptModel } from './promptModel';
 import chalk from 'chalk';
 import { z } from 'zod';
+import lockfile from 'proper-lockfile';
+import { promisify } from 'util';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -665,6 +707,7 @@ export const PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
 export class PromptFileSystem implements IPromptFileSystem {
   private static instance: PromptFileSystem;
   private basePath: string;
+  private initialized: boolean = false;
 
   private constructor() {
     this.basePath = path.resolve(configManager.getConfig('promptsDir'));
@@ -688,6 +731,8 @@ export class PromptFileSystem implements IPromptFileSystem {
   }
 
   public async initialize(): Promise<void> {
+    if (this.initialized) return;
+
     this.basePath = path.resolve(configManager.getConfig('promptsDir'));
     await fs.mkdir(this.basePath, { recursive: true });
     await this.initializePromptsFolderConfig();
@@ -695,6 +740,13 @@ export class PromptFileSystem implements IPromptFileSystem {
     if (!isValid) {
       console.error('Prompts folder configuration is invalid. Reinitializing...');
       await this.initializePromptsFolderConfig();
+    }
+    this.initialized = true;
+  }
+
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      throw new Error('PromptFileSystem is not initialized. Call initialize() before using it.');
     }
   }
 
@@ -775,10 +827,12 @@ export class PromptFileSystem implements IPromptFileSystem {
     const validatedPromptData = PromptSchema.parse(promptData) as IPrompt<IPromptInput, IPromptOutput>;
     const filePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, PROMPT_FILENAME);
 
+    let release;
     try {
-      const versionFilePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions', `v${validatedPromptData.version}.json`);
-
       await fs.mkdir(path.dirname(filePath), { recursive: true });
+      release = await lockfile.lock(path.dirname(filePath));
+
+      const versionFilePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions', `v${validatedPromptData.version}.json`);
       await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
 
       const existingPrompt = await this.loadPrompt({ category: validatedPromptData.category, promptName: validatedPromptData.name }).catch(() => null);
@@ -817,6 +871,10 @@ export class PromptFileSystem implements IPromptFileSystem {
       } else {
         throw new Error(`Failed to save prompt to ${filePath}: An unknown error occurred. Please check the console for more details.`);
       }
+    } finally {
+      if (release) {
+        await release();
+      }
     }
   }
 
@@ -828,7 +886,9 @@ export class PromptFileSystem implements IPromptFileSystem {
     const { category, promptName } = props;
     const filePath = path.join(this.basePath, category, promptName, PROMPT_FILENAME);
 
+    let release;
     try {
+      release = await lockfile.lock(path.dirname(filePath));
       await fs.access(filePath);
       const data = await fs.readFile(filePath, 'utf-8');
       let parsedData;
@@ -847,6 +907,10 @@ export class PromptFileSystem implements IPromptFileSystem {
         throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt. Error details: ${error.errors.map(e => e.message).join(', ')}`);
       }
       throw new Error(`Failed to load prompt from ${filePath}: ${error instanceof Error ? error.message : String(error)}. Please check file permissions and system integrity.`);
+    } finally {
+      if (release) {
+        await release();
+      }
     }
   }
 
@@ -962,7 +1026,15 @@ export class PromptFileSystem implements IPromptFileSystem {
 
   async deletePrompt({ category, promptName }: { category: string, promptName: string }): Promise<void> {
     const promptDir = path.join(this.basePath, category, promptName);
-    await fs.rm(promptDir, { recursive: true, force: true });
+    let release;
+    try {
+      release = await lockfile.lock(promptDir);
+      await fs.rm(promptDir, { recursive: true, force: true });
+    } finally {
+      if (release) {
+        await release();
+      }
+    }
   }
 
   async renamePrompt(props: {
@@ -975,18 +1047,31 @@ export class PromptFileSystem implements IPromptFileSystem {
     const oldPath = path.join(this.basePath, currentCategory, currentName);
     const newPath = path.join(this.basePath, newCategory, newName);
 
-    // Ensure the new category directory exists
-    await fs.mkdir(path.dirname(newPath), { recursive: true });
+    let oldRelease, newRelease;
+    try {
+      oldRelease = await lockfile.lock(oldPath);
+      newRelease = await lockfile.lock(path.dirname(newPath));
 
-    // Rename (move) the directory
-    await fs.rename(oldPath, newPath);
+      // Ensure the new category directory exists
+      await fs.mkdir(path.dirname(newPath), { recursive: true });
 
-    // If the categories are different or the name has changed, we need to update the prompt data
-    if (currentCategory !== newCategory || currentName !== newName) {
-      const promptData = await this.loadPrompt({ category: newCategory, promptName: newName });
-      promptData.category = newCategory;
-      promptData.name = newName;
-      await this.savePrompt({ promptData });
+      // Rename (move) the directory
+      await fs.rename(oldPath, newPath);
+
+      // If the categories are different or the name has changed, we need to update the prompt data
+      if (currentCategory !== newCategory || currentName !== newName) {
+        const promptData = await this.loadPrompt({ category: newCategory, promptName: newName });
+        promptData.category = newCategory;
+        promptData.name = newName;
+        await this.savePrompt({ promptData });
+      }
+    } finally {
+      if (oldRelease) {
+        await oldRelease();
+      }
+      if (newRelease) {
+        await newRelease();
+      }
     }
   }
 
@@ -1007,6 +1092,11 @@ export class PromptFileSystem implements IPromptFileSystem {
     const versionFilePath = this.getVersionFilePath({ category, promptName, version });
     const data = await fs.readFile(versionFilePath, 'utf-8');
     return JSON.parse(data);
+  }
+
+  async getCurrentVersion(prompt: IPrompt<IPromptInput, IPromptOutput>): Promise<string> {
+    const versions = await this.getPromptVersions({ category: prompt.category, promptName: prompt.name });
+    return versions.length > 0 ? versions[0] : '0.0.0';
   }
 
   private async generateTypeDefinitionFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
@@ -1171,8 +1261,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 
   private async validatePromptsFolder(): Promise<void> {
-    const promptsDir = path.resolve(process.env.FURY_PROJECT_ROOT || process.cwd(), this.config.promptsDir);
-    const promptFileSystem = new PromptFileSystem();
+    const promptFileSystem = PromptFileSystem.getInstance();
     await promptFileSystem.initialize();
 
     const isValid = await promptFileSystem.validatePromptsFolderConfig();
@@ -1681,6 +1770,9 @@ import { PromptSchema } from '../schemas/prompts';
 
 const promptManager = PromptManager.getInstance();
 
+// Ensure PromptManager is initialized before use
+await promptManager.initialize();
+
 /**
  * This file contains the implementation of various CLI commands for the Prompt Manager.
  * Each function represents a different command that can be executed from the command line.
@@ -1720,8 +1812,6 @@ export async function createPrompt(): Promise<void> {
       }
     }
 
-    await promptManager.initialize();
-
     // Validate the AI-generated prompt data
     const validatedPromptData = PromptSchema.parse(promptData);
 
@@ -1745,7 +1835,8 @@ export async function createPrompt(): Promise<void> {
     console.log(`Prompt "${prompt.name}" created successfully.`);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Invalid prompt data generated:', error.errors);
+      console.error(`Failed to create prompt "${promptData.name}": Invalid prompt data`);
+      console.error('Validation errors:', error.errors);
       console.error(`This could be because:
         1. The AI-generated prompt doesn't meet the required schema.
         2. Manual edits introduced invalid data.
@@ -1754,8 +1845,8 @@ export async function createPrompt(): Promise<void> {
         - Review the generated prompt data and ensure all required fields are present and valid.
         - Try regenerating the prompt with a more specific description.
         - If you made manual edits, double-check them against the prompt schema.`);
-    } else {
-      console.error('An error occurred while creating the prompt:', error);
+    } else if (error instanceof Error) {
+      console.error(`Failed to create prompt "${promptData.name}": ${error.message}`);
       console.error(`This could be due to:
         1. File system issues (e.g., permissions, disk space).
         2. Conflicts with existing prompts.
@@ -1766,6 +1857,9 @@ export async function createPrompt(): Promise<void> {
         - Ensure the prompt name and category are unique.
         - Try creating a simpler prompt to isolate the issue.
         - If the problem persists, run 'status' to check the overall project health.`);
+    } else {
+      console.error(`Failed to create prompt "${promptData.name}": Unknown error`);
+      console.error('Error details:', error);
     }
     throw error; // Re-throw the error to be caught by the caller
   }
@@ -1796,7 +1890,7 @@ export async function listPrompts(): Promise<Array<{ name: string; category: str
  * Purpose: Allow users to inspect the properties and content of a particular prompt.
  */
 export async function getPromptDetails(props: { category: string; name: string }): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   const prompt = await manager.getPrompt(props);
   return {
@@ -1816,7 +1910,7 @@ export async function getPromptDetails(props: { category: string; name: string }
  */
 export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
   try {
-    const manager = new PromptManager();
+    const manager = PromptManager.getInstance();
     await manager.initialize();
 
     // Fetch the current prompt
@@ -1900,7 +1994,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
  */
 export async function generateTypes(): Promise<void> {
   const outputDir = configManager.getConfig('outputDir');
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
   let typeDefs = 'declare module "prompt-manager" {\n';
@@ -1986,7 +2080,7 @@ export async function getStatus(): Promise<{
     preferredModels: configManager.getConfig('preferredModels'),
     modelParams: configManager.getConfig('modelParams')
   };
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
 
@@ -2018,7 +2112,7 @@ export async function getStatus(): Promise<{
 }
 
 export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>[]> {
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
 
@@ -2035,11 +2129,217 @@ export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput,
 }
 
 export async function deletePrompt(props: { category: string; name: string }): Promise<void> {
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   await manager.deletePrompt(props);
   console.log(`Prompt "${props.category}/${props.name}" deleted successfully.`);
 }
+
+```
+
+## test/promptModel.test.ts
+
+**Description:** Tests for the prompt model representation
+
+```typescript
+import { expect, test, describe, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
+import { PromptManager } from "../src/promptManager";
+import { PromptFileSystem } from "../src/promptFileSystem";
+import { configManager } from "../src/config/PromptProjectConfigManager";
+import fs from "fs/promises";
+import path from "path";
+import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
+
+const TEST_PROMPTS_PATH = path.join(process.cwd(), "test_prompts");
+let promptManager: PromptManager;
+let fileSystem: PromptFileSystem;
+
+// Dummy base objects for testing
+const dummyPromptData: IPrompt<IPromptInput, IPromptOutput> = {
+  name: "testPrompt",
+  category: "testCategory",
+  description: "A test prompt",
+  version: "1.0.0",
+  template: "This is a {{test}} prompt",
+  parameters: ["test"],
+  defaultModelName: "test-model",
+  metadata: {
+    created: new Date().toISOString(),
+    lastModified: new Date().toISOString(),
+  },
+  configuration: {
+    modelName: "test-model",
+    temperature: 0.7,
+    maxTokens: 100,
+    topP: 1,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    stopSequences: [],
+  },
+  outputType: "plain",
+  inputSchema: {
+    type: "object",
+    properties: {
+      test: { type: "string" },
+    },
+    required: ["test"],
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      text: { type: "string" },
+    },
+    required: ["text"],
+  },
+};
+
+describe("PromptModel", () => {
+  beforeAll(async () => {
+    await fs.mkdir(TEST_PROMPTS_PATH, { recursive: true });
+    await configManager.updateConfig({
+      promptsDir: TEST_PROMPTS_PATH,
+      outputDir: path.join(TEST_PROMPTS_PATH, 'output'),
+    });
+  });
+
+  beforeEach(async () => {
+    await configManager.initialize();
+    fileSystem = PromptFileSystem.getInstance();
+    await fileSystem.initialize();
+    promptManager = PromptManager.getInstance();
+    await promptManager.initialize();
+  });
+
+  afterEach(async () => {
+    const prompts = await promptManager.listPrompts({});
+    for (const prompt of prompts) {
+      await promptManager.deletePrompt({ category: prompt.category, name: prompt.name });
+    }
+  });
+
+  afterAll(async () => {
+    await fs.rm(TEST_PROMPTS_PATH, { recursive: true, force: true });
+  });
+
+  test("create and retrieve prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const retrievedPrompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    expect(retrievedPrompt.name).toBe(dummyPromptData.name);
+    expect(retrievedPrompt.template).toBe(dummyPromptData.template);
+  });
+
+  test("format prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const prompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    const formatted = prompt.format({ test: "formatted" });
+    expect(formatted).toBe("This is a formatted prompt");
+  });
+
+  test("execute prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const prompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    const result = await prompt.execute({ test: "executed" });
+    expect(result).toHaveProperty("text");
+    expect(typeof result.text).toBe("string");
+  });
+
+  test("stream prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const prompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    const stream = await prompt.stream({ test: "streamed" });
+    let result = "";
+    for await (const chunk of stream) {
+      result += chunk;
+    }
+    expect(result).toBeTruthy();
+    expect(typeof result).toBe("string");
+  });
+
+  test("list prompts", async () => {
+    await promptManager.createPrompt({ prompt: { ...dummyPromptData, name: "prompt1" } });
+    await promptManager.createPrompt({ prompt: { ...dummyPromptData, name: "prompt2" } });
+
+    const prompts = await promptManager.listPrompts({ category: dummyPromptData.category });
+    expect(prompts).toContainEqual(expect.objectContaining({
+      name: "prompt1",
+      category: dummyPromptData.category,
+    }));
+    expect(prompts).toContainEqual(expect.objectContaining({
+      name: "prompt2",
+      category: dummyPromptData.category,
+    }));
+
+    const allPrompts = await promptManager.listPrompts({});
+    expect(allPrompts.length).toBe(2);
+  });
+
+  test("update prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    await promptManager.updatePrompt({
+      category: dummyPromptData.category,
+      name: dummyPromptData.name,
+      updates: { description: "Updated description" }
+    });
+
+    const updatedPrompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    expect(updatedPrompt.description).toBe("Updated description");
+  });
+
+  test("delete prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    await promptManager.deletePrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+
+    const prompts = await promptManager.listPrompts({});
+    expect(prompts).toHaveLength(0);
+  });
+
+  test("version management", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const prompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+
+    const initialVersion = prompt.version;
+    await promptManager.updatePrompt({
+      category: dummyPromptData.category,
+      name: dummyPromptData.name,
+      updates: { template: "Updated template" }
+    });
+
+    const updatedPrompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    expect(updatedPrompt.version).not.toBe(initialVersion);
+
+    const versions = await updatedPrompt.versions();
+    expect(versions).toContain(initialVersion);
+    expect(versions).toContain(updatedPrompt.version);
+    expect(versions.length).toBe(2);
+
+    await updatedPrompt.switchVersion(initialVersion);
+    expect(updatedPrompt.template).toBe(dummyPromptData.template);
+  });
+
+  test("error handling - retrieve non-existent prompt", async () => {
+    await expect(
+      promptManager.getPrompt({ category: "nonexistent", name: "nonexistent" })
+    ).rejects.toThrow();
+  });
+
+  test("error handling - create prompt with invalid data", async () => {
+    const invalidPrompt = { ...dummyPromptData, name: "" };
+    await expect(
+      promptManager.createPrompt({ prompt: invalidPrompt as any })
+    ).rejects.toThrow();
+  });
+});
+```
+
+## test/setupEnvs.ts
+
+**Description:** No description available
+
+```typescript
+
+// Env variables for testing
+process.env.FURY_PROJECT_CONFIG_FILENAME = "test-fury-config.json";
+process.env.PROMPT_MANAGER_VERBOSE = "true";
 
 ```
 

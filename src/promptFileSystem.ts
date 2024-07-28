@@ -6,6 +6,8 @@ import { PromptSchema } from './schemas/prompts';
 import { PromptModel } from './promptModel';
 import chalk from 'chalk';
 import { z } from 'zod';
+import lockfile from 'proper-lockfile';
+import { promisify } from 'util';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -143,10 +145,12 @@ export class PromptFileSystem implements IPromptFileSystem {
     const validatedPromptData = PromptSchema.parse(promptData) as IPrompt<IPromptInput, IPromptOutput>;
     const filePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, PROMPT_FILENAME);
 
+    let release;
     try {
-      const versionFilePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions', `v${validatedPromptData.version}.json`);
-
       await fs.mkdir(path.dirname(filePath), { recursive: true });
+      release = await lockfile.lock(path.dirname(filePath));
+
+      const versionFilePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions', `v${validatedPromptData.version}.json`);
       await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
 
       const existingPrompt = await this.loadPrompt({ category: validatedPromptData.category, promptName: validatedPromptData.name }).catch(() => null);
@@ -185,6 +189,10 @@ export class PromptFileSystem implements IPromptFileSystem {
       } else {
         throw new Error(`Failed to save prompt to ${filePath}: An unknown error occurred. Please check the console for more details.`);
       }
+    } finally {
+      if (release) {
+        await release();
+      }
     }
   }
 
@@ -196,7 +204,9 @@ export class PromptFileSystem implements IPromptFileSystem {
     const { category, promptName } = props;
     const filePath = path.join(this.basePath, category, promptName, PROMPT_FILENAME);
 
+    let release;
     try {
+      release = await lockfile.lock(path.dirname(filePath));
       await fs.access(filePath);
       const data = await fs.readFile(filePath, 'utf-8');
       let parsedData;
@@ -215,6 +225,10 @@ export class PromptFileSystem implements IPromptFileSystem {
         throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt. Error details: ${error.errors.map(e => e.message).join(', ')}`);
       }
       throw new Error(`Failed to load prompt from ${filePath}: ${error instanceof Error ? error.message : String(error)}. Please check file permissions and system integrity.`);
+    } finally {
+      if (release) {
+        await release();
+      }
     }
   }
 
@@ -330,7 +344,15 @@ export class PromptFileSystem implements IPromptFileSystem {
 
   async deletePrompt({ category, promptName }: { category: string, promptName: string }): Promise<void> {
     const promptDir = path.join(this.basePath, category, promptName);
-    await fs.rm(promptDir, { recursive: true, force: true });
+    let release;
+    try {
+      release = await lockfile.lock(promptDir);
+      await fs.rm(promptDir, { recursive: true, force: true });
+    } finally {
+      if (release) {
+        await release();
+      }
+    }
   }
 
   async renamePrompt(props: {
@@ -343,18 +365,31 @@ export class PromptFileSystem implements IPromptFileSystem {
     const oldPath = path.join(this.basePath, currentCategory, currentName);
     const newPath = path.join(this.basePath, newCategory, newName);
 
-    // Ensure the new category directory exists
-    await fs.mkdir(path.dirname(newPath), { recursive: true });
+    let oldRelease, newRelease;
+    try {
+      oldRelease = await lockfile.lock(oldPath);
+      newRelease = await lockfile.lock(path.dirname(newPath));
 
-    // Rename (move) the directory
-    await fs.rename(oldPath, newPath);
+      // Ensure the new category directory exists
+      await fs.mkdir(path.dirname(newPath), { recursive: true });
 
-    // If the categories are different or the name has changed, we need to update the prompt data
-    if (currentCategory !== newCategory || currentName !== newName) {
-      const promptData = await this.loadPrompt({ category: newCategory, promptName: newName });
-      promptData.category = newCategory;
-      promptData.name = newName;
-      await this.savePrompt({ promptData });
+      // Rename (move) the directory
+      await fs.rename(oldPath, newPath);
+
+      // If the categories are different or the name has changed, we need to update the prompt data
+      if (currentCategory !== newCategory || currentName !== newName) {
+        const promptData = await this.loadPrompt({ category: newCategory, promptName: newName });
+        promptData.category = newCategory;
+        promptData.name = newName;
+        await this.savePrompt({ promptData });
+      }
+    } finally {
+      if (oldRelease) {
+        await oldRelease();
+      }
+      if (newRelease) {
+        await newRelease();
+      }
     }
   }
 
@@ -375,6 +410,11 @@ export class PromptFileSystem implements IPromptFileSystem {
     const versionFilePath = this.getVersionFilePath({ category, promptName, version });
     const data = await fs.readFile(versionFilePath, 'utf-8');
     return JSON.parse(data);
+  }
+
+  async getCurrentVersion(prompt: IPrompt<IPromptInput, IPromptOutput>): Promise<string> {
+    const versions = await this.getPromptVersions({ category: prompt.category, promptName: prompt.name });
+    return versions.length > 0 ? versions[0] : '0.0.0';
   }
 
   private async generateTypeDefinitionFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {

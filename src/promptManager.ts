@@ -41,7 +41,6 @@ export class PromptManager<
    */
   async initialize(): Promise<void> {
     try {
-      await this.fileSystem.initialize();
       const prompts = await this.fileSystem.listPrompts();
       for (const prompt of prompts) {
         if (!this.prompts[prompt.category]) {
@@ -111,12 +110,23 @@ export class PromptManager<
   /**
    * Update an existing prompt with new data and save the changes.
    * Purpose: Modify an existing prompt's properties and persist the changes.
+   * @param props An object containing the category, name, updates, and an optional flag to bump the version
    */
-  async updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
-    const { category, name, updates } = props;
+  async updatePrompt(props: { 
+    category: string; 
+    name: string; 
+    updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
+    bumpVersion?: boolean;
+  }): Promise<void> {
+    const { category, name, updates, bumpVersion } = props;
     const prompt = this.getPrompt({ category, name });
     Object.assign(prompt, updates);
     prompt.updateMetadata({ lastModified: new Date().toISOString() });
+
+    if (bumpVersion) {
+      prompt.version = this.incrementVersion(prompt.version);
+    }
+
     await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
   }
 

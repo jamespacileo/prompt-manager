@@ -76,7 +76,8 @@ export async function createPrompt(): Promise<void> {
     console.log(`Prompt "${prompt.name}" created successfully.`);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Invalid prompt data generated:', error.errors);
+      console.error(`Failed to create prompt "${promptData.name}": Invalid prompt data`);
+      console.error('Validation errors:', error.errors);
       console.error(`This could be because:
         1. The AI-generated prompt doesn't meet the required schema.
         2. Manual edits introduced invalid data.
@@ -85,8 +86,8 @@ export async function createPrompt(): Promise<void> {
         - Review the generated prompt data and ensure all required fields are present and valid.
         - Try regenerating the prompt with a more specific description.
         - If you made manual edits, double-check them against the prompt schema.`);
-    } else {
-      console.error('An error occurred while creating the prompt:', error);
+    } else if (error instanceof Error) {
+      console.error(`Failed to create prompt "${promptData.name}": ${error.message}`);
       console.error(`This could be due to:
         1. File system issues (e.g., permissions, disk space).
         2. Conflicts with existing prompts.
@@ -97,6 +98,9 @@ export async function createPrompt(): Promise<void> {
         - Ensure the prompt name and category are unique.
         - Try creating a simpler prompt to isolate the issue.
         - If the problem persists, run 'status' to check the overall project health.`);
+    } else {
+      console.error(`Failed to create prompt "${promptData.name}": Unknown error`);
+      console.error('Error details:', error);
     }
     throw error; // Re-throw the error to be caught by the caller
   }
@@ -273,26 +277,20 @@ function generateOutputType(schema: any): string {
 }
 
 function getTypeFromSchema(schema: any): string {
-  switch (schema.type) {
-    case 'string':
-      return 'string';
-    case 'number':
-      return 'number';
-    case 'boolean':
-      return 'boolean';
-    case 'array':
-      return `Array<${getTypeFromSchema(schema.items)}>`;
-    case 'object':
-      if (schema.properties) {
-        const props = Object.entries(schema.properties)
-          .map(([key, value]: [string, any]) => `${key}: ${getTypeFromSchema(value)}`)
-          .join('; ');
-        return `{ ${props} }`;
-      }
-      return 'Record<string, any>';
-    default:
-      return 'any';
+  if (schema.type === 'object' && schema.properties) {
+    const props = Object.entries(schema.properties)
+      .map(([key, value]: [string, any]) => `${key}${schema.required?.includes(key) ? '' : '?'}: ${getTypeFromSchema(value)}`)
+      .join('; ');
+    return `{ ${props} }`;
   }
+  if (schema.type === 'array') {
+    return `Array<${getTypeFromSchema(schema.items)}>`;
+  }
+  if (schema.enum) {
+    return schema.enum.map((v: any) => JSON.stringify(v)).join(' | ');
+  }
+  // Add more cases for other complex types
+  return schema.type || 'any';
 }
 
 export async function getGeneratedTypes(): Promise<string> {

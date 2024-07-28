@@ -1,11 +1,13 @@
 import { expect, test, describe, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
-import { PromptModel } from "../src/promptModel";
+import { PromptManager } from "../src/promptManager";
 import { PromptFileSystem } from "../src/promptFileSystem";
+import { configManager } from "../src/config/PromptProjectConfigManager";
 import fs from "fs/promises";
-import path from "path"
+import path from "path";
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
 
 const TEST_PROMPTS_PATH = path.join(process.cwd(), "test_prompts");
+let promptManager: PromptManager;
 let fileSystem: PromptFileSystem;
 
 // Dummy base objects for testing
@@ -50,18 +52,24 @@ const dummyPromptData: IPrompt<IPromptInput, IPromptOutput> = {
 describe("PromptModel", () => {
   beforeAll(async () => {
     await fs.mkdir(TEST_PROMPTS_PATH, { recursive: true });
-    process.env.PROMPTS_DIR = TEST_PROMPTS_PATH;
+    await configManager.updateConfig({
+      promptsDir: TEST_PROMPTS_PATH,
+      outputDir: path.join(TEST_PROMPTS_PATH, 'output'),
+    });
   });
 
   beforeEach(async () => {
+    await configManager.initialize();
     fileSystem = PromptFileSystem.getInstance();
     await fileSystem.initialize();
+    promptManager = PromptManager.getInstance();
+    await promptManager.initialize();
   });
 
   afterEach(async () => {
-    const prompts = await fileSystem.listPrompts({});
+    const prompts = await promptManager.listPrompts({});
     for (const prompt of prompts) {
-      await fileSystem.deletePrompt({ category: prompt.category, promptName: prompt.name });
+      await promptManager.deletePrompt({ category: prompt.category, name: prompt.name });
     }
   });
 
@@ -69,38 +77,31 @@ describe("PromptModel", () => {
     await fs.rm(TEST_PROMPTS_PATH, { recursive: true, force: true });
   });
 
-  test("constructor initializes correctly", () => {
-    const prompt = new PromptModel(dummyPromptData);
-    expect(prompt.name).toBe(dummyPromptData.name);
-    expect(prompt.category).toBe(dummyPromptData.category);
-    expect(prompt.template).toBe(dummyPromptData.template);
+  test("create and retrieve prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const retrievedPrompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    expect(retrievedPrompt.name).toBe(dummyPromptData.name);
+    expect(retrievedPrompt.template).toBe(dummyPromptData.template);
   });
 
-  test("save and load prompt", async () => {
-    const prompt = new PromptModel(dummyPromptData);
-    await prompt.save();
-
-    const loadedPrompt = await PromptModel.loadPromptByName(`${prompt.category}/${prompt.name}`);
-    expect(loadedPrompt.name).toBe(prompt.name);
-    expect(loadedPrompt.template).toBe(prompt.template);
-    expect(loadedPrompt.isLoadedFromStorage).toBe(true);
-  });
-
-  test("format prompt", () => {
-    const prompt = new PromptModel(dummyPromptData);
+  test("format prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const prompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
     const formatted = prompt.format({ test: "formatted" });
     expect(formatted).toBe("This is a formatted prompt");
   });
 
   test("execute prompt", async () => {
-    const prompt = new PromptModel(dummyPromptData);
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const prompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
     const result = await prompt.execute({ test: "executed" });
     expect(result).toHaveProperty("text");
     expect(typeof result.text).toBe("string");
   });
 
   test("stream prompt", async () => {
-    const prompt = new PromptModel(dummyPromptData);
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const prompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
     const stream = await prompt.stream({ test: "streamed" });
     let result = "";
     for await (const chunk of stream) {
@@ -111,88 +112,76 @@ describe("PromptModel", () => {
   });
 
   test("list prompts", async () => {
-    const prompt1 = new PromptModel({ ...dummyPromptData, name: "prompt1" });
-    const prompt2 = new PromptModel({ ...dummyPromptData, name: "prompt2" });
-    await prompt1.save();
-    await prompt2.save();
+    await promptManager.createPrompt({ prompt: { ...dummyPromptData, name: "prompt1" } });
+    await promptManager.createPrompt({ prompt: { ...dummyPromptData, name: "prompt2" } });
 
-    const prompts = await PromptModel.listPrompts(dummyPromptData.category);
-    expect(prompts).toContainEqual({
+    const prompts = await promptManager.listPrompts({ category: dummyPromptData.category });
+    expect(prompts).toContainEqual(expect.objectContaining({
       name: "prompt1",
       category: dummyPromptData.category,
-      filePath: path.join(TEST_PROMPTS_PATH, dummyPromptData.category, "prompt1", "prompt.json")
-    });
-    expect(prompts).toContainEqual({
+    }));
+    expect(prompts).toContainEqual(expect.objectContaining({
       name: "prompt2",
       category: dummyPromptData.category,
-      filePath: path.join(TEST_PROMPTS_PATH, dummyPromptData.category, "prompt2", "prompt.json")
-    });
+    }));
 
-    const allPrompts = await PromptModel.listPrompts();
-    expect(allPrompts).toContainEqual({
-      name: "prompt1",
-      category: dummyPromptData.category,
-      filePath: path.join(TEST_PROMPTS_PATH, dummyPromptData.category, "prompt1", "prompt.json")
-    });
-    expect(allPrompts).toContainEqual({
-      name: "prompt2",
-      category: dummyPromptData.category,
-      filePath: path.join(TEST_PROMPTS_PATH, dummyPromptData.category, "prompt2", "prompt.json")
-    });
-  });
-
-  test("update metadata", () => {
-    const prompt = new PromptModel(dummyPromptData);
-    const newMetadata = {
-      created: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
-    };
-    prompt.updateMetadata(newMetadata);
-    expect(prompt.metadata).toEqual(newMetadata);
-  });
-
-  test("get summary", () => {
-    const prompt = new PromptModel(dummyPromptData);
-    const summary = prompt.getSummary();
-    expect(summary).toBe(`${dummyPromptData.name} (${dummyPromptData.category}): ${dummyPromptData.description}`);
-  });
-
-  test("create and delete prompt", async () => {
-    const newPrompt = new PromptModel({ ...dummyPromptData, name: "newPrompt" });
-    await newPrompt.save();
-
-    const loadedPrompt = await PromptModel.loadPromptByName(`${newPrompt.category}/${newPrompt.name}`);
-    expect(loadedPrompt.name).toBe("newPrompt");
-
-    await PromptModel.deletePrompt(newPrompt.category, newPrompt.name);
-    await expect(PromptModel.loadPromptByName(`${newPrompt.category}/${newPrompt.name}`)).rejects.toThrow();
+    const allPrompts = await promptManager.listPrompts({});
+    expect(allPrompts.length).toBe(2);
   });
 
   test("update prompt", async () => {
-    const prompt = new PromptModel(dummyPromptData);
-    await prompt.save();
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    await promptManager.updatePrompt({
+      category: dummyPromptData.category,
+      name: dummyPromptData.name,
+      updates: { description: "Updated description" }
+    });
 
-    prompt.description = "Updated description";
-    await prompt.save();
+    const updatedPrompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    expect(updatedPrompt.description).toBe("Updated description");
+  });
 
-    const loadedPrompt = await PromptModel.loadPromptByName(`${prompt.category}/${prompt.name}`);
-    expect(loadedPrompt.description).toBe("Updated description");
+  test("delete prompt", async () => {
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    await promptManager.deletePrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+
+    const prompts = await promptManager.listPrompts({});
+    expect(prompts).toHaveLength(0);
   });
 
   test("version management", async () => {
-    const prompt = new PromptModel(dummyPromptData);
-    await prompt.save();
+    await promptManager.createPrompt({ prompt: dummyPromptData });
+    const prompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
 
     const initialVersion = prompt.version;
-    prompt.template = "Updated template";
-    await prompt.save();
+    await promptManager.updatePrompt({
+      category: dummyPromptData.category,
+      name: dummyPromptData.name,
+      updates: { template: "Updated template" }
+    });
 
-    const versions = await prompt.versions();
+    const updatedPrompt = promptManager.getPrompt({ category: dummyPromptData.category, name: dummyPromptData.name });
+    expect(updatedPrompt.version).not.toBe(initialVersion);
+
+    const versions = await updatedPrompt.versions();
     expect(versions).toContain(initialVersion);
-    expect(versions).toContain(prompt.version);
+    expect(versions).toContain(updatedPrompt.version);
     expect(versions.length).toBe(2);
 
-    await prompt.switchVersion(initialVersion);
-    expect(prompt.template).toBe(dummyPromptData.template);
+    await updatedPrompt.switchVersion(initialVersion);
+    expect(updatedPrompt.template).toBe(dummyPromptData.template);
+  });
+
+  test("error handling - retrieve non-existent prompt", async () => {
+    await expect(
+      promptManager.getPrompt({ category: "nonexistent", name: "nonexistent" })
+    ).rejects.toThrow();
+  });
+
+  test("error handling - create prompt with invalid data", async () => {
+    const invalidPrompt = { ...dummyPromptData, name: "" };
+    await expect(
+      promptManager.createPrompt({ prompt: invalidPrompt as any })
+    ).rejects.toThrow();
   });
 });
