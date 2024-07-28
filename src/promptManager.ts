@@ -62,6 +62,7 @@ export class PromptManager<
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;
     await this.fileSystem.savePrompt({ promptData: newPrompt });
+    console.log(`Created new prompt "${prompt.name}" in category "${prompt.category}" with TypeScript definitions.`);
   }
 
   /**

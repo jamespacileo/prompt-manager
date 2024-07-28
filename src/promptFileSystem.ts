@@ -4,6 +4,7 @@ import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types
 import { configManager } from './config/PromptProjectConfigManager';
 
 export const PROMPT_FILENAME = "prompt.json";
+export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
 
 /**
  * PromptFileSystem handles all file system operations related to prompts.
@@ -42,6 +43,10 @@ export class PromptFileSystem implements IPromptFileSystem {
 
     await fs.writeFile(filePath, JSON.stringify(promptData, null, 2));
     await fs.writeFile(versionFilePath, JSON.stringify(promptData, null, 2));
+
+    // Generate and save TypeScript definition file
+    const typeDefinitionPath = path.join(path.dirname(filePath), TYPE_DEFINITION_FILENAME);
+    await this.generateTypeDefinitionFile(promptData, typeDefinitionPath);
 
     // Update the list of versions
     const versionsPath = path.join(this.basePath, promptData.category, promptData.name, '.versions');
@@ -206,5 +211,45 @@ export class PromptFileSystem implements IPromptFileSystem {
     const versionFilePath = this.getVersionFilePath({ category, promptName, version });
     const data = await fs.readFile(versionFilePath, 'utf-8');
     return JSON.parse(data);
+  }
+
+  private async generateTypeDefinitionFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
+    const inputType = this.generateTypeFromSchema(promptData.inputSchema, 'Input');
+    const outputType = this.generateTypeFromSchema(promptData.outputSchema, 'Output');
+
+    const content = `
+export interface ${promptData.name}Input ${inputType}
+
+export interface ${promptData.name}Output ${outputType}
+`;
+
+    await fs.writeFile(filePath, content.trim());
+  }
+
+  private generateTypeFromSchema(schema: any, typeName: string): string {
+    if (schema.type === 'object' && schema.properties) {
+      const properties = Object.entries(schema.properties)
+        .map(([key, value]: [string, any]) => `  ${key}: ${this.getTypeFromSchemaProperty(value)};`)
+        .join('\n');
+      return `{\n${properties}\n}`;
+    }
+    return '{}';
+  }
+
+  private getTypeFromSchemaProperty(property: any): string {
+    switch (property.type) {
+      case 'string':
+        return 'string';
+      case 'number':
+        return 'number';
+      case 'boolean':
+        return 'boolean';
+      case 'array':
+        return `${this.getTypeFromSchemaProperty(property.items)}[]`;
+      case 'object':
+        return this.generateTypeFromSchema(property, '');
+      default:
+        return 'any';
+    }
   }
 }
