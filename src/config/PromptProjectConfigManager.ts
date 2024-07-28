@@ -2,8 +2,30 @@ import fs from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
 import { IPromptProjectConfigManager } from '../types/interfaces';
-import { CONFIG_FILE_NAME, DEFAULT_CONFIG, getConfigPath, getDefaultPromptsPath } from './constants';
+import { CONFIG_FILE_NAME, getConfigPath, getDefaultPromptsPath } from './constants';
 import { ensureDirectoryExists } from '../utils/fileUtils';
+
+const DEFAULT_CONFIG: Config = {
+  promptsDir: getDefaultPromptsPath(),
+  outputDir: path.join(process.cwd(), 'output'),
+  preferredModels: ['gpt-4', 'gpt-3.5-turbo'],
+  modelParams: {
+    'gpt-4': {
+      temperature: 0.7,
+      maxTokens: 2000,
+      topP: 1,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+    },
+    'gpt-3.5-turbo': {
+      temperature: 0.8,
+      maxTokens: 1500,
+      topP: 1,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+    },
+  },
+};
 
 const configSchema = z.object({
   promptsDir: z.string(),
@@ -56,12 +78,8 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
       };
     } catch (error: any) {
       if (error.code === 'ENOENT') {
-        // File doesn't exist, create a new one with default values
-        this.config = {
-          ...DEFAULT_CONFIG,
-          promptsDir: getDefaultPromptsPath(),
-          outputDir: path.join(path.dirname(this.configPath), 'output'),
-        };
+        // File doesn't exist, use default values
+        this.config = DEFAULT_CONFIG;
         await this.saveConfig();
       } else if (error instanceof z.ZodError) {
         throw new Error(`Invalid configuration file: ${error.message}`);
@@ -89,7 +107,16 @@ class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 
   public async updateConfig(newConfig: Partial<Config>): Promise<void> {
-    this.config = { ...this.config, ...newConfig };
+    this.config = {
+      ...DEFAULT_CONFIG,
+      ...this.config,
+      ...newConfig,
+      modelParams: {
+        ...DEFAULT_CONFIG.modelParams,
+        ...this.config.modelParams,
+        ...newConfig.modelParams,
+      },
+    };
     await this.saveConfig();
     await this.ensureConfigDirectories();
   }
