@@ -93,7 +93,7 @@ describe("PromptModel", () => {
   test("execute prompt", async () => {
     const prompt = new PromptModel(dummyPromptData, fileSystem);
     // Mock the execute method to avoid actual API calls
-    prompt.execute = async () => ({ text: "Mocked execution result" });
+    // prompt.execute = async () => ({ text: "Mocked execution result" });
     const result = await prompt.execute({ test: "executed" });
     expect(result).toHaveProperty("text");
     expect(typeof result.text).toBe("string");
