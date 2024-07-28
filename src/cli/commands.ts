@@ -12,47 +12,51 @@ import { configManager } from '../config/PromptProjectConfigManager';
  * Purpose: Guide the user through creating a new prompt, leveraging AI for content generation and refinement.
  */
 export async function createPrompt(): Promise<void> {
-  let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
-  let accepted = false;
+  try {
+    let promptData: Partial<IPrompt<IPromptInput, IPromptOutput>> = {};
+    let accepted = false;
 
-  const description = await input({ message: 'Describe the prompt you want to create:' });
+    const description = await input({ message: 'Describe the prompt you want to create:' });
 
-  while (!accepted) {
-    promptData = await generatePromptWithAI(description);
-    prettyPrintPrompt(promptData);
+    while (!accepted) {
+      promptData = await generatePromptWithAI(description);
+      prettyPrintPrompt(promptData);
 
-    accepted = await confirm({ message: 'Do you accept this prompt?' });
+      accepted = await confirm({ message: 'Do you accept this prompt?' });
 
-    if (!accepted) {
-      const instruction = await input({ message: 'What changes would you like to make? (Type "quit" to cancel)' });
-      if (instruction.toLowerCase() === 'quit') {
-        console.log('Prompt creation cancelled.');
-        return;
+      if (!accepted) {
+        const instruction = await input({ message: 'What changes would you like to make? (Type "quit" to cancel)' });
+        if (instruction.toLowerCase() === 'quit') {
+          console.log('Prompt creation cancelled.');
+          return;
+        }
+        promptData = await updatePromptWithAI(promptData, instruction);
       }
-      promptData = await updatePromptWithAI(promptData, instruction);
     }
+
+    const manager = new PromptManager();
+    await manager.initialize();
+    const prompt = new PromptModel({
+      ...promptData,
+      name: promptData.name || '',
+      category: promptData.category || '',
+      description: promptData.description || '',
+      template: promptData.template || '',
+      parameters: promptData.parameters || [],
+      inputSchema: promptData.inputSchema || {},
+      outputSchema: promptData.outputSchema || {},
+      version: promptData.version || '1.0.0',
+      metadata: {
+        created: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+      }
+    });
+
+    await manager.createPrompt({ prompt });
+    console.log(`Prompt "${prompt.name}" created successfully.`);
+  } catch (error) {
+    console.error('An error occurred while creating the prompt:', error);
   }
-
-  const manager = new PromptManager();
-  await manager.initialize();
-  const prompt = new PromptModel({
-    ...promptData,
-    name: promptData.name || '',
-    category: promptData.category || '',
-    description: promptData.description || '',
-    template: promptData.template || '',
-    parameters: promptData.parameters || [],
-    inputSchema: promptData.inputSchema || {},
-    outputSchema: promptData.outputSchema || {},
-    version: promptData.version || '1.0.0',
-    metadata: {
-      created: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
-    }
-  });
-
-  await manager.createPrompt({ prompt });
-  console.log(`Prompt "${prompt.name}" created successfully.`);
 }
 
 /**
@@ -63,6 +67,11 @@ export async function listPrompts(): Promise<Array<{ name: string; category: str
   const manager = new PromptManager();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
+  
+  if (prompts.length === 0) {
+    console.log('No prompts found. Use the "create" command to add new prompts.');
+  }
+  
   return prompts.map(prompt => ({
     name: prompt.name,
     category: prompt.category,
@@ -95,33 +104,42 @@ export async function getPromptDetails(props: { category: string; name: string }
  * Purpose: Allow users to modify prompt properties and content, with AI assistance if desired.
  */
 export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
-  const manager = new PromptManager();
-  await manager.initialize();
+  try {
+    const manager = new PromptManager();
+    await manager.initialize();
 
-  // Fetch the current prompt
-  const currentPrompt = await manager.getPrompt({ category: props.category, name: props.name });
+    // Fetch the current prompt
+    const currentPrompt = await manager.getPrompt({ category: props.category, name: props.name });
 
-  // Update the version
-  const [major, minor, patch] = (currentPrompt.version || '1.0.0').split('.').map(Number);
-  props.updates.version = `${major}.${minor}.${patch + 1}`;
-
-  if (props.updates.template) {
-    const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
-    if (useAI) {
-      const query = 'Refine and improve this prompt content:';
-      const refinedPrompt = await updatePromptWithAI({ ...currentPrompt, ...props.updates, category: props.category, name: props.name } as IPrompt<IPromptInput, IPromptOutput>, query);
-      props.updates.template = refinedPrompt.template;
+    if (!currentPrompt) {
+      console.error(`Prompt "${props.category}/${props.name}" not found.`);
+      return;
     }
+
+    // Update the version
+    const [major, minor, patch] = (currentPrompt.version || '1.0.0').split('.').map(Number);
+    props.updates.version = `${major}.${minor}.${patch + 1}`;
+
+    if (props.updates.template) {
+      const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
+      if (useAI) {
+        const query = 'Refine and improve this prompt content:';
+        const refinedPrompt = await updatePromptWithAI({ ...currentPrompt, ...props.updates, category: props.category, name: props.name } as IPrompt<IPromptInput, IPromptOutput>, query);
+        props.updates.template = refinedPrompt.template;
+      }
+    }
+
+    // Update the lastModified metadata
+    props.updates.metadata = {
+      ...currentPrompt.metadata,
+      lastModified: new Date().toISOString()
+    };
+
+    await manager.updatePrompt(props);
+    console.log(`Prompt "${props.category}/${props.name}" updated successfully to version ${props.updates.version}.`);
+  } catch (error) {
+    console.error('An error occurred while updating the prompt:', error);
   }
-
-  // Update the lastModified metadata
-  props.updates.metadata = {
-    ...currentPrompt.metadata,
-    lastModified: new Date().toISOString()
-  };
-
-  await manager.updatePrompt(props);
-  console.log(`Prompt "${props.category}/${props.name}" updated successfully to version ${props.updates.version}.`);
 }
 
 /**
