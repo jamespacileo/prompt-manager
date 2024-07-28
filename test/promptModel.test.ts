@@ -3,13 +3,13 @@ import { PromptModel } from "../src/promptModel";
 import { PromptFileSystem } from "../src/promptFileSystem";
 import fs from "fs/promises";
 import path from "path";
-import { IPromptModelRequired } from "../src/types/interfaces";
+import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
 
 const TEST_PROMPTS_PATH = path.join(process.cwd(), "test_prompts");
 let fileSystem: PromptFileSystem;
 
 // Dummy base objects for testing
-const dummyPromptData: Partial<PromptModel> & IPromptModelRequired = {
+const dummyPromptData: IPrompt<IPromptInput, IPromptOutput> = {
   name: "testPrompt",
   category: "testCategory",
   description: "A test prompt",
@@ -30,7 +30,7 @@ const dummyPromptData: Partial<PromptModel> & IPromptModelRequired = {
     presencePenalty: 0,
     stopSequences: [],
   },
-  outputType: "plain" as const,
+  outputType: "plain",
   inputSchema: {
     type: "object",
     properties: {
@@ -50,6 +50,7 @@ const dummyPromptData: Partial<PromptModel> & IPromptModelRequired = {
 describe("PromptModel", () => {
   beforeAll(async () => {
     await fs.mkdir(TEST_PROMPTS_PATH, { recursive: true });
+    process.env.PROMPTS_DIR = TEST_PROMPTS_PATH;
   });
 
   beforeEach(() => {
@@ -68,45 +69,37 @@ describe("PromptModel", () => {
   });
 
   test("constructor initializes correctly", () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    const prompt = new PromptModel(dummyPromptData);
     expect(prompt.name).toBe(dummyPromptData.name);
     expect(prompt.category).toBe(dummyPromptData.category);
     expect(prompt.template).toBe(dummyPromptData.template);
   });
 
   test("save and load prompt", async () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    const prompt = new PromptModel(dummyPromptData);
     await prompt.save();
 
-    const loadedPrompt = await PromptModel.loadPromptByName(`${prompt.category}/${prompt.name}`, fileSystem);
+    const loadedPrompt = await PromptModel.loadPromptByName(`${prompt.category}/${prompt.name}`);
     expect(loadedPrompt.name).toBe(prompt.name);
     expect(loadedPrompt.template).toBe(prompt.template);
     expect(loadedPrompt.isLoadedFromStorage).toBe(true);
   });
 
   test("format prompt", () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    const prompt = new PromptModel(dummyPromptData);
     const formatted = prompt.format({ test: "formatted" });
     expect(formatted).toBe("This is a formatted prompt");
   });
 
   test("execute prompt", async () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
-    // Mock the execute method to avoid actual API calls
-    // prompt.execute = async () => ({ text: "Mocked execution result" });
+    const prompt = new PromptModel(dummyPromptData);
     const result = await prompt.execute({ test: "executed" });
     expect(result).toHaveProperty("text");
     expect(typeof result.text).toBe("string");
   });
 
   test("stream prompt", async () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
-    // Mock the stream method to avoid actual API calls
-    // prompt.stream = async function* () {
-    //   yield "Mocked ";
-    //   yield "stream ";
-    //   yield "result";
-    // };
+    const prompt = new PromptModel(dummyPromptData);
     const stream = await prompt.stream({ test: "streamed" });
     let result = "";
     for await (const chunk of stream) {
@@ -117,38 +110,38 @@ describe("PromptModel", () => {
   });
 
   test("list prompts", async () => {
-    const prompt1 = new PromptModel({ ...dummyPromptData, name: "prompt1" }, fileSystem);
-    const prompt2 = new PromptModel({ ...dummyPromptData, name: "prompt2" }, fileSystem);
+    const prompt1 = new PromptModel({ ...dummyPromptData, name: "prompt1" });
+    const prompt2 = new PromptModel({ ...dummyPromptData, name: "prompt2" });
     await prompt1.save();
     await prompt2.save();
 
-    const prompts = await PromptModel.listPrompts(dummyPromptData.category, fileSystem);
+    const prompts = await PromptModel.listPrompts(dummyPromptData.category);
     expect(prompts).toContainEqual({
       name: "prompt1",
       category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt1/prompt.json`)
+      filePath: expect.stringContaining(`/test_prompts/${dummyPromptData.category}/prompt1/prompt.json`)
     });
     expect(prompts).toContainEqual({
       name: "prompt2",
       category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt2/prompt.json`)
+      filePath: expect.stringContaining(`/test_prompts/${dummyPromptData.category}/prompt2/prompt.json`)
     });
 
-    const allPrompts = await PromptModel.listPrompts(undefined, fileSystem);
+    const allPrompts = await PromptModel.listPrompts();
     expect(allPrompts).toContainEqual({
       name: "prompt1",
       category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt1/prompt.json`)
+      filePath: expect.stringContaining(`/test_prompts/${dummyPromptData.category}/prompt1/prompt.json`)
     });
     expect(allPrompts).toContainEqual({
       name: "prompt2",
       category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt2/prompt.json`)
+      filePath: expect.stringContaining(`/test_prompts/${dummyPromptData.category}/prompt2/prompt.json`)
     });
   });
 
   test("update metadata", () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    const prompt = new PromptModel(dummyPromptData);
     const newMetadata = {
       created: new Date().toISOString(),
       lastModified: new Date().toISOString(),
@@ -158,54 +151,35 @@ describe("PromptModel", () => {
   });
 
   test("get summary", () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    const prompt = new PromptModel(dummyPromptData);
     const summary = prompt.getSummary();
     expect(summary).toBe(`${dummyPromptData.name} (${dummyPromptData.category}): ${dummyPromptData.description}`);
   });
 
-  test("list prompts", async () => {
-    const prompt1 = new PromptModel({ ...dummyPromptData, name: "prompt1" }, fileSystem);
-    const prompt2 = new PromptModel({ ...dummyPromptData, name: "prompt2" }, fileSystem);
-    await prompt1.save();
-    await prompt2.save();
-
-    const prompts = await PromptModel.listPrompts(dummyPromptData.category, fileSystem);
-    expect(prompts).toContainEqual({
-      name: "prompt1",
-      category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt1/prompt.json`)
-    });
-    expect(prompts).toContainEqual({
-      name: "prompt2",
-      category: dummyPromptData.category,
-      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt2/prompt.json`)
-    });
-  });
-
   test("create and delete prompt", async () => {
-    const newPrompt = new PromptModel({ ...dummyPromptData, name: "newPrompt" }, fileSystem);
+    const newPrompt = new PromptModel({ ...dummyPromptData, name: "newPrompt" });
     await newPrompt.save();
 
-    const loadedPrompt = await PromptModel.loadPromptByName(`${newPrompt.category}/${newPrompt.name}`, fileSystem);
+    const loadedPrompt = await PromptModel.loadPromptByName(`${newPrompt.category}/${newPrompt.name}`);
     expect(loadedPrompt.name).toBe("newPrompt");
 
-    await PromptModel.deletePrompt(newPrompt.category, newPrompt.name, fileSystem);
-    await expect(PromptModel.loadPromptByName(`${newPrompt.category}/${newPrompt.name}`, fileSystem)).rejects.toThrow();
+    await PromptModel.deletePrompt(newPrompt.category, newPrompt.name);
+    await expect(PromptModel.loadPromptByName(`${newPrompt.category}/${newPrompt.name}`)).rejects.toThrow();
   });
 
   test("update prompt", async () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    const prompt = new PromptModel(dummyPromptData);
     await prompt.save();
 
     prompt.description = "Updated description";
     await prompt.save();
 
-    const loadedPrompt = await PromptModel.loadPromptByName(`${prompt.category}/${prompt.name}`, fileSystem);
+    const loadedPrompt = await PromptModel.loadPromptByName(`${prompt.category}/${prompt.name}`);
     expect(loadedPrompt.description).toBe("Updated description");
   });
 
   test("version management", async () => {
-    const prompt = new PromptModel(dummyPromptData, fileSystem);
+    const prompt = new PromptModel(dummyPromptData);
     await prompt.save();
 
     const initialVersion = prompt.version;
@@ -217,7 +191,7 @@ describe("PromptModel", () => {
     expect(versions).toContain(prompt.version);
     expect(versions.length).toBe(2);
 
-    await prompt.switchVersion({ version: initialVersion });
+    await prompt.switchVersion(initialVersion);
     expect(prompt.template).toBe(dummyPromptData.template);
   });
 });
