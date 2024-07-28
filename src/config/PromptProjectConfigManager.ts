@@ -51,7 +51,24 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private constructor(configPath?: string) {
     const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
     this.configPath = configPath || path.join(process.env.FURY_PROJECT_ROOT || process.cwd(), configFileName);
-    this.config = { ...DEFAULT_CONFIG };
+    this.config = DEFAULT_CONFIG;
+    this.loadConfig();
+  }
+
+  private loadConfig(): void {
+    try {
+      const fileContent = fs.readFileSync(this.configPath, 'utf8');
+      const loadedConfig = JSON.parse(fileContent);
+      this.config = configSchema.parse(loadedConfig);
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        // File doesn't exist, use default config
+        this.config = DEFAULT_CONFIG;
+      } else {
+        // Other error (e.g., JSON parsing error, validation error)
+        throw new Error(`Failed to load configuration: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
   }
 
   public static getInstance(configPath?: string): PromptProjectConfigManager {
