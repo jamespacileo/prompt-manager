@@ -1,5 +1,5 @@
 import type { JSONSchema7 } from 'json-schema';
-import { ZodObject } from 'zod';
+import { ZodObject, ZodType } from 'zod';
 import { Config } from '../config/PromptProjectConfigManager';
 /**
  * This file contains the core interfaces for the Prompt Manager project.
@@ -91,7 +91,7 @@ export interface IPromptModel<
     stopSequences: string[];
   };
   outputType: 'structured' | 'plain';
-  fileSystem?: IPromptFileSystem;
+  fileSystem: IPromptFileSystem;
   _isSaved: boolean;
 
   validateInput(input: TInput): boolean;
@@ -106,8 +106,8 @@ export interface IPromptModel<
   versions(): Promise<string[]>;
   switchVersion(version: string): Promise<void>;
   get isSaved(): boolean;
-  get inputZodSchema(): z.ZodType<any>;
-  get outputZodSchema(): z.ZodType<any>;
+  get inputZodSchema(): ZodType<any>;
+  get outputZodSchema(): ZodType<any>;
 }
 
 export interface IPromptModelStatic {
