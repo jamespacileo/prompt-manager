@@ -110,20 +110,27 @@ program
           ],
         });
 
-        prompts.forEach((prompt: { category: string; name: string; version: string }) => {
-          table.addRow({
-            category: prompt.category,
-            name: prompt.name,
-            version: prompt.version,
-          });
+        prompts.forEach((prompt) => {
+          if (typeof prompt === 'object' && prompt !== null) {
+            table.addRow({
+              category: prompt.category || '',
+              name: prompt.name || '',
+              version: prompt.version || '',
+            });
+          }
         });
 
         table.printTable();
 
-        const promptChoices = prompts.map((prompt: { category: string; name: string }) => ({
-          name: `${prompt.category}/${prompt.name}`,
-          value: prompt,
-        }));
+        const promptChoices = prompts.map((prompt) => {
+          if (typeof prompt === 'object' && prompt !== null) {
+            return {
+              name: `${prompt.category || ''}/${prompt.name || ''}`,
+              value: prompt,
+            };
+          }
+          return { name: 'Unknown', value: {} };
+        });
 
         inquirer.registerPrompt('autocomplete', inquirerPrompt);
         const { selectedPrompt } = await inquirer.prompt([
@@ -185,10 +192,10 @@ async function displayPromptDetails(prompt: any) {
       break;
     case 'back':
       const listCommand = program.commands.find((cmd) => cmd.name() === 'list');
-      if (listCommand) {
-        await listCommand.action(listCommand);
+      if (listCommand && typeof listCommand.action === 'function') {
+        await listCommand.action();
       } else {
-        log.error('List command not found');
+        log.error('List command not found or is not a function');
       }
       break;
     case 'exit':
