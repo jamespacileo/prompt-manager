@@ -66,7 +66,7 @@ export async function listPrompts(): Promise<Array<{ name: string; category: str
   return prompts.map(prompt => ({
     name: prompt.name,
     category: prompt.category,
-    version: prompt.version || '',
+    version: prompt.version || '1.0.0', // Default to '1.0.0' if version is not available
     filePath: prompt.filePath || ''
   }));
 }
@@ -98,16 +98,30 @@ export async function updatePrompt(props: { category: string; name: string; upda
   const manager = new PromptManager();
   await manager.initialize();
 
+  // Fetch the current prompt
+  const currentPrompt = await manager.getPrompt({ category: props.category, name: props.name });
+
+  // Update the version
+  const [major, minor, patch] = (currentPrompt.version || '1.0.0').split('.').map(Number);
+  props.updates.version = `${major}.${minor}.${patch + 1}`;
+
   if (props.updates.template) {
     const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });
     if (useAI) {
       const query = 'Refine and improve this prompt content:';
-      const refinedPrompt = await updatePromptWithAI({ ...props.updates, category: props.category, name: props.name } as IPrompt<IPromptInput, IPromptOutput>, query);
+      const refinedPrompt = await updatePromptWithAI({ ...currentPrompt, ...props.updates, category: props.category, name: props.name } as IPrompt<IPromptInput, IPromptOutput>, query);
       props.updates.template = refinedPrompt.template;
     }
   }
 
+  // Update the lastModified metadata
+  props.updates.metadata = {
+    ...currentPrompt.metadata,
+    lastModified: new Date().toISOString()
+  };
+
   await manager.updatePrompt(props);
+  console.log(`Prompt "${props.category}/${props.name}" updated successfully to version ${props.updates.version}.`);
 }
 
 /**
