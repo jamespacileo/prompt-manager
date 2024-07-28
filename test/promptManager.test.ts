@@ -1,4 +1,4 @@
-import { expect, test, describe, mock, jest } from "bun:test";
+import { expect, test, describe, mock, jest, beforeEach } from "bun:test";
 import { PromptManager, getPromptManager } from '../src/promptManager';
 
 const mockPromptManager = {
@@ -37,8 +37,8 @@ describe('PromptManager', () => {
   });
 
   test('PromptManager returns the correct prompt', () => {
-    expect(manager.Category1.PROMPT1).toBe(mockPromptManager.Category1.PROMPT1);
-    expect(manager.Category2.PROMPT2).toBe(mockPromptManager.Category2.PROMPT2);
+    expect(manager.prompts.Category1.PROMPT1).toBe(mockPromptManager.prompts.Category1.PROMPT1);
+    expect(manager.prompts.Category2.PROMPT2).toBe(mockPromptManager.prompts.Category2.PROMPT2);
   });
 
   test('Prompt format function is called correctly', () => {
