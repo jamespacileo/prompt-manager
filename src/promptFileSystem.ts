@@ -30,9 +30,9 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Save a prompt to the file system.
    * Purpose: Persist prompt data and manage versioning.
    */
-  async savePrompt(props: { promptData: IPrompt<any, any> }): Promise<void> {
+  async savePrompt<TInput extends IPromptInput<any>, TOutput extends IPromptOutput<any>>(props: { promptData: IPrompt<TInput, TOutput> }): Promise<void> {
     const { promptData } = props;
-    
+  
     try {
       // Validate the prompt data against the schema
       const validatedPromptData = PromptSchema.parse(promptData);
@@ -72,14 +72,14 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
    */
-  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<any, any>> {
+  async loadPrompt<TInput extends IPromptInput<any>, TOutput extends IPromptOutput<any>>(props: { category: string; promptName: string }): Promise<IPrompt<TInput, TOutput>> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
-    
+  
     try {
       const data = await fs.readFile(filePath, 'utf-8');
       const parsedData = JSON.parse(data);
-      return PromptSchema.parse(parsedData);
+      return PromptSchema.parse(parsedData) as IPrompt<TInput, TOutput>;
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         throw new Error(`Prompt not found: ${category}/${promptName}`);
