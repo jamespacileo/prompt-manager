@@ -201,10 +201,10 @@ export class PromptModel<
     }
   }
 
-  updateMetadata(metadata: Partial<IPromptModel['metadata']>): void {
+  updateMetadata(metadata: Partial<IPromptModel>): void {
+    Object.assign(this, metadata);
     this.metadata = { 
-      ...this.metadata, 
-      ...metadata,
+      ...this.metadata,
       lastModified: new Date().toISOString()
     };
   }
@@ -217,8 +217,12 @@ export class PromptModel<
     if (!this.fileSystem) {
       throw new Error('FileSystem is not initialized. Cannot save prompt.');
     }
-    await this.fileSystem.savePrompt({ promptData: this as unknown as IPrompt<Record<string, any>, Record<string, any>> });
+    const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
+    await this.fileSystem.savePrompt({ promptData: updatedPromptData });
     this._isSaved = true;
+    
+    // Update the current instance with the saved data
+    Object.assign(this, updatedPromptData);
   }
 
   private _inputZodSchema: z.ZodType<any> | null = null;
