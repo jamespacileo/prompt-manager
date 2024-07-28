@@ -193,7 +193,9 @@ async function displayPromptDetails(prompt: any) {
     case 'back':
       const listCommand = program.commands.find((cmd) => cmd.name() === 'list');
       if (listCommand && typeof listCommand.action === 'function') {
-        await listCommand.action({});
+        await listCommand.action(async () => {
+          // Implement list command logic here
+        });
       } else {
         log.error('List command not found or is not a function');
       }
