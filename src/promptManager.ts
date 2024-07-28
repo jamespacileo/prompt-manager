@@ -90,11 +90,15 @@ export class PromptManager<
     await this.fileSystem.deletePrompt({ category, promptName: name });
   }
 
-  async listPrompts(props: { category?: string }): Promise<IPrompt<IPromptInput, IPromptOutput>[]> {
-    if (props.category) {
-      return Object.values(this.prompts[props.category] || {});
-    }
-    return Object.values(this.prompts).flatMap(categoryPrompts => Object.values(categoryPrompts));
+  async listPrompts(props: { category?: string }): Promise<Array<IPrompt<IPromptInput, IPromptOutput> & { filePath: string }>> {
+    const prompts = props.category
+      ? Object.values(this.prompts[props.category] || {})
+      : Object.values(this.prompts).flatMap(categoryPrompts => Object.values(categoryPrompts));
+
+    return prompts.map(prompt => ({
+      ...prompt,
+      filePath: this.fileSystem.getFilePath({ category: prompt.category, promptName: prompt.name })
+    }));
   }
 
   /**

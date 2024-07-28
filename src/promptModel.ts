@@ -57,8 +57,8 @@ export class PromptModel<
     this.inputSchema = promptData.inputSchema;
     this.outputSchema = promptData.outputSchema;
     this.fileSystem = fileSystem ?? new PromptFileSystem();
-    this.version = '1.0.0';
-    this.metadata = { created: new Date().toISOString(), lastModified: new Date().toISOString() };
+    this.version = promptData.version || '1.0.0';
+    this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = 'plain';
     this.configuration = this.initializeConfiguration();
   }

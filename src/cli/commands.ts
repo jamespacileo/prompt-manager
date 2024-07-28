@@ -59,14 +59,15 @@ export async function createPrompt(): Promise<void> {
  * List all available prompts.
  * Purpose: Provide an overview of all prompts in the system for user reference.
  */
-export async function listPrompts(): Promise<Array<{ name: string; category: string; version: string }>> {
+export async function listPrompts(): Promise<Array<{ name: string; category: string; version: string; filePath: string }>> {
   const manager = new PromptManager();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
   return prompts.map(prompt => ({
     name: prompt.name,
     category: prompt.category,
-    version: prompt.version
+    version: prompt.version,
+    filePath: prompt.filePath
   }));
 }
 
