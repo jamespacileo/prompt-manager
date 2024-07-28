@@ -1,8 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { IPromptFileSystem, IPromptInput, IPromptOutput } from './types/interfaces';
+import { IPromptFileSystem, IPrompt } from './types/interfaces';
 import { configManager } from './config/PromptProjectConfigManager';
-import { PromptSchema, IPrompt } from './schemas/prompts';
+import { PromptSchema } from './schemas/prompts';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -30,9 +30,7 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Save a prompt to the file system.
    * Purpose: Persist prompt data and manage versioning.
    */
-  async savePrompt(
-    props: { promptData: IPrompt<Record<string, any>, Record<string, any>> }
-  ): Promise<void> {
+  async savePrompt(props: { promptData: IPrompt }): Promise<void> {
     const { promptData } = props;
   
     try {
