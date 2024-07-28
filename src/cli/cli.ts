@@ -1,12 +1,10 @@
 #!/usr/bin/env bun
 
 import { Command } from 'commander';
-import { input, confirm, select } from '@inquirer/prompts';
+import { input, confirm, select, expand, search } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus, deletePrompt } from './commands.js';
 import { Table } from 'console-table-printer';
-import inquirer from 'inquirer';
-import inquirerPrompt from 'inquirer-autocomplete-prompt';
 import fs from 'fs-extra';
 import path from 'path';
 import { TextEncoder, TextDecoder } from 'text-encoding';
