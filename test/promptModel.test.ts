@@ -126,24 +126,24 @@ describe("PromptModel", () => {
     expect(prompts).toContainEqual({
       name: "prompt1",
       category: dummyPromptData.category,
-      relativeFilePath: `prompts/${dummyPromptData.category}/prompt1/prompt.json`
+      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt1/prompt.json`)
     });
     expect(prompts).toContainEqual({
       name: "prompt2",
       category: dummyPromptData.category,
-      relativeFilePath: `prompts/${dummyPromptData.category}/prompt2/prompt.json`
+      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt2/prompt.json`)
     });
 
     const allPrompts = await PromptModel.listPrompts(undefined, fileSystem);
     expect(allPrompts).toContainEqual({
       name: "prompt1",
       category: dummyPromptData.category,
-      relativeFilePath: `prompts/${dummyPromptData.category}/prompt1/prompt.json`
+      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt1/prompt.json`)
     });
     expect(allPrompts).toContainEqual({
       name: "prompt2",
       category: dummyPromptData.category,
-      relativeFilePath: `prompts/${dummyPromptData.category}/prompt2/prompt.json`
+      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt2/prompt.json`)
     });
   });
 
@@ -173,12 +173,12 @@ describe("PromptModel", () => {
     expect(prompts).toContainEqual({
       name: "prompt1",
       category: dummyPromptData.category,
-      relativeFilePath: `prompts/${dummyPromptData.category}/prompt1/prompt.json`
+      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt1/prompt.json`)
     });
     expect(prompts).toContainEqual({
       name: "prompt2",
       category: dummyPromptData.category,
-      relativeFilePath: `prompts/${dummyPromptData.category}/prompt2/prompt.json`
+      filePath: expect.stringContaining(`/prompts/${dummyPromptData.category}/prompt2/prompt.json`)
     });
   });
 });
