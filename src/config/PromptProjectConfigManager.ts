@@ -14,17 +14,34 @@ export type { Config };
  * PromptProjectConfigManager is responsible for managing the configuration of the prompt project.
  * It implements the Singleton pattern to ensure only one instance of the configuration manager exists.
  */
+// Helper function for deep merging objects
+function deepMerge(target: any, source: any): any {
+  if (typeof target !== 'object' || target === null) {
+    return source;
+  }
+
+  Object.keys(source).forEach(key => {
+    if (source[key] instanceof Object) {
+      target[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  });
+
+  return target;
+}
+
 export class PromptProjectConfigManager implements IPromptProjectConfigManager {
-  private static instance: PromptProjectConfigManager;
   private configPath: string;
   private config: Config;
   private initialized: boolean = false;
+  private static instance: PromptProjectConfigManager;
 
   /**
-   * Private constructor to prevent direct construction calls with the `new` operator.
+   * Constructor for PromptProjectConfigManager.
    * @param configPath Optional path to the configuration file
    */
-  private constructor(configPath?: string) {
+  constructor(configPath?: string) {
     const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
     const projectRoot = process.env.FURY_PROJECT_ROOT || process.cwd();
     this.configPath = configPath || path.join(projectRoot, configFileName);
@@ -67,14 +84,18 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private async performIntegrityCheck(): Promise<void> {
     try {
       await this.loadConfig();
+      const result = configSchema.safeParse(this.config);
+      if (!result.success) {
+        throw new Error(`Config validation failed: ${result.error.message}`);
+      }
       await this.ensureConfigDirectories();
       console.log(chalk.green('✔ Configuration integrity check passed'));
     } catch (error: any) {
       if (error instanceof Error && error.message.includes('Project not initialized')) {
         console.warn(chalk.yellow('⚠ Configuration file not found. Project needs to be initialized.'));
         throw error;
-      } else if (error instanceof z.ZodError) {
-        console.error(chalk.red('Invalid configuration file:'), error.errors);
+      } else if (error instanceof z.ZodError || error.message.includes('Config validation failed')) {
+        console.error(chalk.red('Invalid configuration file:'), error.message);
         throw new Error(`Invalid configuration file. This could be due to:
           1. Manual edits that introduced errors.
           2. Partial updates that left the config in an inconsistent state.
@@ -83,25 +104,15 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
           - Review your fury-config.json file for any obvious mistakes.
           - Run the 'config --reset' command to restore default settings.
           - If you need to keep your current settings, use 'config --validate' to get more details on the specific issues.`);
-      } else if (error instanceof Error) {
-        console.warn(chalk.yellow('⚠ Configuration integrity check failed:'), error.message);
-        console.log(chalk.yellow('Attempting to create necessary directories...'));
-        try {
-          await this.ensureConfigDirectories();
-        } catch (dirError) {
-          console.error(chalk.red('Failed to create necessary directories:'), dirError);
-          throw dirError;
-        }
       } else {
-        console.warn(chalk.yellow('⚠ Configuration integrity check failed with an unknown error'));
+        console.error(chalk.red('Configuration integrity check failed:'), error.message);
         throw error;
       }
     }
   }
 
   private async validatePromptsFolder(): Promise<void> {
-    const promptsDir = path.resolve(process.env.FURY_PROJECT_ROOT || process.cwd(), this.config.promptsDir);
-    const promptFileSystem = new PromptFileSystem();
+    const promptFileSystem = PromptFileSystem.getInstance();
     await promptFileSystem.initialize();
 
     const isValid = await promptFileSystem.validatePromptsFolderConfig();
@@ -189,14 +200,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 
   public async updateConfig(newConfig: Partial<Config>): Promise<void> {
     try {
-      const updatedConfig = configSchema.parse({
-        ...this.config,
-        ...newConfig,
-        modelParams: {
-          ...this.config.modelParams,
-          ...newConfig.modelParams,
-        },
-      });
+      const updatedConfig = configSchema.parse(deepMerge(this.config, newConfig));
 
       this.config = updatedConfig;
       await this.saveConfig();

@@ -7,7 +7,7 @@ import { PromptFileSystem } from './promptFileSystem';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 
 // Create a singleton instance of PromptFileSystem
-const fileSystem = new PromptFileSystem();
+const fileSystem = PromptFileSystem.getInstance();
 
 /**
  * Represents a single prompt model with all its properties and methods.
@@ -51,7 +51,7 @@ export class PromptModel<
   outputSchema: JSONSchema7;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
-  private fileSystem: IPromptFileSystem;
+  private fileSystem: IPromptFileSystem = PromptFileSystem.getInstance();
 
   get filePath(): string {
     const promptsDir = configManager.getConfig('promptsDir');
@@ -61,13 +61,12 @@ export class PromptModel<
   /**
    * Create a new PromptModel instance.
    * 
-   * Purpose: Initialize a new prompt with all necessary data and optional file system access.
+   * Purpose: Initialize a new prompt with all necessary data.
    * 
    * @param promptData Required data to initialize the prompt
-   * @param fileSystem Optional PromptFileSystem instance for file operations
-   * @throws Error if required fields are missing in promptData or if FileSystem is not initialized
+   * @throws Error if required fields are missing in promptData
    */
-  constructor(promptData: IPromptModelRequired, fileSystem?: IPromptFileSystem) {
+  constructor(promptData: IPromptModelRequired) {
     if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {
       throw new Error('Invalid prompt data: missing required fields');
     }
@@ -78,15 +77,10 @@ export class PromptModel<
     this.parameters = promptData.parameters || [];
     this.inputSchema = promptData.inputSchema || {};
     this.outputSchema = promptData.outputSchema || {};
-    this.fileSystem = fileSystem || new PromptFileSystem();
     this.version = promptData.version || '1.0.0';
     this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = this.determineOutputType(promptData.outputSchema);
     this.configuration = this.initializeConfiguration();
-
-    if (!this.fileSystem) {
-      throw new Error('FileSystem is not initialized. Cannot create PromptModel.');
-    }
   }
 
   private determineOutputType(outputSchema: JSONSchema7): 'structured' | 'plain' {
@@ -356,9 +350,8 @@ export class PromptModel<
     return await fileSystem.listPrompts({ category });
   }
 
-  static async deletePrompt(category: string, name: string, fileSystem?: IPromptFileSystem): Promise<void> {
-    const fs = fileSystem || new PromptFileSystem();
-    if (!fs) throw Error(`No file system provided`);
+  static async deletePrompt(category: string, name: string): Promise<void> {
+    const fs = PromptFileSystem.getInstance();
     await fs.deletePrompt({ category, promptName: name });
   }
 }

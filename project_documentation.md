@@ -59,12 +59,20 @@ export class PromptManager<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > {
+  private static instance: PromptManager;
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
   public prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
   private fileSystem: PromptFileSystem;
 
-  constructor() {
-    this.fileSystem = new PromptFileSystem();
+  private constructor() {
+    this.fileSystem = PromptFileSystem.getInstance();
+  }
+
+  public static getInstance(): PromptManager {
+    if (!PromptManager.instance) {
+      PromptManager.instance = new PromptManager();
+    }
+    return PromptManager.instance;
   }
 
   /**
@@ -269,7 +277,7 @@ import { PromptFileSystem } from './promptFileSystem';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 
 // Create a singleton instance of PromptFileSystem
-const fileSystem = new PromptFileSystem();
+const fileSystem = PromptFileSystem.getInstance();
 
 /**
  * Represents a single prompt model with all its properties and methods.
@@ -655,10 +663,28 @@ export const PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
  * the generation of TypeScript definition files for prompts.
  */
 export class PromptFileSystem implements IPromptFileSystem {
+  private static instance: PromptFileSystem;
   private basePath: string;
 
-  constructor() {
+  private constructor() {
     this.basePath = path.resolve(configManager.getConfig('promptsDir'));
+  }
+
+  public static getInstance(): PromptFileSystem {
+    if (!PromptFileSystem.instance) {
+      PromptFileSystem.instance = new PromptFileSystem();
+    }
+    return PromptFileSystem.instance;
+  }
+
+  getFilePath(props: { category: string; promptName: string }): string {
+    const { category, promptName } = props;
+    return path.join(this.basePath, category, promptName, PROMPT_FILENAME);
+  }
+
+  getVersionFilePath(props: { category: string; promptName: string; version: string }): string {
+    const { category, promptName, version } = props;
+    return path.join(this.basePath, category, promptName, '.versions', `v${version}.json`);
   }
 
   public async initialize(): Promise<void> {
@@ -732,13 +758,6 @@ export class PromptFileSystem implements IPromptFileSystem {
     return JSON.parse(configData);
   }
 
-  private getFilePath({ category, promptName }: { category: string, promptName: string }): string {
-    return path.join(this.basePath, category, promptName, 'prompt.json');
-  }
-
-  private getVersionFilePath({ category, promptName, version }: { category: string, promptName: string, version: string }): string {
-    return path.join(this.basePath, category, promptName, '.versions', `v${version}.json`);
-  }
 
   /**
    * Save a prompt to the file system.
@@ -754,14 +773,10 @@ export class PromptFileSystem implements IPromptFileSystem {
   async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
     const validatedPromptData = PromptSchema.parse(promptData) as IPrompt<IPromptInput, IPromptOutput>;
-    const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
+    const filePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, PROMPT_FILENAME);
 
     try {
-      const versionFilePath = this.getVersionFilePath({
-        category: validatedPromptData.category,
-        promptName: validatedPromptData.name,
-        version: validatedPromptData.version
-      });
+      const versionFilePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions', `v${validatedPromptData.version}.json`);
 
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
@@ -775,6 +790,7 @@ export class PromptFileSystem implements IPromptFileSystem {
       await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
 
       const versionsPath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions');
+      await fs.mkdir(versionsPath, { recursive: true });
       const versions = await this.getPromptVersions({ category: validatedPromptData.category, promptName: validatedPromptData.name });
       if (!versions.includes(validatedPromptData.version)) {
         versions.push(validatedPromptData.version);
@@ -810,19 +826,22 @@ export class PromptFileSystem implements IPromptFileSystem {
    */
   async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
     const { category, promptName } = props;
-    const filePath = this.getFilePath({ category, promptName });
+    const filePath = path.join(this.basePath, category, promptName, PROMPT_FILENAME);
 
     try {
+      await fs.access(filePath);
       const data = await fs.readFile(filePath, 'utf-8');
-      const parsedData = JSON.parse(data);
+      let parsedData;
+      try {
+        parsedData = JSON.parse(data);
+      } catch (jsonError: Error | any) {
+        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup. Error details: ${jsonError.message}`);
+      }
       const validatedData = PromptSchema.parse(parsedData);
       return validatedData as IPrompt<IPromptInput, IPromptOutput>;
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         throw new Error(`Prompt not found at ${filePath}. Please verify that the prompt exists and the category (${category}) and promptName (${promptName}) are correct.`);
-      }
-      if (error instanceof SyntaxError) {
-        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup. Error details: ${error.message}`);
       }
       if (error instanceof z.ZodError) {
         throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt. Error details: ${error.errors.map(e => e.message).join(', ')}`);
@@ -1054,17 +1073,34 @@ export type { Config };
  * PromptProjectConfigManager is responsible for managing the configuration of the prompt project.
  * It implements the Singleton pattern to ensure only one instance of the configuration manager exists.
  */
+// Helper function for deep merging objects
+function deepMerge(target: any, source: any): any {
+  if (typeof target !== 'object' || target === null) {
+    return source;
+  }
+
+  Object.keys(source).forEach(key => {
+    if (source[key] instanceof Object) {
+      target[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  });
+
+  return target;
+}
+
 export class PromptProjectConfigManager implements IPromptProjectConfigManager {
-  private static instance: PromptProjectConfigManager;
   private configPath: string;
   private config: Config;
   private initialized: boolean = false;
+  private static instance: PromptProjectConfigManager;
 
   /**
-   * Private constructor to prevent direct construction calls with the `new` operator.
+   * Constructor for PromptProjectConfigManager.
    * @param configPath Optional path to the configuration file
    */
-  private constructor(configPath?: string) {
+  constructor(configPath?: string) {
     const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
     const projectRoot = process.env.FURY_PROJECT_ROOT || process.cwd();
     this.configPath = configPath || path.join(projectRoot, configFileName);
@@ -1107,14 +1143,18 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private async performIntegrityCheck(): Promise<void> {
     try {
       await this.loadConfig();
+      const result = configSchema.safeParse(this.config);
+      if (!result.success) {
+        throw new Error(`Config validation failed: ${result.error.message}`);
+      }
       await this.ensureConfigDirectories();
       console.log(chalk.green('✔ Configuration integrity check passed'));
     } catch (error: any) {
       if (error instanceof Error && error.message.includes('Project not initialized')) {
         console.warn(chalk.yellow('⚠ Configuration file not found. Project needs to be initialized.'));
         throw error;
-      } else if (error instanceof z.ZodError) {
-        console.error(chalk.red('Invalid configuration file:'), error.errors);
+      } else if (error instanceof z.ZodError || error.message.includes('Config validation failed')) {
+        console.error(chalk.red('Invalid configuration file:'), error.message);
         throw new Error(`Invalid configuration file. This could be due to:
           1. Manual edits that introduced errors.
           2. Partial updates that left the config in an inconsistent state.
@@ -1123,17 +1163,8 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
           - Review your fury-config.json file for any obvious mistakes.
           - Run the 'config --reset' command to restore default settings.
           - If you need to keep your current settings, use 'config --validate' to get more details on the specific issues.`);
-      } else if (error instanceof Error) {
-        console.warn(chalk.yellow('⚠ Configuration integrity check failed:'), error.message);
-        console.log(chalk.yellow('Attempting to create necessary directories...'));
-        try {
-          await this.ensureConfigDirectories();
-        } catch (dirError) {
-          console.error(chalk.red('Failed to create necessary directories:'), dirError);
-          throw dirError;
-        }
       } else {
-        console.warn(chalk.yellow('⚠ Configuration integrity check failed with an unknown error'));
+        console.error(chalk.red('Configuration integrity check failed:'), error.message);
         throw error;
       }
     }
@@ -1229,14 +1260,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 
   public async updateConfig(newConfig: Partial<Config>): Promise<void> {
     try {
-      const updatedConfig = configSchema.parse({
-        ...this.config,
-        ...newConfig,
-        modelParams: {
-          ...this.config.modelParams,
-          ...newConfig.modelParams,
-        },
-      });
+      const updatedConfig = configSchema.parse(deepMerge(this.config, newConfig));
 
       this.config = updatedConfig;
       await this.saveConfig();
@@ -1307,6 +1331,16 @@ import { PromptModel } from '../promptModel.js';
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
+async function initializeConfig() {
+  try {
+    await configManager.initialize();
+  } catch (error) {
+    log.error('Failed to initialize configuration:');
+    console.error(error);
+    process.exit(1);
+  }
+}
+
 const log = {
   info: (message: string) => console.log(chalk.blue(message)),
   success: (message: string) => console.log(chalk.green(message)),
@@ -1320,7 +1354,10 @@ const program = new Command();
 
 program
   .version('1.0.0')
-  .description('Prompt Manager CLI - A powerful tool for managing and generating prompts');
+  .description('Prompt Manager CLI - A powerful tool for managing and generating prompts')
+  .hook('preAction', async () => {
+    await initializeConfig();
+  });
 
 program
   .command('init')
@@ -1394,10 +1431,13 @@ program
     log.info('Here are all the prompts currently available in your project:');
 
     try {
-      const prompts = await listPrompts();
-      if (prompts.length === 0) {
-        log.warn('No prompts found. Use the "create" command to add new prompts.');
-      } else {
+      while (true) {
+        const prompts = await listPrompts();
+        if (prompts.length === 0) {
+          log.warn('No prompts found. Use the "create" command to add new prompts.');
+          return;
+        }
+
         const table = new Table({
           columns: [
             { name: 'category', alignment: 'left', color: 'cyan' },
@@ -1430,7 +1470,10 @@ program
           },
         });
 
-        await displayPromptDetails(selectedPrompt);
+        const result = await displayPromptDetails(selectedPrompt);
+        if (result === 'delete' || result === 'error') {
+          break;
+        }
       }
     } catch (error) {
       log.error('Failed to list prompts:');
@@ -1438,72 +1481,67 @@ program
     }
   });
 
-async function displayPromptDetails(prompt: any) {
-  try {
-    const promptDetails = await getPromptDetails({ category: prompt.category, name: prompt.name });
-    log.info('\nPrompt Details:');
-    const detailsTable = new Table({
-      columns: [
-        { name: 'property', alignment: 'left', color: 'cyan' },
-        { name: 'value', alignment: 'left', color: 'green' },
-      ],
-    });
+async function displayPromptDetails(prompt: any): Promise<string> {
+  while (true) {
+    try {
+      const promptDetails = await getPromptDetails({ category: prompt.category, name: prompt.name });
+      log.info('\nPrompt Details:');
+      const detailsTable = new Table({
+        columns: [
+          { name: 'property', alignment: 'left', color: 'cyan' },
+          { name: 'value', alignment: 'left', color: 'green' },
+        ],
+      });
 
-    Object.entries(promptDetails).forEach(([key, value]) => {
-      detailsTable.addRow({ property: key, value: JSON.stringify(value ?? 'N/A', null, 2) });
-    });
+      Object.entries(promptDetails).forEach(([key, value]) => {
+        detailsTable.addRow({ property: key, value: JSON.stringify(value ?? 'N/A', null, 2) });
+      });
 
-    detailsTable.printTable();
+      detailsTable.printTable();
 
-    const action = await expand({
-      message: 'What would you like to do?',
-      default: 'e',
-      choices: [
-        {
-          key: 'e',
-          name: 'Edit prompt',
-          value: 'edit',
-        },
-        {
-          key: 'd',
-          name: 'Delete prompt',
-          value: 'delete',
-        },
-        {
-          key: 'b',
-          name: 'Go back to list',
-          value: 'back',
-        },
-        {
-          key: 'x',
-          name: 'Exit',
-          value: 'exit',
-        },
-      ],
-    });
+      const action = await expand({
+        message: 'What would you like to do?',
+        default: 'e',
+        choices: [
+          {
+            key: 'e',
+            name: 'Edit prompt',
+            value: 'edit',
+          },
+          {
+            key: 'd',
+            name: 'Delete prompt',
+            value: 'delete',
+          },
+          {
+            key: 'b',
+            name: 'Go back to list',
+            value: 'back',
+          },
+          {
+            key: 'x',
+            name: 'Exit',
+            value: 'exit',
+          },
+        ],
+      });
 
-    switch (action) {
-      case 'edit':
-        await updatePrompt({ category: prompt.category, name: prompt.name, updates: {} });
-        break;
-      case 'delete':
-        await deletePrompt({ category: prompt.category, name: prompt.name });
-        break;
-      case 'back':
-        const listCommand = program.commands.find((cmd) => cmd.name() === 'list');
-        if (listCommand && typeof listCommand.action === 'function') {
-          await listCommand.action(async () => {
-            // Implement list command logic here
-          });
-        } else {
-          log.error('List command not found or is not a function');
-        }
-        break;
-      case 'exit':
-        process.exit(0);
+      switch (action) {
+        case 'edit':
+          await updatePrompt({ category: prompt.category, name: prompt.name, updates: {} });
+          break;
+        case 'delete':
+          await deletePrompt({ category: prompt.category, name: prompt.name });
+          return 'delete';
+        case 'back':
+          return 'back';
+        case 'exit':
+          process.exit(0);
+      }
+    } catch (error) {
+      log.error(`Failed to display prompt details: ${error instanceof Error ? error.message : String(error)}`);
+      return 'error';
     }
-  } catch (error) {
-    log.error(`Failed to display prompt details: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -1641,6 +1679,8 @@ import { configManager } from '../config/PromptProjectConfigManager';
 import { z } from 'zod';
 import { PromptSchema } from '../schemas/prompts';
 
+const promptManager = PromptManager.getInstance();
+
 /**
  * This file contains the implementation of various CLI commands for the Prompt Manager.
  * Each function represents a different command that can be executed from the command line.
@@ -1680,8 +1720,7 @@ export async function createPrompt(): Promise<void> {
       }
     }
 
-    const manager = new PromptManager();
-    await manager.initialize();
+    await promptManager.initialize();
 
     // Validate the AI-generated prompt data
     const validatedPromptData = PromptSchema.parse(promptData);
@@ -1702,7 +1741,7 @@ export async function createPrompt(): Promise<void> {
       }
     });
 
-    await manager.createPrompt({ prompt });
+    await promptManager.createPrompt({ prompt });
     console.log(`Prompt "${prompt.name}" created successfully.`);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -1737,9 +1776,8 @@ export async function createPrompt(): Promise<void> {
  * Purpose: Provide an overview of all prompts in the system for user reference.
  */
 export async function listPrompts(): Promise<Array<{ name: string; category: string; version: string; filePath: string }>> {
-  const manager = new PromptManager();
-  await manager.initialize();
-  const prompts = await manager.listPrompts({});
+  await promptManager.initialize();
+  const prompts = await promptManager.listPrompts({});
 
   if (prompts.length === 0) {
     console.log('No prompts found. Use the "create" command to add new prompts.');
@@ -1845,10 +1883,14 @@ export async function updatePrompt(props: { category: string; name: string; upda
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Invalid prompt data:', error.errors);
+    } else if (error instanceof Error) {
+      console.error('An error occurred while updating the prompt:', error.message);
+      if (error.stack) {
+        console.debug(error.stack);
+      }
     } else {
-      console.error('An error occurred while updating the prompt:', error);
+      console.error('An unknown error occurred while updating the prompt:', String(error));
     }
-    throw error; // Re-throw the error to be caught by the caller
   }
 }
 

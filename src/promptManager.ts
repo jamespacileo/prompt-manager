@@ -15,12 +15,20 @@ export class PromptManager<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > {
+  private static instance: PromptManager;
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
   public prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
   private fileSystem: PromptFileSystem;
 
-  constructor() {
-    this.fileSystem = new PromptFileSystem();
+  private constructor() {
+    this.fileSystem = PromptFileSystem.getInstance();
+  }
+
+  public static getInstance(): PromptManager {
+    if (!PromptManager.instance) {
+      PromptManager.instance = new PromptManager();
+    }
+    return PromptManager.instance;
   }
 
   /**
@@ -33,6 +41,7 @@ export class PromptManager<
    */
   async initialize(): Promise<void> {
     try {
+      await this.fileSystem.initialize();
       const prompts = await this.fileSystem.listPrompts();
       for (const prompt of prompts) {
         if (!this.prompts[prompt.category]) {
@@ -206,5 +215,5 @@ export class PromptManager<
 }
 
 export function getPromptManager(): PromptManager {
-  return new PromptManager();
+  return PromptManager.getInstance();
 }

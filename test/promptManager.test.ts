@@ -19,7 +19,7 @@ describe('PromptManager', () => {
   });
 
   beforeEach(async () => {
-    manager = new PromptManager();
+    manager = PromptManager.getInstance();
     await manager.initialize();
   });
 

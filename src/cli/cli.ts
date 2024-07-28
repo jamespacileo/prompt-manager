@@ -15,6 +15,16 @@ import { PromptModel } from '../promptModel.js';
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
+async function initializeConfig() {
+  try {
+    await configManager.initialize();
+  } catch (error) {
+    log.error('Failed to initialize configuration:');
+    console.error(error);
+    process.exit(1);
+  }
+}
+
 const log = {
   info: (message: string) => console.log(chalk.blue(message)),
   success: (message: string) => console.log(chalk.green(message)),
@@ -28,7 +38,10 @@ const program = new Command();
 
 program
   .version('1.0.0')
-  .description('Prompt Manager CLI - A powerful tool for managing and generating prompts');
+  .description('Prompt Manager CLI - A powerful tool for managing and generating prompts')
+  .hook('preAction', async () => {
+    await initializeConfig();
+  });
 
 program
   .command('init')
@@ -102,10 +115,13 @@ program
     log.info('Here are all the prompts currently available in your project:');
 
     try {
-      const prompts = await listPrompts();
-      if (prompts.length === 0) {
-        log.warn('No prompts found. Use the "create" command to add new prompts.');
-      } else {
+      while (true) {
+        const prompts = await listPrompts();
+        if (prompts.length === 0) {
+          log.warn('No prompts found. Use the "create" command to add new prompts.');
+          return;
+        }
+
         const table = new Table({
           columns: [
             { name: 'category', alignment: 'left', color: 'cyan' },
@@ -138,7 +154,10 @@ program
           },
         });
 
-        await displayPromptDetails(selectedPrompt);
+        const result = await displayPromptDetails(selectedPrompt);
+        if (result === 'delete' || result === 'error') {
+          break;
+        }
       }
     } catch (error) {
       log.error('Failed to list prompts:');
@@ -146,72 +165,67 @@ program
     }
   });
 
-async function displayPromptDetails(prompt: any) {
-  try {
-    const promptDetails = await getPromptDetails({ category: prompt.category, name: prompt.name });
-    log.info('\nPrompt Details:');
-    const detailsTable = new Table({
-      columns: [
-        { name: 'property', alignment: 'left', color: 'cyan' },
-        { name: 'value', alignment: 'left', color: 'green' },
-      ],
-    });
+async function displayPromptDetails(prompt: any): Promise<string> {
+  while (true) {
+    try {
+      const promptDetails = await getPromptDetails({ category: prompt.category, name: prompt.name });
+      log.info('\nPrompt Details:');
+      const detailsTable = new Table({
+        columns: [
+          { name: 'property', alignment: 'left', color: 'cyan' },
+          { name: 'value', alignment: 'left', color: 'green' },
+        ],
+      });
 
-    Object.entries(promptDetails).forEach(([key, value]) => {
-      detailsTable.addRow({ property: key, value: JSON.stringify(value ?? 'N/A', null, 2) });
-    });
+      Object.entries(promptDetails).forEach(([key, value]) => {
+        detailsTable.addRow({ property: key, value: JSON.stringify(value ?? 'N/A', null, 2) });
+      });
 
-    detailsTable.printTable();
+      detailsTable.printTable();
 
-    const action = await expand({
-      message: 'What would you like to do?',
-      default: 'e',
-      choices: [
-        {
-          key: 'e',
-          name: 'Edit prompt',
-          value: 'edit',
-        },
-        {
-          key: 'd',
-          name: 'Delete prompt',
-          value: 'delete',
-        },
-        {
-          key: 'b',
-          name: 'Go back to list',
-          value: 'back',
-        },
-        {
-          key: 'x',
-          name: 'Exit',
-          value: 'exit',
-        },
-      ],
-    });
+      const action = await expand({
+        message: 'What would you like to do?',
+        default: 'e',
+        choices: [
+          {
+            key: 'e',
+            name: 'Edit prompt',
+            value: 'edit',
+          },
+          {
+            key: 'd',
+            name: 'Delete prompt',
+            value: 'delete',
+          },
+          {
+            key: 'b',
+            name: 'Go back to list',
+            value: 'back',
+          },
+          {
+            key: 'x',
+            name: 'Exit',
+            value: 'exit',
+          },
+        ],
+      });
 
-    switch (action) {
-      case 'edit':
-        await updatePrompt({ category: prompt.category, name: prompt.name, updates: {} });
-        break;
-      case 'delete':
-        await deletePrompt({ category: prompt.category, name: prompt.name });
-        break;
-      case 'back':
-        const listCommand = program.commands.find((cmd) => cmd.name() === 'list');
-        if (listCommand && typeof listCommand.action === 'function') {
-          await listCommand.action(async () => {
-            // Implement list command logic here
-          });
-        } else {
-          log.error('List command not found or is not a function');
-        }
-        break;
-      case 'exit':
-        process.exit(0);
+      switch (action) {
+        case 'edit':
+          await updatePrompt({ category: prompt.category, name: prompt.name, updates: {} });
+          break;
+        case 'delete':
+          await deletePrompt({ category: prompt.category, name: prompt.name });
+          return 'delete';
+        case 'back':
+          return 'back';
+        case 'exit':
+          process.exit(0);
+      }
+    } catch (error) {
+      log.error(`Failed to display prompt details: ${error instanceof Error ? error.message : String(error)}`);
+      return 'error';
     }
-  } catch (error) {
-    log.error(`Failed to display prompt details: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

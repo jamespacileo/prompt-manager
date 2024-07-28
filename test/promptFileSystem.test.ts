@@ -56,7 +56,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  promptFileSystem = new PromptFileSystem();
+  promptFileSystem = PromptFileSystem.getInstance();
   await promptFileSystem.initialize();
 });
 

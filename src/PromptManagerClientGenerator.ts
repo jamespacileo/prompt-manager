@@ -10,7 +10,7 @@ export class PromptManagerClientGenerator {
 
   constructor(configManager: IPromptProjectConfigManager) {
     this.configManager = configManager;
-    this.promptFileSystem = new PromptFileSystem();
+    this.promptFileSystem = PromptFileSystem.getInstance();
     this.outputPath = path.join(this.configManager.getConfig('promptsDir'), '..', 'client.ts');
   }
 

@@ -303,6 +303,20 @@ interface IPromptManagerLibrary<TInput extends IPromptInput<any> = IPromptInput<
 // Export the interfaces so they can be imported and used in other parts of the project
 interface IPromptFileSystem {
   /**
+   * Gets the file path for a prompt.
+   * @param props An object containing the category and name of the prompt.
+   * @returns The file path for the prompt.
+   */
+  getFilePath(props: { category: string; promptName: string }): string;
+
+  /**
+   * Gets the file path for a specific version of a prompt.
+   * @param props An object containing the category, name, and version of the prompt.
+   * @returns The file path for the specific version of the prompt.
+   */
+  getVersionFilePath(props: { category: string; promptName: string; version: string }): string;
+
+  /**
    * Saves a prompt to the file system.
    * @param props An object containing the prompt data to be saved.
    * @returns A promise that resolves when the prompt is saved.

@@ -9,6 +9,11 @@ import { configManager } from '../config/PromptProjectConfigManager';
 import { z } from 'zod';
 import { PromptSchema } from '../schemas/prompts';
 
+const promptManager = PromptManager.getInstance();
+
+// Ensure PromptManager is initialized before use
+await promptManager.initialize();
+
 /**
  * This file contains the implementation of various CLI commands for the Prompt Manager.
  * Each function represents a different command that can be executed from the command line.
@@ -48,9 +53,6 @@ export async function createPrompt(): Promise<void> {
       }
     }
 
-    const manager = new PromptManager();
-    await manager.initialize();
-
     // Validate the AI-generated prompt data
     const validatedPromptData = PromptSchema.parse(promptData);
 
@@ -70,7 +72,7 @@ export async function createPrompt(): Promise<void> {
       }
     });
 
-    await manager.createPrompt({ prompt });
+    await promptManager.createPrompt({ prompt });
     console.log(`Prompt "${prompt.name}" created successfully.`);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -105,9 +107,8 @@ export async function createPrompt(): Promise<void> {
  * Purpose: Provide an overview of all prompts in the system for user reference.
  */
 export async function listPrompts(): Promise<Array<{ name: string; category: string; version: string; filePath: string }>> {
-  const manager = new PromptManager();
-  await manager.initialize();
-  const prompts = await manager.listPrompts({});
+  await promptManager.initialize();
+  const prompts = await promptManager.listPrompts({});
 
   if (prompts.length === 0) {
     console.log('No prompts found. Use the "create" command to add new prompts.');
@@ -126,7 +127,7 @@ export async function listPrompts(): Promise<Array<{ name: string; category: str
  * Purpose: Allow users to inspect the properties and content of a particular prompt.
  */
 export async function getPromptDetails(props: { category: string; name: string }): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   const prompt = await manager.getPrompt(props);
   return {
@@ -146,7 +147,7 @@ export async function getPromptDetails(props: { category: string; name: string }
  */
 export async function updatePrompt(props: { category: string; name: string; updates: Partial<IPrompt<IPromptInput, IPromptOutput>> }): Promise<void> {
   try {
-    const manager = new PromptManager();
+    const manager = PromptManager.getInstance();
     await manager.initialize();
 
     // Fetch the current prompt
@@ -213,10 +214,14 @@ export async function updatePrompt(props: { category: string; name: string; upda
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Invalid prompt data:', error.errors);
+    } else if (error instanceof Error) {
+      console.error('An error occurred while updating the prompt:', error.message);
+      if (error.stack) {
+        console.debug(error.stack);
+      }
     } else {
-      console.error('An error occurred while updating the prompt:', error);
+      console.error('An unknown error occurred while updating the prompt:', String(error));
     }
-    throw error; // Re-throw the error to be caught by the caller
   }
 }
 
@@ -226,7 +231,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
  */
 export async function generateTypes(): Promise<void> {
   const outputDir = configManager.getConfig('outputDir');
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
   let typeDefs = 'declare module "prompt-manager" {\n';
@@ -312,7 +317,7 @@ export async function getStatus(): Promise<{
     preferredModels: configManager.getConfig('preferredModels'),
     modelParams: configManager.getConfig('modelParams')
   };
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
 
@@ -344,7 +349,7 @@ export async function getStatus(): Promise<{
 }
 
 export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>[]> {
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   const prompts = await manager.listPrompts({});
 
@@ -361,7 +366,7 @@ export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput,
 }
 
 export async function deletePrompt(props: { category: string; name: string }): Promise<void> {
-  const manager = new PromptManager();
+  const manager = PromptManager.getInstance();
   await manager.initialize();
   await manager.deletePrompt(props);
   console.log(`Prompt "${props.category}/${props.name}" deleted successfully.`);

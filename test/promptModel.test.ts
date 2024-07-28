@@ -53,8 +53,9 @@ describe("PromptModel", () => {
     process.env.PROMPTS_DIR = TEST_PROMPTS_PATH;
   });
 
-  beforeEach(() => {
-    fileSystem = new PromptFileSystem();
+  beforeEach(async () => {
+    fileSystem = PromptFileSystem.getInstance();
+    await fileSystem.initialize();
   });
 
   afterEach(async () => {

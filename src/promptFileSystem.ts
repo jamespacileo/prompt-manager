@@ -21,13 +21,34 @@ export const PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
  * the generation of TypeScript definition files for prompts.
  */
 export class PromptFileSystem implements IPromptFileSystem {
+  private static instance: PromptFileSystem;
   private basePath: string;
+  private initialized: boolean = false;
 
-  constructor() {
+  private constructor() {
     this.basePath = path.resolve(configManager.getConfig('promptsDir'));
   }
 
+  public static getInstance(): PromptFileSystem {
+    if (!PromptFileSystem.instance) {
+      PromptFileSystem.instance = new PromptFileSystem();
+    }
+    return PromptFileSystem.instance;
+  }
+
+  getFilePath(props: { category: string; promptName: string }): string {
+    const { category, promptName } = props;
+    return path.join(this.basePath, category, promptName, PROMPT_FILENAME);
+  }
+
+  getVersionFilePath(props: { category: string; promptName: string; version: string }): string {
+    const { category, promptName, version } = props;
+    return path.join(this.basePath, category, promptName, '.versions', `v${version}.json`);
+  }
+
   public async initialize(): Promise<void> {
+    if (this.initialized) return;
+
     this.basePath = path.resolve(configManager.getConfig('promptsDir'));
     await fs.mkdir(this.basePath, { recursive: true });
     await this.initializePromptsFolderConfig();
@@ -35,6 +56,13 @@ export class PromptFileSystem implements IPromptFileSystem {
     if (!isValid) {
       console.error('Prompts folder configuration is invalid. Reinitializing...');
       await this.initializePromptsFolderConfig();
+    }
+    this.initialized = true;
+  }
+
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      throw new Error('PromptFileSystem is not initialized. Call initialize() before using it.');
     }
   }
 
@@ -98,13 +126,6 @@ export class PromptFileSystem implements IPromptFileSystem {
     return JSON.parse(configData);
   }
 
-  private getFilePath({ category, promptName }: { category: string, promptName: string }): string {
-    return path.join(this.basePath, category, promptName, 'prompt.json');
-  }
-
-  private getVersionFilePath({ category, promptName, version }: { category: string, promptName: string, version: string }): string {
-    return path.join(this.basePath, category, promptName, '.versions', `v${version}.json`);
-  }
 
   /**
    * Save a prompt to the file system.
@@ -120,14 +141,10 @@ export class PromptFileSystem implements IPromptFileSystem {
   async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
     const validatedPromptData = PromptSchema.parse(promptData) as IPrompt<IPromptInput, IPromptOutput>;
-    const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
+    const filePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, PROMPT_FILENAME);
 
     try {
-      const versionFilePath = this.getVersionFilePath({
-        category: validatedPromptData.category,
-        promptName: validatedPromptData.name,
-        version: validatedPromptData.version
-      });
+      const versionFilePath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions', `v${validatedPromptData.version}.json`);
 
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
@@ -141,6 +158,7 @@ export class PromptFileSystem implements IPromptFileSystem {
       await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
 
       const versionsPath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions');
+      await fs.mkdir(versionsPath, { recursive: true });
       const versions = await this.getPromptVersions({ category: validatedPromptData.category, promptName: validatedPromptData.name });
       if (!versions.includes(validatedPromptData.version)) {
         versions.push(validatedPromptData.version);
@@ -176,19 +194,22 @@ export class PromptFileSystem implements IPromptFileSystem {
    */
   async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
     const { category, promptName } = props;
-    const filePath = this.getFilePath({ category, promptName });
+    const filePath = path.join(this.basePath, category, promptName, PROMPT_FILENAME);
 
     try {
+      await fs.access(filePath);
       const data = await fs.readFile(filePath, 'utf-8');
-      const parsedData = JSON.parse(data);
+      let parsedData;
+      try {
+        parsedData = JSON.parse(data);
+      } catch (jsonError: Error | any) {
+        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup. Error details: ${jsonError.message}`);
+      }
       const validatedData = PromptSchema.parse(parsedData);
       return validatedData as IPrompt<IPromptInput, IPromptOutput>;
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         throw new Error(`Prompt not found at ${filePath}. Please verify that the prompt exists and the category (${category}) and promptName (${promptName}) are correct.`);
-      }
-      if (error instanceof SyntaxError) {
-        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup. Error details: ${error.message}`);
       }
       if (error instanceof z.ZodError) {
         throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt. Error details: ${error.errors.map(e => e.message).join(', ')}`);
