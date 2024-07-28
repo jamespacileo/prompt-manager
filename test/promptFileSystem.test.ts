@@ -139,7 +139,7 @@ describe("PromptFileSystem", () => {
     expect(searchResults).toContainEqual({
       name: "cosmicWhisper",
       category: "celestialMystery",
-      filePath: path.join(testDir, "celestialMystery", "cosmicWhisper", "prompt.json")
+      filePath: path.join(process.cwd(), "celestialMystery", "cosmicWhisper", "prompt.json")
     });
   });
 
