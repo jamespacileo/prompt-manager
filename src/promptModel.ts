@@ -6,6 +6,9 @@ import { z } from 'zod';
 import { PromptFileSystem } from './promptFileSystem';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 
+// Create a singleton instance of PromptFileSystem
+const fileSystem = new PromptFileSystem();
+
 /**
  * Represents a single prompt model with all its properties and methods.
  * Purpose: Encapsulate all data and behavior related to a specific prompt,
@@ -13,7 +16,7 @@ import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
  */
 export class PromptModel<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
-  TOutput extends IPromptOutput<Record<string, any> | string> = IPromptOutput<Record<string, any> | string>
+  TOutput extends IPromptOutput<Record<string, any>> = IPromptOutput<Record<string, any>>
 > implements IPromptModel<TInput, TOutput> {
   name: string;
   category: string;
@@ -37,8 +40,7 @@ export class PromptModel<
   };
   outputType: 'structured' | 'plain';
   inputSchema: JSONSchema7;
-  outputSchema: JSONSchema7;
-  fileSystem: IPromptFileSystem;
+  outputSchema: JSONSchema7;;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
 
@@ -48,7 +50,7 @@ export class PromptModel<
    * @param promptData Required data to initialize the prompt
    * @param fileSystem Optional PromptFileSystem instance for file operations
    */
-  constructor(promptData: IPromptModelRequired, fileSystem?: IPromptFileSystem) {
+  constructor(promptData: IPromptModelRequired) {
     if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {
       throw new Error('Invalid prompt data: missing required fields');
     }
@@ -59,7 +61,7 @@ export class PromptModel<
     this.parameters = promptData.parameters || [];
     this.inputSchema = promptData.inputSchema || {};
     this.outputSchema = promptData.outputSchema || {};
-    this.fileSystem = fileSystem ?? new PromptFileSystem() as IPromptFileSystem;
+    // fileSystem = fileSystem 
     this.version = promptData.version || '1.0.0';
     this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = 'plain';
@@ -199,8 +201,8 @@ export class PromptModel<
   }
 
   async save(): Promise<void> {
-    if (this.fileSystem) {
-      await this.fileSystem.savePrompt({ promptData: this as unknown as IPrompt<Record<string, any>, Record<string, any>> });
+    if (fileSystem) {
+      await fileSystem.savePrompt({ promptData: this as unknown as IPrompt<Record<string, any>, Record<string, any>> });
     } else {
       throw new Error('FileSystem is not initialized');
     }
@@ -225,17 +227,17 @@ export class PromptModel<
   }
 
   async load(filePath: string): Promise<void> {
-    const promptData = await this.fileSystem.loadPrompt({ category: this.category, promptName: this.name });
+    const promptData = await fileSystem.loadPrompt({ category: this.category, promptName: this.name });
     Object.assign(this, promptData);
     this._isSaved = true;
   }
 
   async versions(): Promise<string[]> {
-    return this.fileSystem.getPromptVersions({ category: this.category, promptName: this.name });
+    return fileSystem.getPromptVersions({ category: this.category, promptName: this.name });
   }
 
   async switchVersion(version: string): Promise<void> {
-    const versionData = await this.fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
+    const versionData = await fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
     Object.assign(this, versionData);
     this._isSaved = true;
   }
@@ -244,15 +246,15 @@ export class PromptModel<
     return this._isSaved;
   }
 
-  static async loadPromptByName(name: string, fileSystem: IPromptFileSystem): Promise<PromptModel> {
+  static async loadPromptByName(name: string): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
     const promptData = await fileSystem.loadPrompt({ category, promptName });
-    const prompt = new PromptModel(promptData as IPromptModelRequired, fileSystem);
+    const prompt = new PromptModel(promptData as IPromptModelRequired);
     prompt.isLoadedFromStorage = true;
     return prompt;
   }
 
-  static async promptExists(name: string, fileSystem: IPromptFileSystem): Promise<boolean> {
+  static async promptExists(name: string): Promise<boolean> {
     const [category, promptName] = name.split('/');
     return fileSystem.promptExists({ category, promptName });
   }
