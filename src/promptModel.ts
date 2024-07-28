@@ -95,7 +95,7 @@ export class PromptModel<
     stopSequences: string[];
   } {
     return {
-      modelName: this.defaultModelName || 'gpt-3.5-turbo',
+      modelName: this.defaultModelName || 'gpt-4o-mini',
       temperature: 0.7,
       maxTokens: 100,
       topP: 1,
@@ -214,7 +214,7 @@ export class PromptModel<
   }
 
   updateMetadata(metadata: Partial<IPromptModel['metadata']>): void {
-    this.metadata = { 
+    this.metadata = {
       ...this.metadata,
       ...metadata,
       lastModified: new Date().toISOString()
@@ -239,7 +239,7 @@ export class PromptModel<
     const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
     await this.fileSystem.savePrompt({ promptData: updatedPromptData });
     this._isSaved = true;
-    
+
     // Update the current instance with the saved data
     Object.assign(this, updatedPromptData);
   }

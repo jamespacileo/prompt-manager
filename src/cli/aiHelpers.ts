@@ -1,7 +1,6 @@
 import { generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { PromptSchema } from '../schemas/prompts';
-import { PromptSchema } from '../schemas/prompts';
 import chalk from 'chalk';
 
 export function prettyPrintPrompt(prompt: any): void {
