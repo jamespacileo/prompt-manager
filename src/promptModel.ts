@@ -221,6 +221,13 @@ export class PromptModel<
     };
   }
 
+  updateConfiguration(config: Partial<IPromptModel['configuration']>): void {
+    this.configuration = {
+      ...this.configuration,
+      ...config
+    };
+  }
+
   getSummary(): string {
     return `${this.name} (${this.category}): ${this.description}`;
   }
