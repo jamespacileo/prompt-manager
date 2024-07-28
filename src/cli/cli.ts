@@ -7,7 +7,7 @@ import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getP
 import { Table } from 'console-table-printer';
 import fs from 'fs-extra';
 import path from 'path';
-import { TextEncoder, TextDecoder } from 'text-encoding';
+import { TextEncoder, TextDecoder } from 'util';
 import {configManager} from "../config/PromptProjectConfigManager"
 
 // Add TextEncoder and TextDecoder to the global object

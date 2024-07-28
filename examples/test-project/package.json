@@ -9,7 +9,7 @@
     "prompt-manager": "prompt-manager"
   },
   "dependencies": {
-    "prompt-manager": "file:../.."
+    "prompt-manager": "file:../../"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
