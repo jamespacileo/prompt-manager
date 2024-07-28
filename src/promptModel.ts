@@ -39,7 +39,7 @@ export class PromptModel<
   inputSchema: JSONSchema7;
   outputSchema: JSONSchema7;
   fileSystem: IPromptFileSystem;
-  private _isSaved: boolean;
+  private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
 
   /**
@@ -259,11 +259,13 @@ export class PromptModel<
 
   static async listPrompts(category?: string, fileSystem?: IPromptFileSystem): Promise<Array<{ name: string; category: string; filePath: string }>> {
     const fs = fileSystem || new PromptFileSystem();
-    return await fileSystem.listPrompts({ category });
+    if (!fs) throw Error(`No file system provided`);
+    return await fs.listPrompts({ category });
   }
 
   static async deletePrompt(category: string, name: string, fileSystem?: IPromptFileSystem): Promise<void> {
     const fs = fileSystem || new PromptFileSystem();
-    await fileSystem.deletePrompt({ category, promptName: name });
+    if (!fs) throw Error(`No file system provided`);
+    await fs.deletePrompt({ category, promptName: name });
   }
 }
