@@ -7,23 +7,17 @@ import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getP
 import { Table } from 'console-table-printer';
 import fs from 'fs-extra';
 import { TextEncoder, TextDecoder } from 'util';
-import { configManager } from "../config/PromptProjectConfigManager"
+import { getConfigManager } from "../config/PromptProjectConfigManager"
 import { PromptModel } from '../promptModel.js';
 
 // Add TextEncoder and TextDecoder to the global object
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
-async function initializeConfig() {
-  try {
-    // check if all deps are initialized
-    if (!await configManager.isInitialized()) {
-      log.error('Project is not initialized. Please run the "init" command first.');
-      process.exit(1);
-    }
-  } catch (error) {
-    log.error('Failed to initialize configuration:');
-    console.error(error);
+async function ensureInitialized() {
+  const configManager = await getConfigManager();
+  if (!(await configManager.isInitialized())) {
+    console.error(chalk.red('Project is not initialized. Please run the "init" command first.'));
     process.exit(1);
   }
 }
@@ -42,8 +36,10 @@ const program = new Command();
 program
   .version('1.0.0')
   .description('Prompt Manager CLI - A powerful tool for managing and generating prompts')
-  .hook('preAction', async () => {
-    await initializeConfig();
+  .hook('preAction', async (thisCommand) => {
+    if (thisCommand.name() !== 'init') {
+      await ensureInitialized();
+    }
   });
 
 program
@@ -89,6 +85,7 @@ program
     log.info('Please describe the prompt you want to create. AI will generate a prompt based on your description.');
 
     try {
+      const configManager = await getConfigManager();
       // Check if the project is initialized
       if (!await configManager.isInitialized()) {
         throw new Error('Project is not initialized. Please run the "init" command first.');

@@ -1,10 +1,12 @@
 import { IPromptCategory, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import { PromptModel } from './promptModel';
-import { PromptFileSystem } from './promptFileSystem';
+import { getFileSystemManager, PromptFileSystem } from './promptFileSystem';
 import path from 'path';
+import { incrementVersion } from './utils/versionUtils';
+import { getConfigManager, PromptProjectConfigManager } from './config/PromptProjectConfigManager';
 
-const fileSystem = await PromptFileSystem.getInstance();
-
+let fileSystem: PromptFileSystem;
+let configManager: PromptProjectConfigManager;
 
 /**
  * PromptManager is the central class for managing prompts.
@@ -23,7 +25,9 @@ export class PromptManager<
   public prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
   private initialized: boolean = false;
 
-  private constructor() { }
+  private constructor() {
+    // The initialization will be done in the initialize method
+  }
 
   public static async getInstance(): Promise<PromptManager> {
     if (!PromptManager.instance) {
@@ -44,7 +48,8 @@ export class PromptManager<
   private async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    fileSystem = await PromptFileSystem.getInstance();
+    configManager = await getConfigManager();
+    fileSystem = await getFileSystemManager();
     try {
       const prompts = await fileSystem.listPrompts();
       for (const prompt of prompts) {
@@ -59,10 +64,15 @@ export class PromptManager<
           // Continue loading other prompts even if one fails
         }
       }
+      this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize PromptManager:', error);
       throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  private incrementVersion(version: string): string {
+    return incrementVersion(version);
   }
 
   /**
@@ -221,12 +231,12 @@ export class PromptManager<
       ])
     );
   }
-
-  private incrementVersion(version: string): string {
-    const parts = version.split('.').map(Number);
-    parts[parts.length - 1]++;
-    return parts.join('.');
-  }
 }
 
-export const promptManager = await PromptManager.getInstance();
+let promptManager;
+
+(async () => {
+  promptManager = await PromptManager.getInstance();
+})();
+
+export { promptManager };

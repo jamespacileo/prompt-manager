@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput, IPromptModelRequired, IPromptsFolderConfig } from './types/interfaces';
-import { configManager } from './config/PromptProjectConfigManager';
+import { getConfigManager } from './config/PromptProjectConfigManager';
 import debug from 'debug';
 
 const log = debug('fury:promptFileSystem');
@@ -26,12 +26,16 @@ export const DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
  */
 export class PromptFileSystem implements IPromptFileSystem {
   private static instance: PromptFileSystem;
-  private basePath: string;
+  private basePath: string = '';
   private initialized: boolean = false;
+  static initializationPromise: any;
 
   private constructor() {
-    this.basePath = configManager.getConfig('promptsDir');
-    log(`PromptFileSystem initialized with basePath: ${this.basePath}`);
+    log(`PromptFileSystem constructor called`);
+  }
+
+  public isInitialized(): boolean {
+    return this.initialized;
   }
 
   getFilePath(props: { category: string; promptName: string }): string {
@@ -46,38 +50,49 @@ export class PromptFileSystem implements IPromptFileSystem {
 
   public static async getInstance(): Promise<PromptFileSystem> {
     if (!PromptFileSystem.instance) {
-      PromptFileSystem.instance = new PromptFileSystem();
-      await PromptFileSystem.instance.initialize();
+      if (!PromptFileSystem.initializationPromise) {
+        PromptFileSystem.initializationPromise = (async () => {
+          const instance = new PromptFileSystem();
+          await instance.initialize();
+          PromptFileSystem.instance = instance;
+        })();
+      }
+      await PromptFileSystem.initializationPromise;
     }
-    return PromptFileSystem.instance;
+    return PromptFileSystem.instance!;
   }
 
-  public async initialize(): Promise<void> {
+  public static async getInitializedInstance(): Promise<PromptFileSystem> {
+    return PromptFileSystem.getInstance();
+  }
+
+  private async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    this.basePath = configManager.getConfig('promptsDir');
-    log(`Initializing PromptFileSystem with basePath: ${this.basePath}`);
-
     try {
+      const configManager = await getConfigManager();
+      this.basePath = configManager.getConfig('promptsDir');
+      log(`Initializing PromptFileSystem with basePath: ${this.basePath}`);
+
       await fs.access(this.basePath);
       const stats = await fs.stat(this.basePath);
       if (!stats.isDirectory()) {
         throw new Error(`${this.basePath} is not a directory`);
       }
-    } catch (error) {
-      log(`Error accessing prompts directory: ${error instanceof Error ? error.message : String(error)}`);
-      throw new Error(`Invalid prompts directory: ${this.basePath}. Please check your configuration.`);
-    }
 
-    await fs.mkdir(this.basePath, { recursive: true });
-    await this.initializePromptsFolderConfig();
-    const isValid = await this.validatePromptsFolderConfig();
-    if (!isValid) {
-      log('Prompts folder configuration is invalid. Reinitializing...');
+      await fs.mkdir(this.basePath, { recursive: true });
       await this.initializePromptsFolderConfig();
+      const isValid = await this.validatePromptsFolderConfig();
+      if (!isValid) {
+        log('Prompts folder configuration is invalid. Reinitializing...');
+        await this.initializePromptsFolderConfig();
+      }
+      this.initialized = true;
+      log('PromptFileSystem initialization complete');
+    } catch (error) {
+      console.error('PromptFileSystem initialization failed:', error);
+      throw new Error('Failed to initialize PromptFileSystem. Please check your configuration and try again.');
     }
-    this.initialized = true;
-    log('PromptFileSystem initialization complete');
   }
 
   private async ensureInitialized(): Promise<void> {
@@ -361,14 +376,31 @@ export class PromptFileSystem implements IPromptFileSystem {
     return allPrompts.filter(prompt =>
       prompt.name.toLowerCase().includes(query.toLowerCase()) ||
       prompt.category.toLowerCase().includes(query.toLowerCase()) ||
-      prompt.description.toLowerCase().includes(query.toLowerCase())
+      prompt.description.toLowerCase().includes(query.toLowerCase()) ||
+      prompt.template.toLowerCase().includes(query.toLowerCase()) ||
+      (prompt.metadata && Object.values(prompt.metadata).some(value =>
+        typeof value === 'string' && value.toLowerCase().includes(query.toLowerCase())
+      ))
     );
   }
 
   async searchCategories(props: { query: string }): Promise<string[]> {
     const { query } = props;
     const categories = await this.listCategories();
-    return categories.filter(category => category.toLowerCase().includes(query.toLowerCase()));
+    const matchingCategories = categories.filter(category =>
+      category.toLowerCase().includes(query.toLowerCase())
+    );
+
+    // If no exact matches, try to find partial matches
+    if (matchingCategories.length === 0) {
+      return categories.filter(category =>
+        query.toLowerCase().split(' ').some(word =>
+          category.toLowerCase().includes(word)
+        )
+      );
+    }
+
+    return matchingCategories;
   }
 
   async getPromptVersions(props: { category: string; promptName: string }): Promise<string[]> {
@@ -510,3 +542,7 @@ export interface ${promptData.name}Output ${outputType}
     }
   }
 }
+
+export const getFileSystemManager = async (): Promise<PromptFileSystem> => {
+  return PromptFileSystem.getInstance();
+};

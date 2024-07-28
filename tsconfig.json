@@ -14,7 +14,7 @@
       "node_modules/.pnpm/@types",
       "node_modules/@types"
     ],
-    "rootDir": "./src",
+    // "rootDir": "./src",
     "moduleResolution": "Bundler",
     // "moduleDetection": "force",
     // "resolveJsonModule": true,
@@ -36,6 +36,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "test"
+    // "test"
   ]
 }

@@ -1,10 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { PromptFileSystem } from './promptFileSystem';
-import { PromptProjectConfigManager } from './config/PromptProjectConfigManager';
+import { getFileSystemManager, PromptFileSystem } from './promptFileSystem';
+import { getConfigManager, PromptProjectConfigManager } from './config/PromptProjectConfigManager';
 
-const fileSystem = await PromptFileSystem.getInstance();
-const configManager = await PromptProjectConfigManager.getInstance();
+const fileSystem = await getFileSystemManager();
+const configManager = await getConfigManager();
 
 export class PromptManagerClientGenerator {
   private outputPath: string;

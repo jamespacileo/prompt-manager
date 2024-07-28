@@ -2,8 +2,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import { getConfig } from '../config';
 
-const PROMPTS_DIR = getConfig('promptsDir');
-const OUTPUT_DIR = getConfig('outputDir');
+const PROMPTS_DIR = await getConfig('promptsDir');
+const OUTPUT_DIR = await getConfig('outputDir');
 
 // Ensure the output directory exists
 fs.ensureDirSync(OUTPUT_DIR);

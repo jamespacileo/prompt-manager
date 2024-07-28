@@ -4,6 +4,7 @@ bun.lockb
 project_documentation.md
 testCategory
 test-prompts-manager
+*.js
 
 # Dependency directories
 node_modules/

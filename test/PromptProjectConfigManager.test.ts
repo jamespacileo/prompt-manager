@@ -53,10 +53,10 @@ describe("PromptProjectConfigManager", () => {
   });
 
   test("PromptProjectConfigManager initialization", async () => {
-    const configManager = PromptProjectConfigManager.getInstance();
+    const configManager = await PromptProjectConfigManager.getInstance();
     await configManager.initialize();
 
-    const config = configManager.getAllConfig();
+    const config = await configManager.getAllConfig();
     expect(config).toBeDefined();
     expect(config.promptsDir).toBeDefined();
     expect(config.outputDir).toBeDefined();
@@ -65,7 +65,7 @@ describe("PromptProjectConfigManager", () => {
   });
 
   test("PromptProjectConfigManager updates and retrieves config", async () => {
-    const configManager = PromptProjectConfigManager.getInstance(mockConfigPath);
+    const configManager = await PromptProjectConfigManager.getInstance();
     await configManager.initialize();
 
     const newConfig: Partial<Config> = {
@@ -75,8 +75,8 @@ describe("PromptProjectConfigManager", () => {
 
     await configManager.updateConfig(newConfig);
 
-    expect(configManager.getConfig("promptsDir")).toBe("/new/prompts/dir");
-    expect(configManager.getConfig("preferredModels")).toEqual(["gpt-5", "gpt-4"]);
+    expect(await configManager.getConfig("promptsDir")).toBe("/new/prompts/dir");
+    expect(await configManager.getConfig("preferredModels")).toEqual(["gpt-5", "gpt-4"]);
   });
 
   test("PromptProjectConfigManager handles invalid config", async () => {
@@ -89,16 +89,14 @@ describe("PromptProjectConfigManager", () => {
 
     await fs.writeFile(mockConfigPath, JSON.stringify(invalidConfig));
 
-    const configManager = PromptProjectConfigManager.getInstance(mockConfigPath);
-
-    await expect(configManager.initialize()).rejects.toThrow("Invalid configuration file");
+    await expect(PromptProjectConfigManager.getInstance()).rejects.toThrow("Invalid configuration file");
   });
 
   test("PromptProjectConfigManager creates default config if file doesn't exist", async () => {
-    const configManager = PromptProjectConfigManager.getInstance(mockConfigPath);
+    const configManager = await PromptProjectConfigManager.getInstance();
     await configManager.initialize();
 
-    const config = configManager.getAllConfig();
+    const config = await configManager.getAllConfig();
     expect(config.promptsDir).toBeDefined();
     expect(config.outputDir).toBeDefined();
     expect(config.preferredModels).toBeInstanceOf(Array);

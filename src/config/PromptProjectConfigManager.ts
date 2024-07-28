@@ -38,7 +38,8 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private configPath: string;
   private config: Config;
   private initialized: boolean = false;
-  private static instance: PromptProjectConfigManager;
+  private static instance: PromptProjectConfigManager | null = null;
+  private static initializationPromise: Promise<void> | null = null;
   private basePath: string;
   private verbosity: number = 0;
 
@@ -46,7 +47,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
    * Constructor for PromptProjectConfigManager.
    * @param configPath Optional path to the configuration file
    */
-  constructor(configPath?: string) {
+  private constructor(configPath?: string) {
     const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
     this.basePath = getProjectRoot();
     this.configPath = configPath || path.resolve(this.basePath, configFileName);
@@ -68,19 +69,25 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     return this.verbosity;
   }
 
-  public static getInstance(configPath?: string): PromptProjectConfigManager {
+  public static async getInstance(configPath?: string): Promise<PromptProjectConfigManager> {
     if (!PromptProjectConfigManager.instance) {
-      PromptProjectConfigManager.instance = new PromptProjectConfigManager(configPath);
+      if (!PromptProjectConfigManager.initializationPromise) {
+        PromptProjectConfigManager.initializationPromise = (async () => {
+          const instance = new PromptProjectConfigManager(configPath);
+          await instance.initialize();
+          PromptProjectConfigManager.instance = instance;
+        })();
+      }
+      await PromptProjectConfigManager.initializationPromise;
     }
-    return PromptProjectConfigManager.instance;
+    return PromptProjectConfigManager.instance!;
   }
-
 
   /**
    * Initialize the configuration manager.
    * This method loads the configuration, ensures necessary directories exist, and prints the loaded configuration.
    */
-  public async initialize(): Promise<void> {
+  private async initialize(): Promise<void> {
     if (this.initialized) return;
 
     try {
@@ -92,7 +99,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       this.initialized = true;
     } catch (error: any) {
       console.error(chalk.red('Failed to initialize config:'), error.message);
-      throw error;
+      throw new Error('Failed to initialize PromptProjectConfigManager. Please check your configuration and try again.');
     }
   }
 
@@ -163,8 +170,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 
   private async validatePromptsFolder(): Promise<void> {
-    const promptFileSystem = PromptFileSystem.getInstance();
-    await promptFileSystem.initialize();
+    const promptFileSystem = await PromptFileSystem.getInstance();
 
     const isValid = await promptFileSystem.validatePromptsFolderConfig();
     if (!isValid) {
@@ -195,7 +201,10 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       const configData = await fs.readFile(this.configPath, 'utf-8');
       const parsedConfig = JSON.parse(configData);
 
-      const validatedConfig = configSchema.parse(parsedConfig);
+      // Merge parsed config with default config to ensure all required fields are present
+      const mergedConfig = deepMerge(DEFAULT_CONFIG, parsedConfig);
+
+      const validatedConfig = configSchema.parse(mergedConfig);
       this.config = {
         ...validatedConfig,
         promptsDir: path.resolve(this.basePath, validatedConfig.promptsDir),
@@ -301,4 +310,4 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   }
 }
 
-export const configManager = await PromptProjectConfigManager.getInstance();
+export const getConfigManager = () => PromptProjectConfigManager.getInstance();

@@ -5,7 +5,7 @@ import path from 'path';
 import { input, confirm, select } from '@inquirer/prompts';
 import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './aiHelpers';
 import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
-import { configManager } from '../config/PromptProjectConfigManager';
+import { getConfigManager } from '../config/PromptProjectConfigManager';
 import { z } from 'zod';
 import { PromptSchema } from '../schemas/prompts';
 
@@ -244,6 +244,7 @@ export async function updatePrompt(props: { category: string; name: string; upda
  * Purpose: Create type-safe interfaces for using prompts in TypeScript projects.
  */
 export async function generateTypes(): Promise<void> {
+  const configManager = await getConfigManager();
   const outputDir = configManager.getConfig('outputDir');
   const manager = await PromptManager.getInstance();
   const prompts = await manager.listPrompts({});
@@ -303,6 +304,7 @@ function getTypeFromSchema(schema: any): string {
 }
 
 export async function getGeneratedTypes(): Promise<string> {
+  const configManager = await getConfigManager();
   const outputDir = configManager.getConfig('outputDir');
   return fs.readFile(path.join(outputDir, 'prompts.d.ts'), 'utf-8');
 }
@@ -318,14 +320,14 @@ export async function getStatus(): Promise<{
   lastGenerated: string | null;
   warnings: string[];
 }> {
+  const configManager = await getConfigManager();
   const config = {
     promptsDir: configManager.getConfig('promptsDir'),
     outputDir: configManager.getConfig('outputDir'),
     preferredModels: configManager.getConfig('preferredModels'),
     modelParams: configManager.getConfig('modelParams')
   };
-  const manager = PromptManager.getInstance();
-  await manager.initialize();
+  const manager = await PromptManager.getInstance();
   const prompts = await manager.listPrompts({});
 
   const categories = [...new Set(prompts.map(prompt => prompt.category))];
@@ -356,8 +358,7 @@ export async function getStatus(): Promise<{
 }
 
 export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>[]> {
-  const manager = PromptManager.getInstance();
-  await manager.initialize();
+  const manager = await PromptManager.getInstance();
   const prompts = await manager.listPrompts({});
 
   return prompts.map(prompt => ({
@@ -373,8 +374,7 @@ export async function getDetailedStatus(): Promise<Partial<IPrompt<IPromptInput,
 }
 
 export async function deletePrompt(props: { category: string; name: string }): Promise<void> {
-  const manager = PromptManager.getInstance();
-  await manager.initialize();
+  const manager = await PromptManager.getInstance();
   await manager.deletePrompt(props);
   console.log(`Prompt "${props.category}/${props.name}" deleted successfully.`);
 }

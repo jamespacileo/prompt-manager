@@ -302,12 +302,12 @@ interface IPromptManagerLibrary<TInput extends IPromptInput<any> = IPromptInput<
 
 // Export the interfaces so they can be imported and used in other parts of the project
 interface IPromptFileSystem {
+
   /**
-   * Initializes the PromptFileSystem.
-   * @returns A promise that resolves when initialization is complete.
-   * @throws Error if initialization fails.
+   * Checks if the PromptFileSystem has been initialized.
+   * @returns A boolean indicating whether the PromptFileSystem is initialized.
    */
-  initialize(): Promise<void>;
+  isInitialized(): boolean;
 
   /**
    * Gets the file path for a prompt.
@@ -424,22 +424,10 @@ interface IPromptFileSystem {
  * Interface for managing the project configuration for the Prompt Manager.
  */
 interface IPromptProjectConfigManager {
-  /**
-   * Gets an instance of the PromptProjectConfigManager.
-   * @returns A promise that resolves with the PromptProjectConfigManager instance.
-   * @throws Error if initialization fails.
-   */
-  getInstance(): Promise<IPromptProjectConfigManager>;
-
-  /**
-   * Initializes the configuration manager.
-   * This should be called before using any other methods.
-   */
-  initialize(): Promise<void>;
 
   /**
    * Checks if the configuration manager has been initialized.
-   * @returns A promise that resolves to true if initialized, false otherwise.
+   * @returns A boolean indicating whether the configuration manager is initialized.
    */
   isInitialized(): Promise<boolean>;
 

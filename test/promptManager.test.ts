@@ -50,9 +50,9 @@ describe('PromptManager', () => {
 
   beforeEach(async () => {
     await configManager.initialize();
-    fileSystem = PromptFileSystem.getInstance();
+    fileSystem = await PromptFileSystem.getInstance();
     await fileSystem.initialize();
-    manager = PromptManager.getInstance();
+    manager = await PromptManager.getInstance();
     await manager.initialize();
   });
 

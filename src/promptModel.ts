@@ -5,9 +5,20 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { PromptFileSystem } from './promptFileSystem';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
+import { incrementVersion, compareVersions } from './utils/versionUtils';
 
-// Create a singleton instance of PromptFileSystem
-const fileSystem = await PromptFileSystem.getInstance();
+// Declare fileSystem variable
+let fileSystem: PromptFileSystem;
+
+// Initialize fileSystem in an async function
+async function initializeFileSystem() {
+  fileSystem = await PromptFileSystem.getInstance();
+}
+
+// Call the initialization function
+initializeFileSystem().catch(error => {
+  console.error('Failed to initialize PromptFileSystem:', error);
+});
 
 /**
  * Represents a single prompt model with all its properties and methods.
@@ -20,7 +31,9 @@ const fileSystem = await PromptFileSystem.getInstance();
  * validation, execution, and version management.
  */
 import path from 'path';
-import { configManager } from './config/PromptProjectConfigManager';
+import { getConfigManager } from './config/PromptProjectConfigManager';
+
+const configManager = await getConfigManager();
 
 export class PromptModel<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
@@ -291,10 +304,10 @@ export class PromptModel<
     while (retries > 0) {
       try {
         const currentVersion = await fileSystem.getCurrentVersion(this);
-        if (this.compareVersions(currentVersion, this.version) > 0) {
+        if (compareVersions(currentVersion, this.version) > 0) {
           // Merge logic here
           // For now, we'll just increment the version
-          this.version = this.incrementVersion(currentVersion);
+          this.version = incrementVersion(currentVersion);
         }
         const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
         await fileSystem.savePrompt({ promptData: updatedPromptData });
@@ -310,24 +323,6 @@ export class PromptModel<
         throw error;
       }
     }
-  }
-
-  private compareVersions(a: string, b: string): number {
-    const partsA = a.split('.').map(Number);
-    const partsB = b.split('.').map(Number);
-    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-      const partA = partsA[i] || 0;
-      const partB = partsB[i] || 0;
-      if (partA > partB) return 1;
-      if (partA < partB) return -1;
-    }
-    return 0;
-  }
-
-  private incrementVersion(version: string): string {
-    const parts = version.split('.').map(Number);
-    parts[parts.length - 1]++;
-    return parts.join('.');
   }
 
   private _inputZodSchema: z.ZodType<any> | null = null;
