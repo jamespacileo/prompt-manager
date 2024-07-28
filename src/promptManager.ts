@@ -7,6 +7,9 @@ import path from 'path';
  * PromptManager is the central class for managing prompts.
  * It provides methods for creating, retrieving, updating, and deleting prompts,
  * as well as managing prompt versions and formatting.
+ * 
+ * This class serves as the main interface for interacting with prompts in the application.
+ * It handles the in-memory storage of prompts and coordinates with the file system for persistence.
  */
 export class PromptManager<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
@@ -23,7 +26,10 @@ export class PromptManager<
   /**
    * Initialize the PromptManager by loading all prompts from the file system.
    * This method must be called before using any other methods of the PromptManager.
+   * 
    * Purpose: Set up the PromptManager with all existing prompts for further operations.
+   * 
+   * @throws Error if there's a failure in loading prompts from the file system
    */
   async initialize(): Promise<void> {
     try {
@@ -48,8 +54,12 @@ export class PromptManager<
 
   /**
    * Retrieve a specific prompt by its category and name.
+   * 
    * Purpose: Fetch a single prompt for use or manipulation.
-   * @throws Error if the prompt does not exist
+   * 
+   * @param props An object containing the category and name of the prompt
+   * @returns The PromptModel instance for the specified prompt
+   * @throws Error if the prompt does not exist in the specified category
    */
   getPrompt(props: { category: string; name: string }): PromptModel<TInput, TOutput> {
     if (!this.prompts[props.category] || !this.prompts[props.category][props.name]) {

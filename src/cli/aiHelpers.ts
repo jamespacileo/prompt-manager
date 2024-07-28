@@ -3,6 +3,11 @@ import { openai } from '@ai-sdk/openai';
 import { PromptSchema } from '../schemas/prompts';
 import chalk from 'chalk';
 
+/**
+ * Pretty prints the given prompt to the console with color-coded output.
+ * 
+ * @param prompt The prompt object to be printed
+ */
 export function prettyPrintPrompt(prompt: any): void {
   console.log(chalk.bold.underline('\nGenerated Prompt:'));
   console.log(chalk.cyan('Name: ') + prompt.name.toUpperCase().replace(/ /g, '_'));
@@ -19,6 +24,12 @@ export function prettyPrintPrompt(prompt: any): void {
   console.log(JSON.stringify(prompt.outputSchema, null, 2));
 }
 
+/**
+ * Generates a prompt using AI based on the given description.
+ * 
+ * @param description A string describing the desired prompt
+ * @returns A Promise that resolves to the generated prompt object
+ */
 export async function generatePromptWithAI(description: string): Promise<any> {
   const { object } = await generateObject({
     model: openai("gpt-4o-mini"),

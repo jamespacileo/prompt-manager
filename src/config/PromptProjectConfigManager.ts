@@ -9,11 +9,19 @@ import type { Config } from '../schemas/config';
 
 export type { Config };
 
+/**
+ * PromptProjectConfigManager is responsible for managing the configuration of the prompt project.
+ * It implements the Singleton pattern to ensure only one instance of the configuration manager exists.
+ */
 export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private static instance: PromptProjectConfigManager;
   private configPath: string;
   private config: Config;
 
+  /**
+   * Private constructor to prevent direct construction calls with the `new` operator.
+   * @param configPath Optional path to the configuration file
+   */
   private constructor(configPath?: string) {
     const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
     this.configPath = configPath || path.join(process.env.FURY_PROJECT_ROOT || process.cwd(), configFileName);
@@ -27,6 +35,10 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     return PromptProjectConfigManager.instance;
   }
 
+  /**
+   * Initialize the configuration manager.
+   * This method loads the configuration, ensures necessary directories exist, and prints the loaded configuration.
+   */
   public async initialize(): Promise<void> {
     await this.loadConfig();
     await this.ensureConfigDirectories();

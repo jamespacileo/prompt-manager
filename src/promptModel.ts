@@ -11,8 +11,13 @@ const fileSystem = new PromptFileSystem();
 
 /**
  * Represents a single prompt model with all its properties and methods.
+ * 
  * Purpose: Encapsulate all data and behavior related to a specific prompt,
  * including validation, formatting, and execution.
+ * 
+ * This class is the core representation of a prompt in the system, handling
+ * all operations specific to an individual prompt, such as formatting,
+ * validation, execution, and version management.
  */
 import path from 'path';
 import { configManager } from './config/PromptProjectConfigManager';
@@ -55,9 +60,12 @@ export class PromptModel<
 
   /**
    * Create a new PromptModel instance.
+   * 
    * Purpose: Initialize a new prompt with all necessary data and optional file system access.
+   * 
    * @param promptData Required data to initialize the prompt
    * @param fileSystem Optional PromptFileSystem instance for file operations
+   * @throws Error if required fields are missing in promptData or if FileSystem is not initialized
    */
   constructor(promptData: IPromptModelRequired, fileSystem?: IPromptFileSystem) {
     if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {

@@ -10,7 +10,12 @@ export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
 
 /**
  * PromptFileSystem handles all file system operations related to prompts.
+ * 
  * Purpose: Provide a centralized interface for reading, writing, and managing prompt files.
+ * 
+ * This class encapsulates all interactions with the file system for prompt-related operations,
+ * including saving, loading, listing, and managing versions of prompts. It also handles
+ * the generation of TypeScript definition files for prompts.
  */
 export class PromptFileSystem implements IPromptFileSystem {
   private basePath: string;
@@ -34,7 +39,14 @@ export class PromptFileSystem implements IPromptFileSystem {
 
   /**
    * Save a prompt to the file system.
+   * 
    * Purpose: Persist prompt data and manage versioning.
+   * 
+   * This method saves the prompt data to the main file and a versioned file,
+   * updates the list of versions, and generates a TypeScript definition file.
+   * 
+   * @param props An object containing the prompt data to be saved
+   * @throws Error if the prompt data is invalid or if there's a file system error
    */
   async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
