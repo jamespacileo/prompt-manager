@@ -1,8 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
+import { IPromptFileSystem, IPromptInput, IPromptOutput } from './types/interfaces';
 import { configManager } from './config/PromptProjectConfigManager';
-import { z } from 'zod';
+import { PromptSchema, IPrompt } from './schemas/prompts';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -30,30 +30,34 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Save a prompt to the file system.
    * Purpose: Persist prompt data and manage versioning.
    */
-  async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
+  async savePrompt(props: { promptData: IPrompt }): Promise<void> {
     const { promptData } = props;
-    const filePath = this.getFilePath({ category: promptData.category, promptName: promptData.name });
+    
+    // Validate the prompt data against the schema
+    const validatedPromptData = PromptSchema.parse(promptData);
+
+    const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
     const versionFilePath = this.getVersionFilePath({
-      category: promptData.category,
-      promptName: promptData.name,
-      version: promptData.version
+      category: validatedPromptData.category,
+      promptName: validatedPromptData.name,
+      version: validatedPromptData.version
     });
 
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
 
-    await fs.writeFile(filePath, JSON.stringify(promptData, null, 2));
-    await fs.writeFile(versionFilePath, JSON.stringify(promptData, null, 2));
+    await fs.writeFile(filePath, JSON.stringify(validatedPromptData, null, 2));
+    await fs.writeFile(versionFilePath, JSON.stringify(validatedPromptData, null, 2));
 
     // Generate and save TypeScript definition file
     const typeDefinitionPath = path.join(path.dirname(filePath), TYPE_DEFINITION_FILENAME);
-    await this.generateTypeDefinitionFile(promptData, typeDefinitionPath);
+    await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
 
     // Update the list of versions
-    const versionsPath = path.join(this.basePath, promptData.category, promptData.name, '.versions');
-    const versions = await this.getPromptVersions({ category: promptData.category, promptName: promptData.name });
-    if (!versions.includes(promptData.version)) {
-      versions.push(promptData.version);
+    const versionsPath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions');
+    const versions = await this.getPromptVersions({ category: validatedPromptData.category, promptName: validatedPromptData.name });
+    if (!versions.includes(validatedPromptData.version)) {
+      versions.push(validatedPromptData.version);
       versions.sort((a, b) => this.compareVersions(b, a));
     }
     await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
@@ -63,40 +67,14 @@ export class PromptFileSystem implements IPromptFileSystem {
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
    */
-  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
+  async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
     const data = await fs.readFile(filePath, 'utf-8');
     const parsedData = JSON.parse(data);
 
-    // Validate the loaded data
-    const promptSchema = z.object({
-      name: z.string(),
-      category: z.string(),
-      description: z.string(),
-      version: z.string(),
-      template: z.string(),
-      parameters: z.array(z.string()),
-      inputSchema: z.object({}).passthrough(),
-      outputSchema: z.object({}).passthrough(),
-      metadata: z.object({
-        created: z.string(),
-        lastModified: z.string()
-      }),
-      configuration: z.object({
-        modelName: z.string(),
-        temperature: z.number(),
-        maxTokens: z.number(),
-        topP: z.number(),
-        frequencyPenalty: z.number(),
-        presencePenalty: z.number(),
-        stopSequences: z.array(z.string())
-      }),
-      outputType: z.enum(['structured', 'plain'])
-    });
-
     try {
-      return promptSchema.parse(parsedData);
+      return PromptSchema.parse(parsedData);
     } catch (error) {
       throw new Error(`Invalid prompt data: ${error.message}`);
     }
