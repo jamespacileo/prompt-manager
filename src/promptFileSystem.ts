@@ -33,34 +33,39 @@ export class PromptFileSystem implements IPromptFileSystem {
   async savePrompt(props: { promptData: IPrompt }): Promise<void> {
     const { promptData } = props;
     
-    // Validate the prompt data against the schema
-    const validatedPromptData = PromptSchema.parse(promptData);
+    try {
+      // Validate the prompt data against the schema
+      const validatedPromptData = PromptSchema.parse(promptData);
 
-    const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
-    const versionFilePath = this.getVersionFilePath({
-      category: validatedPromptData.category,
-      promptName: validatedPromptData.name,
-      version: validatedPromptData.version
-    });
+      const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
+      const versionFilePath = this.getVersionFilePath({
+        category: validatedPromptData.category,
+        promptName: validatedPromptData.name,
+        version: validatedPromptData.version
+      });
 
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.mkdir(path.dirname(versionFilePath), { recursive: true });
 
-    await fs.writeFile(filePath, JSON.stringify(validatedPromptData, null, 2));
-    await fs.writeFile(versionFilePath, JSON.stringify(validatedPromptData, null, 2));
+      await fs.writeFile(filePath, JSON.stringify(validatedPromptData, null, 2));
+      await fs.writeFile(versionFilePath, JSON.stringify(validatedPromptData, null, 2));
 
-    // Generate and save TypeScript definition file
-    const typeDefinitionPath = path.join(path.dirname(filePath), TYPE_DEFINITION_FILENAME);
-    await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
+      // Generate and save TypeScript definition file
+      const typeDefinitionPath = path.join(path.dirname(filePath), TYPE_DEFINITION_FILENAME);
+      await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
 
-    // Update the list of versions
-    const versionsPath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions');
-    const versions = await this.getPromptVersions({ category: validatedPromptData.category, promptName: validatedPromptData.name });
-    if (!versions.includes(validatedPromptData.version)) {
-      versions.push(validatedPromptData.version);
-      versions.sort((a, b) => this.compareVersions(b, a));
+      // Update the list of versions
+      const versionsPath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions');
+      const versions = await this.getPromptVersions({ category: validatedPromptData.category, promptName: validatedPromptData.name });
+      if (!versions.includes(validatedPromptData.version)) {
+        versions.push(validatedPromptData.version);
+        versions.sort((a, b) => this.compareVersions(b, a));
+      }
+      await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
+    } catch (error) {
+      console.error('Error saving prompt:', error);
+      throw new Error(`Failed to save prompt: ${error.message}`);
     }
-    await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
   }
 
   /**
@@ -70,13 +75,19 @@ export class PromptFileSystem implements IPromptFileSystem {
   async loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt> {
     const { category, promptName } = props;
     const filePath = this.getFilePath({ category, promptName });
-    const data = await fs.readFile(filePath, 'utf-8');
-    const parsedData = JSON.parse(data);
-
+    
     try {
+      const data = await fs.readFile(filePath, 'utf-8');
+      const parsedData = JSON.parse(data);
       return PromptSchema.parse(parsedData);
     } catch (error) {
-      throw new Error(`Invalid prompt data: ${error.message}`);
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        throw new Error(`Prompt not found: ${category}/${promptName}`);
+      }
+      if (error instanceof SyntaxError) {
+        throw new Error(`Invalid JSON in prompt file: ${category}/${promptName}`);
+      }
+      throw new Error(`Failed to load prompt ${category}/${promptName}: ${error.message}`);
     }
   }
 

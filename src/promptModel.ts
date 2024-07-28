@@ -49,13 +49,16 @@ export class PromptModel<
    * @param fileSystem Optional PromptFileSystem instance for file operations
    */
   constructor(promptData: IPromptModelRequired, fileSystem?: PromptFileSystem) {
+    if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {
+      throw new Error('Invalid prompt data: missing required fields');
+    }
     this.name = promptData.name;
     this.category = promptData.category;
     this.description = promptData.description;
     this.template = promptData.template;
-    this.parameters = promptData.parameters;
-    this.inputSchema = promptData.inputSchema;
-    this.outputSchema = promptData.outputSchema;
+    this.parameters = promptData.parameters || [];
+    this.inputSchema = promptData.inputSchema || {};
+    this.outputSchema = promptData.outputSchema || {};
     this.fileSystem = fileSystem ?? new PromptFileSystem();
     this.version = promptData.version || '1.0.0';
     this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };

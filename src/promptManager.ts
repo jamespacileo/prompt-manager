@@ -25,13 +25,23 @@ export class PromptManager<
    * Purpose: Set up the PromptManager with all existing prompts for further operations.
    */
   async initialize(): Promise<void> {
-    const prompts = await this.fileSystem.listPrompts();
-    for (const prompt of prompts) {
-      if (!this.prompts[prompt.category]) {
-        this.prompts[prompt.category] = {};
+    try {
+      const prompts = await this.fileSystem.listPrompts();
+      for (const prompt of prompts) {
+        if (!this.prompts[prompt.category]) {
+          this.prompts[prompt.category] = {};
+        }
+        try {
+          const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
+          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
+        } catch (error) {
+          console.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
+          // Continue loading other prompts even if one fails
+        }
       }
-      const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-      this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
+    } catch (error) {
+      console.error('Failed to initialize PromptManager:', error);
+      throw new Error('Failed to initialize PromptManager');
     }
   }
 
