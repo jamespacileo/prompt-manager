@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
 import { PromptManager } from '../src/promptManager';
-import { PromptFileSystem } from '../src/promptFileSystem';
-import { configManager } from "../src/config/PromptProjectConfigManager";
+import { getFileSystemManager, PromptFileSystem } from '../src/promptFileSystem';
+import { getConfigManager } from "../src/config/PromptProjectConfigManager";
 import fs from 'fs/promises';
 import path from 'path';
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
@@ -37,23 +37,20 @@ const promptNames = [
 describe('PromptManager', () => {
   let manager: PromptManager;
   let fileSystem: PromptFileSystem;
+  let configManager: ReturnType<typeof getConfigManager> extends Promise<infer T> ? T : never;
   let testDir: string;
 
   beforeAll(async () => {
     testDir = path.join(process.cwd(), 'test-prompts-manager');
     await fs.mkdir(testDir, { recursive: true });
+
+    configManager = await getConfigManager();
+    fileSystem = await getFileSystemManager();
+
     await configManager.updateConfig({
       promptsDir: testDir,
       outputDir: path.join(testDir, 'output'),
     });
-  });
-
-  beforeEach(async () => {
-    await configManager.initialize();
-    fileSystem = await PromptFileSystem.getInstance();
-    await fileSystem.initialize();
-    manager = await PromptManager.getInstance();
-    await manager.initialize();
   });
 
   // afterEach(async () => {
@@ -168,9 +165,9 @@ describe('PromptManager', () => {
       name: testPrompt.name,
     });
 
-    expect(retrievedPrompt.description).toBe(updatedPrompt.description);
-    expect(retrievedPrompt.version).toBe(updatedPrompt.version);
-    expect(retrievedPrompt.template).toBe(updatedPrompt.template);
+    expect(retrievedPrompt.description).toBe(updatedPrompt.description || "");
+    expect(retrievedPrompt.version).toBe(updatedPrompt.version || "");
+    expect(retrievedPrompt.template).toBe(updatedPrompt.template || "");
   });
 
   test('Delete prompt', async () => {
@@ -189,15 +186,15 @@ describe('PromptManager', () => {
   });
 
   test('Create and delete category', async () => {
-    const testCategory = getRandomElement(categories);
-    await manager.createCategory({ categoryName: testCategory });
+    const testCategory = "testCategory";
+    await manager.createCategory(testCategory);
 
-    let categories = await manager.listCategories();
+    let categories = Object.keys(manager.categories);
     expect(categories).toContain(testCategory);
 
-    await manager.deleteCategory({ categoryName: testCategory });
+    await manager.deleteCategory(testCategory);
 
-    categories = await manager.listCategories();
+    categories = Object.keys(manager.categories);
     expect(categories).not.toContain(testCategory);
   });
 

@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput, IPromptModelRequired, IPromptsFolderConfig } from './types/interfaces';
-import { getConfigManager } from './config/PromptProjectConfigManager';
+import { IPromptProjectConfigManager } from './types/interfaces';
 import debug from 'debug';
 
 const log = debug('fury:promptFileSystem');
@@ -10,6 +10,7 @@ import { PromptModel } from './promptModel';
 import chalk from 'chalk';
 import { z } from 'zod';
 import lockfile from 'proper-lockfile';
+import { getConfigManager } from './config/PromptProjectConfigManager';
 
 export const DEFAULT_PROMPT_FILENAME = "prompt.json";
 export const DEFAULT_TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -25,13 +26,14 @@ export const DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
  * the generation of TypeScript definition files for prompts.
  */
 export class PromptFileSystem implements IPromptFileSystem {
-  private static instance: PromptFileSystem;
-  private basePath: string = '';
+  private basePath: string;
   private initialized: boolean = false;
-  static initializationPromise: any;
+  static instance: PromptFileSystem | null = null;
+  static initializationPromise: Promise<void> | null = null;
 
-  private constructor() {
-    log(`PromptFileSystem constructor called`);
+  constructor(private configManager: IPromptProjectConfigManager) {
+    this.basePath = this.configManager.getConfig('promptsDir');
+    log(`PromptFileSystem constructor called with basePath: ${this.basePath}`);
   }
 
   public isInitialized(): boolean {
@@ -49,10 +51,11 @@ export class PromptFileSystem implements IPromptFileSystem {
   }
 
   public static async getInstance(): Promise<PromptFileSystem> {
+    const configManager = await getConfigManager()
     if (!PromptFileSystem.instance) {
       if (!PromptFileSystem.initializationPromise) {
         PromptFileSystem.initializationPromise = (async () => {
-          const instance = new PromptFileSystem();
+          const instance = new PromptFileSystem(configManager);
           await instance.initialize();
           PromptFileSystem.instance = instance;
         })();
@@ -70,8 +73,6 @@ export class PromptFileSystem implements IPromptFileSystem {
     if (this.initialized) return;
 
     try {
-      const configManager = await getConfigManager();
-      this.basePath = configManager.getConfig('promptsDir');
       log(`Initializing PromptFileSystem with basePath: ${this.basePath}`);
 
       await fs.access(this.basePath);
@@ -92,19 +93,6 @@ export class PromptFileSystem implements IPromptFileSystem {
     } catch (error) {
       console.error('PromptFileSystem initialization failed:', error);
       throw new Error('Failed to initialize PromptFileSystem. Please check your configuration and try again.');
-    }
-  }
-
-  private async ensureInitialized(): Promise<void> {
-    if (!this.initialized) {
-      const timeout = 30000; // 30 seconds timeout
-      const startTime = Date.now();
-      while (!this.initialized && Date.now() - startTime < timeout) {
-        await new Promise(resolve => setTimeout(resolve, 100)); // Wait for 100ms
-      }
-      if (!this.initialized) {
-        throw new Error('PromptFileSystem initialization timed out. Please check for any issues preventing initialization.');
-      }
     }
   }
 

@@ -29,6 +29,35 @@ export class PromptManager<
     // The initialization will be done in the initialize method
   }
 
+  async promptExists(props: { category: string; name: string }): Promise<boolean> {
+    const { category, name } = props;
+    return !!this.prompts[category] && !!this.prompts[category][name];
+  }
+
+  async createCategory(categoryName: string): Promise<void> {
+    if (!this.prompts[categoryName]) {
+      this.prompts[categoryName] = {};
+      await fileSystem.createCategory({ categoryName });
+    }
+  }
+
+  async deleteCategory(categoryName: string): Promise<void> {
+    if (this.prompts[categoryName]) {
+      delete this.prompts[categoryName];
+      await fileSystem.deleteCategory({ categoryName });
+    }
+  }
+
+  async listCategories(): Promise<string[]> {
+    return Object.keys(this.prompts);
+  }
+
+  async executePrompt(props: { category: string; name: string; params: TInput }): Promise<TOutput> {
+    const { category, name, params } = props;
+    const prompt = this.getPrompt({ category, name });
+    return prompt.execute(params);
+  }
+
   public static async getInstance(): Promise<PromptManager> {
     if (!PromptManager.instance) {
       PromptManager.instance = new PromptManager();
@@ -58,7 +87,7 @@ export class PromptManager<
         }
         try {
           const promptData = await fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
+          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData, fileSystem) as unknown as PromptModel<TInput, TOutput>;
         } catch (error) {
           console.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
           // Continue loading other prompts even if one fails

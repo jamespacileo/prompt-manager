@@ -52,13 +52,12 @@ beforeAll(async () => {
   await fs.mkdir(testDir, { recursive: true });
   process.env.PROMPTS_DIR = testDir;
   const configManager = await PromptProjectConfigManager.getInstance();
-  await configManager.initialize();
   await configManager.updateConfig({ promptsDir: testDir });
 });
 
 beforeEach(async () => {
   promptFileSystem = await PromptFileSystem.getInstance();
-  await promptFileSystem.initialize();
+  // initialization is now handled internally
 });
 
 afterEach(async () => {
@@ -73,7 +72,7 @@ afterAll(async () => {
   } else {
     delete process.env.PROMPTS_DIR;
   }
-  await PromptProjectConfigManager.getInstance().updateConfig({ promptsDir: originalPromptsDir });
+  await (await PromptProjectConfigManager.getInstance()).updateConfig({ promptsDir: originalPromptsDir });
 });
 
 describe("PromptFileSystem", () => {

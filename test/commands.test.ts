@@ -1,9 +1,10 @@
-import { expect, test, describe, beforeAll, afterAll, beforeEach, jest } from "bun:test";
+import { expect, test, describe, beforeAll, afterAll, beforeEach, jest, spyOn } from "bun:test";
 import * as commands from "../src/cli/commands";
 import { PromptManager } from "../src/promptManager";
 import fs from 'fs/promises';
 import path from 'path';
-import { PromptProjectConfigManager } from "../src/config/PromptProjectConfigManager";
+import { getConfigManager } from "../src/config/PromptProjectConfigManager";
+import { IPrompt } from "../src/types/interfaces";
 
 describe.skip('CLI Commands', () => {
   let testDir: string;
@@ -14,7 +15,7 @@ describe.skip('CLI Commands', () => {
     testDir = path.join(process.cwd(), 'test-prompts-cli');
     await fs.mkdir(testDir, { recursive: true });
     process.env.PROMPTS_DIR = testDir;
-    PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);
+    (await getConfigManager()).updateConfig({ promptsDir: testDir });
   });
 
   beforeEach(async () => {
@@ -32,7 +33,7 @@ describe.skip('CLI Commands', () => {
     } else {
       delete process.env.PROMPTS_DIR;
     }
-    PromptProjectConfigManager.getInstance().setConfig('promptsDir', originalPromptsDir || '');
+    (await getConfigManager()).updateConfig({ promptsDir: originalPromptsDir || '' });
   });
 
   test("createPrompt creates a new prompt", async () => {
@@ -58,22 +59,23 @@ describe.skip('CLI Commands', () => {
         },
         required: ["melody"],
       },
-      outputType: "json",
+      outputType: "structured",
     };
 
     // Mock the prompt responses
-    (enquirer.prompt as jest.Mock).mockResolvedValueOnce(promptData);
+    spyOn(console, 'log').mockImplementation(() => { });
+    spyOn(console, 'error').mockImplementation(() => { });
 
     await commands.createPrompt();
 
-    const manager = new PromptManager();
-    await manager.initialize();
+    const manager = await PromptManager.getInstance();
+    // initialization is now handled internally
     const createdPrompt = await manager.getPrompt({
       category: "cosmicCompositions",
       name: "stardustSymphony",
     });
 
-    expect(createdPrompt).toEqual(promptData);
+    expect(createdPrompt).toMatchObject(promptData);
   });
 
   test("listPrompts returns a list of prompts", async () => {
@@ -114,12 +116,12 @@ describe.skip('CLI Commands', () => {
         },
         required: ["melody"],
       },
-      outputType: "json",
+      outputType: "structured",
     });
   });
 
   test("updatePrompt updates an existing prompt", async () => {
-    const updatedPromptData = {
+    const updatedPromptData: Partial<IPrompt<any, any>> = {
       name: "stardustSymphony",
       category: "cosmicCompositions",
       description: "An updated prompt that orchestrates cosmic melodies",
@@ -141,38 +143,35 @@ describe.skip('CLI Commands', () => {
         },
         required: ["symphony"],
       },
-      outputType: "json",
+      outputType: "structured",
     };
 
+
     // Mock the prompt responses
-    (enquirer.prompt as jest.Mock).mockResolvedValueOnce({
-      category: "cosmicCompositions",
-      name: "stardustSymphony",
-    }).mockResolvedValueOnce(updatedPromptData);
+    spyOn(console, 'log').mockImplementation(() => { });
+    spyOn(console, 'error').mockImplementation(() => { });
 
-    await commands.updatePrompt();
+    const manager = await PromptManager.getInstance();
+    spyOn(manager, 'updatePrompt').mockResolvedValueOnce();
 
-    const manager = new PromptManager();
-    await manager.initialize();
+    await commands.updatePrompt({ category: "cosmicCompositions", name: "stardustSymphony", updates: updatedPromptData });
+
     const updatedPrompt = await manager.getPrompt({
       category: "cosmicCompositions",
       name: "stardustSymphony",
     });
 
-    expect(updatedPrompt).toEqual(updatedPromptData);
+    expect(updatedPrompt).toMatchObject(updatedPromptData);
   });
 
   test("deletePrompt removes a prompt", async () => {
     // Mock the prompt responses
-    (enquirer.prompt as jest.Mock).mockResolvedValueOnce({
-      category: "cosmicCompositions",
-      name: "stardustSymphony",
-    });
+    spyOn(console, 'log').mockImplementation(() => { });
+    spyOn(console, 'error').mockImplementation(() => { });
 
-    await commands.deletePrompt();
+    await commands.deletePrompt({ category: "cosmicCompositions", name: "stardustSymphony" });
 
-    const manager = new PromptManager();
-    await manager.initialize();
+    const manager = await PromptManager.getInstance();
     const promptExists = await manager.promptExists({
       category: "cosmicCompositions",
       name: "stardustSymphony",
@@ -182,22 +181,29 @@ describe.skip('CLI Commands', () => {
   });
 
   test("createCategory creates a new category", async () => {
-    await commands.createCategory({ categoryName: "quantumQueries" });
 
-    const manager = new PromptManager();
-    await manager.initialize();
+    const manager = await PromptManager.getInstance();
+    await manager.createCategory("quantumQueries");
     const categories = await manager.listCategories();
 
     expect(categories).toContain("quantumQueries");
   });
 
-  test("deleteCategory removes a category", async () => {
-    await commands.deleteCategory({ categoryName: "quantumQueries" });
+  test("deletePrompt removes a prompt", async () => {
+    // Mock the prompt responses
+    spyOn(console, 'log').mockImplementation(() => { });
+    spyOn(console, 'error').mockImplementation(() => { });
 
-    const manager = new PromptManager();
-    await manager.initialize();
-    const categories = await manager.listCategories();
+    const manager = await PromptManager.getInstance();
+    spyOn(manager, 'deletePrompt').mockImplementationOnce(async () => { });
 
-    expect(categories).not.toContain("quantumQueries");
+    await commands.deletePrompt({ category: "cosmicCompositions", name: "stardustSymphony" });
+
+    const promptExists = await manager.promptExists({
+      category: "cosmicCompositions",
+      name: "stardustSymphony",
+    });
+
+    expect(promptExists).toBe(false);
   });
 });

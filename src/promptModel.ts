@@ -3,22 +3,8 @@ import { JSONSchema7 } from 'json-schema';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { PromptFileSystem } from './promptFileSystem';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 import { incrementVersion, compareVersions } from './utils/versionUtils';
-
-// Declare fileSystem variable
-let fileSystem: PromptFileSystem;
-
-// Initialize fileSystem in an async function
-async function initializeFileSystem() {
-  fileSystem = await PromptFileSystem.getInstance();
-}
-
-// Call the initialization function
-initializeFileSystem().catch(error => {
-  console.error('Failed to initialize PromptFileSystem:', error);
-});
 
 /**
  * Represents a single prompt model with all its properties and methods.
@@ -33,12 +19,11 @@ initializeFileSystem().catch(error => {
 import path from 'path';
 import { getConfigManager } from './config/PromptProjectConfigManager';
 
-const configManager = await getConfigManager();
-
 export class PromptModel<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any>> = IPromptOutput<Record<string, any>>
 > implements IPromptModel<TInput, TOutput> {
+  private fileSystem: IPromptFileSystem;
   name: string;
   category: string;
   description: string;
@@ -64,10 +49,14 @@ export class PromptModel<
   outputSchema: JSONSchema7;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
+  filePath: string | undefined | null = undefined
 
-  get filePath(): string {
+  async getFilePath(): Promise<string> {
+    const configManager = await getConfigManager();
     const promptsDir = configManager.getConfig('promptsDir');
-    return path.join(promptsDir, this.category, this.name, 'prompt.json');
+    const filePath = path.join(promptsDir, this.category, this.name, 'prompt.json');
+    this.filePath = filePath
+    return filePath
   }
 
   /**
@@ -78,7 +67,8 @@ export class PromptModel<
    * @param promptData Required data to initialize the prompt
    * @throws Error if required fields are missing in promptData
    */
-  constructor(promptData: IPromptModelRequired) {
+  constructor(promptData: IPromptModelRequired, fileSystem: IPromptFileSystem) {
+    this.fileSystem = fileSystem;
     if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {
       throw new Error('Invalid prompt data: missing required fields');
     }
@@ -297,20 +287,18 @@ export class PromptModel<
   }
 
   async save(): Promise<void> {
-    if (!fileSystem) {
-      throw new Error('FileSystem is not initialized. Cannot save prompt.');
-    }
     let retries = 3;
     while (retries > 0) {
       try {
-        const currentVersion = await fileSystem.getCurrentVersion(this);
+        const currentVersion = await this.fileSystem.getCurrentVersion(this);
         if (compareVersions(currentVersion, this.version) > 0) {
           // Merge logic here
           // For now, we'll just increment the version
           this.version = incrementVersion(currentVersion);
         }
         const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
-        await fileSystem.savePrompt({ promptData: updatedPromptData });
+        const filePath = await this.getFilePath();
+        await this.fileSystem.savePrompt({ promptData: updatedPromptData });
         this._isSaved = true;
         // Update the current instance with the saved data
         Object.assign(this, updatedPromptData);
@@ -343,18 +331,18 @@ export class PromptModel<
   }
 
   async load(filePath: string): Promise<void> {
-    const promptData = await fileSystem.loadPrompt({ category: this.category, promptName: this.name });
+    const promptData = await this.fileSystem.loadPrompt({ category: this.category, promptName: this.name });
     Object.assign(this, promptData);
     this._isSaved = true;
   }
 
   async versions(): Promise<string[]> {
-    return fileSystem.getPromptVersions({ category: this.category, promptName: this.name });
+    return this.fileSystem.getPromptVersions({ category: this.category, promptName: this.name });
   }
 
   public async rollbackToVersion(version: string): Promise<void> {
     try {
-      const versionData = await fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
+      const versionData = await this.fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
       Object.assign(this, versionData);
       this.version = version;
       await this.save();
@@ -365,7 +353,7 @@ export class PromptModel<
     }
   }
   async switchVersion(version: string): Promise<void> {
-    const versionData = await fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
+    const versionData = await this.fileSystem.loadPromptVersion({ category: this.category, promptName: this.name, version });
     Object.assign(this, versionData);
     this._isSaved = true;
   }
@@ -374,25 +362,24 @@ export class PromptModel<
     return this._isSaved;
   }
 
-  static async loadPromptByName(name: string): Promise<PromptModel> {
+  static async loadPromptByName(name: string, fileSystem: IPromptFileSystem): Promise<PromptModel> {
     const [category, promptName] = name.split('/');
-    const promptData = await fileSystem.loadPrompt({ category, promptName });
-    const prompt = new PromptModel(promptData as IPromptModelRequired);
+    const promptData = await this.fileSystem.loadPrompt({ category, promptName });
+    const prompt = new PromptModel(promptData as IPromptModelRequired, fileSystem);
     prompt.isLoadedFromStorage = true;
     return prompt;
   }
 
-  static async promptExists(name: string): Promise<boolean> {
+  static async promptExists(name: string, fileSystem: IPromptFileSystem): Promise<boolean> {
     const [category, promptName] = name.split('/');
     return fileSystem.promptExists({ category, promptName });
   }
 
-  static async listPrompts(category?: string): Promise<Array<{ name: string; category: string; filePath: string }>> {
+  static async listPrompts(fileSystem: IPromptFileSystem, category?: string): Promise<Array<IPromptModel>> {
     return await fileSystem.listPrompts({ category });
   }
 
-  static async deletePrompt(category: string, name: string): Promise<void> {
-    const fs = await PromptFileSystem.getInstance();
-    await fs.deletePrompt({ category, promptName: name });
+  static async deletePrompt(category: string, name: string, fileSystem: IPromptFileSystem): Promise<void> {
+    await fileSystem.deletePrompt({ category, promptName: name });
   }
 }

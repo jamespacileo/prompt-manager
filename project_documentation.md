@@ -76,6 +76,35 @@ export class PromptManager<
     // The initialization will be done in the initialize method
   }
 
+  async promptExists(props: { category: string; name: string }): Promise<boolean> {
+    const { category, name } = props;
+    return !!this.prompts[category] && !!this.prompts[category][name];
+  }
+
+  async createCategory(categoryName: string): Promise<void> {
+    if (!this.prompts[categoryName]) {
+      this.prompts[categoryName] = {};
+      await fileSystem.createCategory({ categoryName });
+    }
+  }
+
+  async deleteCategory(categoryName: string): Promise<void> {
+    if (this.prompts[categoryName]) {
+      delete this.prompts[categoryName];
+      await fileSystem.deleteCategory({ categoryName });
+    }
+  }
+
+  async listCategories(): Promise<string[]> {
+    return Object.keys(this.prompts);
+  }
+
+  async executePrompt(props: { category: string; name: string; params: TInput }): Promise<TOutput> {
+    const { category, name, params } = props;
+    const prompt = this.getPrompt({ category, name });
+    return prompt.execute(params);
+  }
+
   public static async getInstance(): Promise<PromptManager> {
     if (!PromptManager.instance) {
       PromptManager.instance = new PromptManager();
@@ -330,8 +359,6 @@ initializeFileSystem().catch(error => {
 import path from 'path';
 import { getConfigManager } from './config/PromptProjectConfigManager';
 
-const configManager = await getConfigManager();
-
 export class PromptModel<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any>> = IPromptOutput<Record<string, any>>
@@ -361,10 +388,14 @@ export class PromptModel<
   outputSchema: JSONSchema7;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
+  filePath: string | undefined | null = undefined
 
-  get filePath(): string {
+  async getFilePath(): Promise<string> {
+    const configManager = await getConfigManager();
     const promptsDir = configManager.getConfig('promptsDir');
-    return path.join(promptsDir, this.category, this.name, 'prompt.json');
+    const filePath = path.join(promptsDir, this.category, this.name, 'prompt.json');
+    this.filePath = filePath
+    return filePath
   }
 
   /**
@@ -607,6 +638,7 @@ export class PromptModel<
           this.version = incrementVersion(currentVersion);
         }
         const updatedPromptData = this as unknown as IPrompt<Record<string, any>, Record<string, any>>;
+        const filePath = await this.getFilePath();
         await fileSystem.savePrompt({ promptData: updatedPromptData });
         this._isSaved = true;
         // Update the current instance with the saved data
@@ -684,7 +716,7 @@ export class PromptModel<
     return fileSystem.promptExists({ category, promptName });
   }
 
-  static async listPrompts(category?: string): Promise<Array<{ name: string; category: string; filePath: string }>> {
+  static async listPrompts(category?: string): Promise<Array<IPromptModel>> {
     return await fileSystem.listPrompts({ category });
   }
 
@@ -731,6 +763,7 @@ export class PromptFileSystem implements IPromptFileSystem {
   private static instance: PromptFileSystem;
   private basePath: string = '';
   private initialized: boolean = false;
+  static initializationPromise: any;
 
   private constructor() {
     log(`PromptFileSystem constructor called`);
@@ -752,45 +785,49 @@ export class PromptFileSystem implements IPromptFileSystem {
 
   public static async getInstance(): Promise<PromptFileSystem> {
     if (!PromptFileSystem.instance) {
-      PromptFileSystem.instance = new PromptFileSystem();
-      await PromptFileSystem.instance.initialize();
+      if (!PromptFileSystem.initializationPromise) {
+        PromptFileSystem.initializationPromise = (async () => {
+          const instance = new PromptFileSystem();
+          await instance.initialize();
+          PromptFileSystem.instance = instance;
+        })();
+      }
+      await PromptFileSystem.initializationPromise;
     }
-    return PromptFileSystem.instance;
+    return PromptFileSystem.instance!;
   }
 
   public static async getInitializedInstance(): Promise<PromptFileSystem> {
-    const instance = await PromptFileSystem.getInstance();
-    await instance.initialize();
-    return instance;
+    return PromptFileSystem.getInstance();
   }
 
   private async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    const configManager = await getConfigManager();
-    this.basePath = configManager.getConfig('promptsDir');
-    log(`Initializing PromptFileSystem with basePath: ${this.basePath}`);
-
     try {
+      const configManager = await getConfigManager();
+      this.basePath = configManager.getConfig('promptsDir');
+      log(`Initializing PromptFileSystem with basePath: ${this.basePath}`);
+
       await fs.access(this.basePath);
       const stats = await fs.stat(this.basePath);
       if (!stats.isDirectory()) {
         throw new Error(`${this.basePath} is not a directory`);
       }
-    } catch (error) {
-      log(`Error accessing prompts directory: ${error instanceof Error ? error.message : String(error)}`);
-      throw new Error(`Invalid prompts directory: ${this.basePath}. Please check your configuration.`);
-    }
 
-    await fs.mkdir(this.basePath, { recursive: true });
-    await this.initializePromptsFolderConfig();
-    const isValid = await this.validatePromptsFolderConfig();
-    if (!isValid) {
-      log('Prompts folder configuration is invalid. Reinitializing...');
+      await fs.mkdir(this.basePath, { recursive: true });
       await this.initializePromptsFolderConfig();
+      const isValid = await this.validatePromptsFolderConfig();
+      if (!isValid) {
+        log('Prompts folder configuration is invalid. Reinitializing...');
+        await this.initializePromptsFolderConfig();
+      }
+      this.initialized = true;
+      log('PromptFileSystem initialization complete');
+    } catch (error) {
+      console.error('PromptFileSystem initialization failed:', error);
+      throw new Error('Failed to initialize PromptFileSystem. Please check your configuration and try again.');
     }
-    this.initialized = true;
-    log('PromptFileSystem initialization complete');
   }
 
   private async ensureInitialized(): Promise<void> {
@@ -1292,7 +1329,8 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private configPath: string;
   private config: Config;
   private initialized: boolean = false;
-  private static instance: PromptProjectConfigManager;
+  private static instance: PromptProjectConfigManager | null = null;
+  private static initializationPromise: Promise<void> | null = null;
   private basePath: string;
   private verbosity: number = 0;
 
@@ -1300,7 +1338,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
    * Constructor for PromptProjectConfigManager.
    * @param configPath Optional path to the configuration file
    */
-  constructor(configPath?: string) {
+  private constructor(configPath?: string) {
     const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
     this.basePath = getProjectRoot();
     this.configPath = configPath || path.resolve(this.basePath, configFileName);
@@ -1324,12 +1362,17 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 
   public static async getInstance(configPath?: string): Promise<PromptProjectConfigManager> {
     if (!PromptProjectConfigManager.instance) {
-      PromptProjectConfigManager.instance = new PromptProjectConfigManager(configPath);
-      await PromptProjectConfigManager.instance.initialize();
+      if (!PromptProjectConfigManager.initializationPromise) {
+        PromptProjectConfigManager.initializationPromise = (async () => {
+          const instance = new PromptProjectConfigManager(configPath);
+          await instance.initialize();
+          PromptProjectConfigManager.instance = instance;
+        })();
+      }
+      await PromptProjectConfigManager.initializationPromise;
     }
-    return PromptProjectConfigManager.instance;
+    return PromptProjectConfigManager.instance!;
   }
-
 
   /**
    * Initialize the configuration manager.
@@ -1347,7 +1390,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       this.initialized = true;
     } catch (error: any) {
       console.error(chalk.red('Failed to initialize config:'), error.message);
-      throw error;
+      throw new Error('Failed to initialize PromptProjectConfigManager. Please check your configuration and try again.');
     }
   }
 
@@ -1583,16 +1626,10 @@ import { PromptModel } from '../promptModel.js';
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
-async function initializeConfig() {
-  try {
-    // check if all deps are initialized
-    if (!(await getConfigManager()).isInitialized()) {
-      log.error('Project is not initialized. Please run the "init" command first.');
-      process.exit(1);
-    }
-  } catch (error) {
-    log.error('Failed to initialize configuration:');
-    console.error(error);
+async function ensureInitialized() {
+  const configManager = await getConfigManager();
+  if (!(await configManager.isInitialized())) {
+    console.error(chalk.red('Project is not initialized. Please run the "init" command first.'));
     process.exit(1);
   }
 }
@@ -1611,8 +1648,10 @@ const program = new Command();
 program
   .version('1.0.0')
   .description('Prompt Manager CLI - A powerful tool for managing and generating prompts')
-  .hook('preAction', async () => {
-    await initializeConfig();
+  .hook('preAction', async (thisCommand) => {
+    if (thisCommand.name() !== 'init') {
+      await ensureInitialized();
+    }
   });
 
 program

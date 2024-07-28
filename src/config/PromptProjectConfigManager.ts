@@ -9,7 +9,8 @@ const log = debug('fury:config');
 import { ensureDirectoryExists } from '../utils/fileUtils';
 import { configSchema, DEFAULT_CONFIG, z } from '../schemas/config';
 import type { Config } from '../schemas/config';
-import { PromptFileSystem, DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME } from '../promptFileSystem';
+import { DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME } from '../promptFileSystem';
+import { IPromptFileSystem } from '../types/interfaces';
 
 export type { Config };
 
@@ -169,9 +170,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     }
   }
 
-  private async validatePromptsFolder(): Promise<void> {
-    const promptFileSystem = await PromptFileSystem.getInstance();
-
+  private async validatePromptsFolder(promptFileSystem: IPromptFileSystem): Promise<void> {
     const isValid = await promptFileSystem.validatePromptsFolderConfig();
     if (!isValid) {
       console.error(chalk.red('Error: Prompts folder is not properly initialized or has an invalid configuration.'));

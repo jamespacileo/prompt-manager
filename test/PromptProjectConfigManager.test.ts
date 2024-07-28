@@ -1,5 +1,5 @@
 import { expect, test, beforeEach, afterEach, mock, beforeAll, afterAll, describe } from "bun:test";
-import { PromptProjectConfigManager } from "../src/config/PromptProjectConfigManager";
+import { PromptProjectConfigManager, getConfigManager } from "../src/config/PromptProjectConfigManager";
 import type { Config } from "../src/schemas/config";
 import fs from "fs/promises";
 import path from "path";
@@ -54,7 +54,7 @@ describe("PromptProjectConfigManager", () => {
 
   test("PromptProjectConfigManager initialization", async () => {
     const configManager = await PromptProjectConfigManager.getInstance();
-    await configManager.initialize();
+    // initialization is now handled internally
 
     const config = await configManager.getAllConfig();
     expect(config).toBeDefined();
@@ -66,7 +66,7 @@ describe("PromptProjectConfigManager", () => {
 
   test("PromptProjectConfigManager updates and retrieves config", async () => {
     const configManager = await PromptProjectConfigManager.getInstance();
-    await configManager.initialize();
+    // initialization is now handled internally
 
     const newConfig: Partial<Config> = {
       promptsDir: "/new/prompts/dir",
@@ -94,7 +94,7 @@ describe("PromptProjectConfigManager", () => {
 
   test("PromptProjectConfigManager creates default config if file doesn't exist", async () => {
     const configManager = await PromptProjectConfigManager.getInstance();
-    await configManager.initialize();
+    // initialization is now handled internally
 
     const config = await configManager.getAllConfig();
     expect(config.promptsDir).toBeDefined();

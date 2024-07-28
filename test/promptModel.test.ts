@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
 import { PromptManager } from "../src/promptManager";
 import { PromptFileSystem } from "../src/promptFileSystem";
-import { configManager } from "../src/config/PromptProjectConfigManager";
+import { getConfigManager } from "../src/config/PromptProjectConfigManager";
 import fs from "fs/promises";
 import path from "path";
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
@@ -52,18 +52,16 @@ const dummyPromptData: IPrompt<IPromptInput, IPromptOutput> = {
 describe("PromptModel", () => {
   beforeAll(async () => {
     await fs.mkdir(TEST_PROMPTS_PATH, { recursive: true });
-    await configManager.updateConfig({
+    await (await getConfigManager()).updateConfig({
       promptsDir: TEST_PROMPTS_PATH,
       outputDir: path.join(TEST_PROMPTS_PATH, 'output'),
     });
   });
 
   beforeEach(async () => {
-    await configManager.initialize();
-    fileSystem = PromptFileSystem.getInstance();
-    await fileSystem.initialize();
-    promptManager = PromptManager.getInstance();
-    await promptManager.initialize();
+    const configManager = await getConfigManager();
+    fileSystem = await PromptFileSystem.getInstance();
+    promptManager = await PromptManager.getInstance();
   });
 
 

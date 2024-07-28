@@ -112,6 +112,7 @@ export interface IPromptModel<
   outputType: 'structured' | 'plain';
   // fileSystem: IPromptFileSystem;
   isLoadedFromStorage: boolean;
+  filePath?: string | undefined | null;
 
   validateInput(input: TInput): boolean;
   validateOutput(output: TOutput): boolean;
@@ -268,7 +269,7 @@ interface IPromptManagerLibrary<TInput extends IPromptInput<any> = IPromptInput<
    * Lists all available prompts.
    * @param props An object containing an optional category to filter prompts
    */
-  listPrompts(props: { category?: string }): Promise<IPrompt<IPromptInput, IPromptOutput>[]>;
+  listPrompts(props: { category?: string }): Promise<IPromptModel<IPromptInput, IPromptOutput>[]>;
 
   /**
    * Manages versions of a prompt.
@@ -298,6 +299,35 @@ interface IPromptManagerLibrary<TInput extends IPromptInput<any> = IPromptInput<
   categories: {
     [category: string]: IPromptCategory<Record<string, IPrompt<IPromptInput, IPromptOutput>>>;
   };
+
+  /**
+   * Checks if a prompt exists.
+   * @param props An object containing the category and name of the prompt
+   */
+  promptExists(props: { category: string; name: string }): Promise<boolean>;
+
+  /**
+   * Creates a new category.
+   * @param categoryName The name of the category to create
+   */
+  createCategory(categoryName: string): Promise<void>;
+
+  /**
+   * Deletes a category.
+   * @param categoryName The name of the category to delete
+   */
+  deleteCategory(categoryName: string): Promise<void>;
+
+  /**
+   * Lists all categories.
+   */
+  listCategories(): Promise<string[]>;
+
+  /**
+   * Executes a prompt with given parameters.
+   * @param props An object containing the category, prompt name, and parameters
+   */
+  executePrompt(props: { category: string; name: string; params: TInput }): Promise<TOutput>;
 }
 
 // Export the interfaces so they can be imported and used in other parts of the project
@@ -356,7 +386,7 @@ interface IPromptFileSystem {
    * @param props An object containing an optional category to filter prompts.
    * @returns A promise that resolves with an array of prompt names.
    */
-  listPrompts(props?: { category?: string }): Promise<Array<{ name: string; category: string; filePath: string }>>;
+  listPrompts(props?: { category?: string }): Promise<Array<IPromptModel>>;
 
   /**
    * Lists all categories in the file system.
@@ -369,7 +399,7 @@ interface IPromptFileSystem {
    * @param props An object containing the search query.
    * @returns A promise that resolves with an array of objects containing category and name of matching prompts.
    */
-  searchPrompts(props: { query: string }): Promise<Array<{ name: string; category: string; filePath: string }>>;
+  searchPrompts(props: { query: string }): Promise<Array<IPromptModel>>;
 
   /**
    * Searches for categories based on a query string.
