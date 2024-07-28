@@ -92,12 +92,12 @@ describe("PromptFileSystem", () => {
     expect(prompts).toContainEqual({
       name: "cosmicWhisper",
       category: "celestialMystery",
-      filePath: expect.stringContaining("/test-prompts/celestialMystery/cosmicWhisper/prompt.json")
+      filePath: path.join(testDir, "celestialMystery", "cosmicWhisper", "prompt.json")
     });
     expect(prompts).toContainEqual({
       name: "stargazerDreams",
       category: "celestialMystery",
-      filePath: expect.stringContaining("/test-prompts/celestialMystery/stargazerDreams/prompt.json")
+      filePath: path.join(testDir, "celestialMystery", "stargazerDreams", "prompt.json")
     });
 
     const categoryPrompts = await promptFileSystem.listPrompts({ category: "celestialMystery" });
@@ -114,7 +114,7 @@ describe("PromptFileSystem", () => {
     expect(searchResults).toContainEqual({
       name: "cosmicWhisper",
       category: "celestialMystery",
-      filePath: expect.stringContaining("/test-prompts/celestialMystery/cosmicWhisper/prompt.json")
+      filePath: path.join(testDir, "celestialMystery", "cosmicWhisper", "prompt.json")
     });
   });
 

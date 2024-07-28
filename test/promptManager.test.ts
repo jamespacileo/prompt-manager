@@ -74,7 +74,7 @@ describe('PromptManager', () => {
     expect(allPrompts).toContainEqual({
       name: 'cosmicVoyager',
       category: 'spaceExploration',
-      filePath: expect.stringContaining('/test-prompts-manager/spaceExploration/cosmicVoyager/prompt.json'),
+      filePath: path.join(testDir, 'spaceExploration', 'cosmicVoyager', 'prompt.json'),
     });
   });
 
