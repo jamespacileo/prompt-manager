@@ -42,7 +42,7 @@ const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>;
 
-class PromptProjectConfigManager implements IPromptProjectConfigManager {
+export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private static instance: PromptProjectConfigManager;
   private configPath: string;
   private config: Config;
