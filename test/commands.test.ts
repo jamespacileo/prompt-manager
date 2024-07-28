@@ -1,9 +1,15 @@
-import { expect, test, describe, beforeAll, afterAll, beforeEach } from "bun:test";
+import { expect, test, describe, beforeAll, afterAll, beforeEach, jest } from "bun:test";
 import * as commands from "../src/cli/commands";
 import { PromptManager } from "../src/promptManager";
 import fs from 'fs/promises';
 import path from 'path';
 import { PromptProjectConfigManager } from "../src/config/PromptProjectConfigManager";
+
+// Mock enquirer
+jest.mock('enquirer', () => ({
+  prompt: jest.fn(),
+}));
+import enquirer from 'enquirer';
 
 describe('CLI Commands', () => {
   let testDir: string;
@@ -61,7 +67,10 @@ describe('CLI Commands', () => {
       outputType: "json",
     };
 
-    await commands.createPrompt(promptData);
+    // Mock the prompt responses
+    (enquirer.prompt as jest.Mock).mockResolvedValueOnce(promptData);
+
+    await commands.createPrompt();
 
     const manager = new PromptManager();
     await manager.initialize();
@@ -141,11 +150,13 @@ describe('CLI Commands', () => {
       outputType: "json",
     };
 
-    await commands.updatePrompt({
+    // Mock the prompt responses
+    (enquirer.prompt as jest.Mock).mockResolvedValueOnce({
       category: "cosmicCompositions",
       name: "stardustSymphony",
-      promptData: updatedPromptData,
-    });
+    }).mockResolvedValueOnce(updatedPromptData);
+
+    await commands.updatePrompt();
 
     const manager = new PromptManager();
     await manager.initialize();
@@ -158,10 +169,13 @@ describe('CLI Commands', () => {
   });
 
   test("deletePrompt removes a prompt", async () => {
-    await commands.deletePrompt({
+    // Mock the prompt responses
+    (enquirer.prompt as jest.Mock).mockResolvedValueOnce({
       category: "cosmicCompositions",
       name: "stardustSymphony",
     });
+
+    await commands.deletePrompt();
 
     const manager = new PromptManager();
     await manager.initialize();
