@@ -48,7 +48,7 @@ const COSMIC_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
 
 beforeAll(async () => {
   originalPromptsDir = process.env.PROMPTS_DIR;
-  testDir = path.join(process.cwd(), 'test-prompts');
+  testDir = path.resolve(process.cwd(), 'test-prompts');
   await fs.mkdir(testDir, { recursive: true });
   process.env.PROMPTS_DIR = testDir;
   await PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);

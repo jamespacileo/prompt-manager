@@ -74,13 +74,17 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       const validatedConfig = configSchema.parse(parsedConfig);
       this.config = {
         ...validatedConfig,
-        promptsDir: path.resolve(path.dirname(this.configPath), validatedConfig.promptsDir),
-        outputDir: path.resolve(path.dirname(this.configPath), validatedConfig.outputDir),
+        promptsDir: path.resolve(validatedConfig.promptsDir),
+        outputDir: path.resolve(validatedConfig.outputDir),
       };
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         // File doesn't exist, use default values
-        this.config = DEFAULT_CONFIG;
+        this.config = {
+          ...DEFAULT_CONFIG,
+          promptsDir: path.resolve(DEFAULT_CONFIG.promptsDir),
+          outputDir: path.resolve(DEFAULT_CONFIG.outputDir),
+        };
         await this.saveConfig();
       } else if (error instanceof z.ZodError) {
         throw new Error(`Invalid configuration file: ${error.message}`);

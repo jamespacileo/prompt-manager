@@ -15,11 +15,11 @@ export class PromptFileSystem implements IPromptFileSystem {
   private basePath: string;
 
   constructor() {
-    this.basePath = configManager.getConfig('promptsDir');
+    this.basePath = path.resolve(configManager.getConfig('promptsDir'));
   }
 
   public async initialize(): Promise<void> {
-    this.basePath = configManager.getConfig('promptsDir');
+    this.basePath = path.resolve(configManager.getConfig('promptsDir'));
     await fs.mkdir(this.basePath, { recursive: true });
   }
 
