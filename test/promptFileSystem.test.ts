@@ -1,4 +1,4 @@
-import { expect, test, beforeAll, afterAll, beforeEach, describe } from "bun:test";
+import { expect, test, beforeAll, afterAll, beforeEach, afterEach, describe } from "bun:test";
 import { PromptFileSystem } from "../src/promptFileSystem";
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
 import fs from "fs/promises";
@@ -7,7 +7,7 @@ import { PromptProjectConfigManager } from "../src/config/PromptProjectConfigMan
 
 let promptFileSystem: PromptFileSystem;
 let testDir: string;
-let originalPromptsDir: string | undefined;
+let originalPromptsDir: string;
 
 const COSMIC_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
   name: "cosmicWhisper",
@@ -47,17 +47,22 @@ const COSMIC_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
 };
 
 beforeAll(async () => {
-  originalPromptsDir = process.env.PROMPTS_DIR;
+  originalPromptsDir = process.env.PROMPTS_DIR || '';
   testDir = path.resolve(process.cwd(), 'test-prompts');
   await fs.mkdir(testDir, { recursive: true });
   process.env.PROMPTS_DIR = testDir;
-  await PromptProjectConfigManager.getInstance().setConfig('promptsDir', testDir);
   await PromptProjectConfigManager.getInstance().initialize();
+  await PromptProjectConfigManager.getInstance().updateConfig({ promptsDir: testDir });
 });
 
 beforeEach(async () => {
   promptFileSystem = new PromptFileSystem();
   await promptFileSystem.initialize();
+});
+
+afterEach(async () => {
+  await fs.rm(testDir, { recursive: true, force: true });
+  await fs.mkdir(testDir, { recursive: true });
 });
 
 afterAll(async () => {
@@ -67,7 +72,7 @@ afterAll(async () => {
   } else {
     delete process.env.PROMPTS_DIR;
   }
-  PromptProjectConfigManager.getInstance().setConfig('promptsDir', originalPromptsDir || '');
+  await PromptProjectConfigManager.getInstance().updateConfig({ promptsDir: originalPromptsDir });
 });
 
 describe("PromptFileSystem", () => {
@@ -104,16 +109,21 @@ describe("PromptFileSystem", () => {
     await promptFileSystem.savePrompt({ promptData: stargazerPrompt });
 
     const prompts = await promptFileSystem.listPrompts();
-    expect(prompts).toContainEqual({
-      name: "cosmicWhisper",
-      category: "celestialMystery",
-      filePath: path.join(testDir, "celestialMystery", "cosmicWhisper", "prompt.json")
-    });
-    expect(prompts).toContainEqual({
-      name: "stargazerDreams",
-      category: "celestialMystery",
-      filePath: path.join(testDir, "celestialMystery", "stargazerDreams", "prompt.json")
-    });
+    expect(prompts).toHaveLength(2);
+    expect(prompts).toEqual(
+      expect.arrayContaining([
+        {
+          name: "cosmicWhisper",
+          category: "celestialMystery",
+          filePath: path.join(testDir, "celestialMystery", "cosmicWhisper", "prompt.json")
+        },
+        {
+          name: "stargazerDreams",
+          category: "celestialMystery",
+          filePath: path.join(testDir, "celestialMystery", "stargazerDreams", "prompt.json")
+        }
+      ])
+    );
 
     const categoryPrompts = await promptFileSystem.listPrompts({ category: "celestialMystery" });
     expect(categoryPrompts).toHaveLength(2);
