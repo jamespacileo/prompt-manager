@@ -92,7 +92,7 @@ export interface IPromptModel<
   };
   outputType: 'structured' | 'plain';
   fileSystem: IPromptFileSystem;
-  _isSaved: boolean;
+  isLoadedFromStorage: boolean;
 
   validateInput(input: TInput): boolean;
   validateOutput(output: TOutput): boolean;
@@ -113,7 +113,8 @@ export interface IPromptModel<
 export interface IPromptModelStatic {
   loadPromptByName(name: string, fileSystem: IPromptFileSystem): Promise<IPromptModel>;
   promptExists(name: string, fileSystem: IPromptFileSystem): Promise<boolean>;
-  listPrompts(category?: string, fileSystem?: IPromptFileSystem): Promise<string[]>;
+  listPrompts(category?: string, fileSystem?: IPromptFileSystem): Promise<Array<{ name: string; category: string; filePath: string }>>;
+  deletePrompt(category: string, name: string, fileSystem?: IPromptFileSystem): Promise<void>;
 }
 
 
