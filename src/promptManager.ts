@@ -1,4 +1,4 @@
-import { IPromptManagerLibrary, IPromptCategory, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
+import { IPromptCategory, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import { PromptModel } from './promptModel';
 import { PromptFileSystem } from './promptFileSystem';
 
@@ -10,7 +10,7 @@ import { PromptFileSystem } from './promptFileSystem';
 export class PromptManager<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
-> implements IPromptManagerLibrary<TInput, TOutput> {
+> {
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
   private prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
   private fileSystem: PromptFileSystem;
