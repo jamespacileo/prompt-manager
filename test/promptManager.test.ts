@@ -79,7 +79,15 @@ describe('PromptManager', () => {
       name: 'cosmicVoyager',
     });
 
-    expect(retrievedPrompt).toEqual(cosmicPrompt);
+    expect(retrievedPrompt).toMatchObject({
+      ...cosmicPrompt,
+      isLoadedFromStorage: false,
+      _isSaved: false,
+      _inputZodSchema: null,
+      _outputZodSchema: null,
+      fileSystem: expect.any(Object),
+      defaultModelName: undefined,
+    });
   });
 
   test('List all prompts', async () => {
