@@ -13,7 +13,16 @@ import { Config } from '../schemas/config';
  * information about the purpose and usage of each interface and type.
  */
 
+/**
+ * Represents the input structure for a prompt.
+ * This can be extended to include any key-value pairs.
+ */
 type IPromptInput<T extends Record<string, any> = Record<string, any>> = T;
+
+/**
+ * Represents the output structure for a prompt.
+ * This can be extended to include any key-value pairs.
+ */
 type IPromptOutput<T extends Record<string, any> = Record<string, any>> = T;
 
 /**
@@ -441,4 +450,10 @@ export type {
 export interface IPromptManagerClientGenerator {
   generateClient(): Promise<void>;
   detectChanges(): Promise<boolean>;
+}
+
+export interface IPromptsFolderConfig {
+  version: string;
+  lastUpdated: string;
+  promptCount: number;
 }

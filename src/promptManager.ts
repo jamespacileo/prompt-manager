@@ -62,7 +62,10 @@ export class PromptManager<
    * @throws Error if the prompt does not exist in the specified category
    */
   getPrompt(props: { category: string; name: string }): PromptModel<TInput, TOutput> {
-    if (!this.prompts[props.category] || !this.prompts[props.category][props.name]) {
+    if (!this.prompts[props.category]) {
+      throw new Error(`Category "${props.category}" does not exist`);
+    }
+    if (!this.prompts[props.category][props.name]) {
       throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
     }
     return this.prompts[props.category][props.name] as PromptModel<TInput, TOutput>;
@@ -79,6 +82,9 @@ export class PromptManager<
     }
     if (!this.prompts[prompt.category]) {
       this.prompts[prompt.category] = {};
+    }
+    if (this.prompts[prompt.category][prompt.name]) {
+      throw new Error(`Prompt "${prompt.name}" already exists in category "${prompt.category}"`);
     }
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;

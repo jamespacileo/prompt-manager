@@ -1,12 +1,14 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput, IPromptModelRequired } from './types/interfaces';
+import { IPromptFileSystem, IPrompt, IPromptInput, IPromptOutput, IPromptModelRequired, IPromptsFolderConfig } from './types/interfaces';
 import { configManager } from './config/PromptProjectConfigManager';
 import { PromptSchema } from './schemas/prompts';
 import { PromptModel } from './promptModel';
+import chalk from 'chalk';
 
 export const PROMPT_FILENAME = "prompt.json";
 export const TYPE_DEFINITION_FILENAME = "prompt.d.ts";
+export const PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
 
 /**
  * PromptFileSystem handles all file system operations related to prompts.
@@ -27,6 +29,72 @@ export class PromptFileSystem implements IPromptFileSystem {
   public async initialize(): Promise<void> {
     this.basePath = path.resolve(configManager.getConfig('promptsDir'));
     await fs.mkdir(this.basePath, { recursive: true });
+    await this.initializePromptsFolderConfig();
+    const isValid = await this.validatePromptsFolderConfig();
+    if (!isValid) {
+      console.error('Prompts folder configuration is invalid. Reinitializing...');
+      await this.initializePromptsFolderConfig();
+    }
+  }
+
+  private async initializePromptsFolderConfig(): Promise<void> {
+    const configPath = path.join(this.basePath, PROMPTS_FOLDER_CONFIG_FILENAME);
+    try {
+      await fs.access(configPath);
+      console.log(chalk.green('✔ Prompts folder configuration already exists'));
+    } catch (error) {
+      console.log(chalk.yellow('⚠ Prompts folder configuration not found. Creating a new one...'));
+      const initialConfig: IPromptsFolderConfig = {
+        version: "1.0.0",
+        lastUpdated: new Date().toISOString(),
+        promptCount: 0
+      };
+      await fs.writeFile(configPath, JSON.stringify(initialConfig, null, 2));
+      console.log(chalk.green('✔ Created new prompts folder configuration'));
+    }
+  }
+
+  async validatePromptsFolderConfig(): Promise<boolean> {
+    const configPath = path.join(this.basePath, PROMPTS_FOLDER_CONFIG_FILENAME);
+    try {
+      await fs.access(configPath);
+      const configData = await fs.readFile(configPath, 'utf-8');
+      const config: IPromptsFolderConfig = JSON.parse(configData);
+      const isValid = (
+        typeof config.version === 'string' &&
+        typeof config.lastUpdated === 'string' &&
+        typeof config.promptCount === 'number'
+      );
+      if (isValid) {
+        console.log(chalk.green('✔ Prompts folder configuration is valid'));
+      } else {
+        console.warn(chalk.yellow('⚠ Invalid prompts folder configuration detected'));
+      }
+      return isValid;
+    } catch (error) {
+      console.error(chalk.red('Error validating prompts folder configuration:'), error);
+      console.warn(chalk.yellow('Possible reasons for invalid prompts folder configuration:'));
+      console.warn(chalk.yellow('• The configuration file might be corrupted or manually edited incorrectly'));
+      console.warn(chalk.yellow('• The configuration file might be missing required fields'));
+      console.warn(chalk.yellow('Actions to take:'));
+      console.warn(chalk.yellow('• Check the file contents and ensure it\'s valid JSON'));
+      console.warn(chalk.yellow('• Ensure all required fields (version, lastUpdated, promptCount) are present'));
+      console.warn(chalk.yellow('• If issues persist, try reinitializing the configuration file'));
+      return false;
+    }
+  }
+
+  private async updatePromptsFolderConfig(updates: Partial<IPromptsFolderConfig>): Promise<void> {
+    const configPath = path.join(this.basePath, PROMPTS_FOLDER_CONFIG_FILENAME);
+    const currentConfig = await this.getPromptsFolderConfig();
+    const updatedConfig = { ...currentConfig, ...updates, lastUpdated: new Date().toISOString() };
+    await fs.writeFile(configPath, JSON.stringify(updatedConfig, null, 2));
+  }
+
+  private async getPromptsFolderConfig(): Promise<IPromptsFolderConfig> {
+    const configPath = path.join(this.basePath, PROMPTS_FOLDER_CONFIG_FILENAME);
+    const configData = await fs.readFile(configPath, 'utf-8');
+    return JSON.parse(configData);
   }
 
   private getFilePath({ category, promptName }: { category: string, promptName: string }): string {
@@ -50,12 +118,10 @@ export class PromptFileSystem implements IPromptFileSystem {
    */
   async savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void> {
     const { promptData } = props;
+    const validatedPromptData = PromptSchema.parse(promptData) as IPrompt<IPromptInput, IPromptOutput>;
+    const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
 
     try {
-      // Validate the prompt data against the schema
-      const validatedPromptData = PromptSchema.parse(promptData) as IPrompt<IPromptInput, IPromptOutput>;
-
-      const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
       const versionFilePath = this.getVersionFilePath({
         category: validatedPromptData.category,
         promptName: validatedPromptData.name,
@@ -68,11 +134,9 @@ export class PromptFileSystem implements IPromptFileSystem {
       await fs.writeFile(filePath, JSON.stringify(validatedPromptData, null, 2));
       await fs.writeFile(versionFilePath, JSON.stringify(validatedPromptData, null, 2));
 
-      // Generate and save TypeScript definition file
       const typeDefinitionPath = path.join(path.dirname(filePath), TYPE_DEFINITION_FILENAME);
       await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
 
-      // Update the list of versions
       const versionsPath = path.join(this.basePath, validatedPromptData.category, validatedPromptData.name, '.versions');
       const versions = await this.getPromptVersions({ category: validatedPromptData.category, promptName: validatedPromptData.name });
       if (!versions.includes(validatedPromptData.version)) {
@@ -80,12 +144,24 @@ export class PromptFileSystem implements IPromptFileSystem {
         versions.sort((a, b) => this.compareVersions(b, a));
       }
       await fs.writeFile(path.join(versionsPath, 'versions.json'), JSON.stringify(versions, null, 2));
+
+      const config = await this.getPromptsFolderConfig();
+      await this.updatePromptsFolderConfig({ promptCount: config.promptCount + 1 });
     } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('ENOSPC')) {
+          throw new Error(`Failed to save prompt due to insufficient disk space. Please free up some space and try again.`);
+        } else if (error.message.includes('EACCES')) {
+          throw new Error(`Failed to save prompt due to insufficient permissions. Please check your file system permissions and try again.`);
+        } else if (error.message.includes('EBUSY')) {
+          throw new Error(`Failed to save prompt because the file is locked or in use. Please close any other applications that might be using the file and try again.`);
+        }
+      }
       console.error('Error saving prompt:', error);
-      throw new Error(`Failed to save prompt: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Failed to save prompt to ${filePath}: ${error instanceof Error ? error.message : String(error)}. Please check the console for more details.`);
     }
   }
-
+  
   /**
    * Load a prompt from the file system.
    * Purpose: Retrieve stored prompt data for use in the application.
@@ -97,15 +173,19 @@ export class PromptFileSystem implements IPromptFileSystem {
     try {
       const data = await fs.readFile(filePath, 'utf-8');
       const parsedData = JSON.parse(data);
-      return PromptSchema.parse(parsedData) as IPrompt<IPromptInput, IPromptOutput>;
+      const validatedData = PromptSchema.parse(parsedData);
+      return validatedData as IPrompt<IPromptInput, IPromptOutput>;
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-        throw new Error(`Prompt not found: ${category}/${promptName}`);
+        throw new Error(`Prompt not found at ${filePath}. Please verify that the prompt exists and the category (${category}) and promptName (${promptName}) are correct.`);
       }
       if (error instanceof SyntaxError) {
-        throw new Error(`Invalid JSON in prompt file: ${category}/${promptName}`);
+        throw new Error(`Invalid JSON in prompt file: ${filePath}. The file may be corrupted or incorrectly edited. Please check the file contents or restore from a backup.`);
       }
-      throw new Error(`Failed to load prompt ${category}/${promptName}: ${error instanceof Error ? error.message : String(error)}`);
+      if (error instanceof z.ZodError) {
+        throw new Error(`Invalid prompt data structure in file: ${filePath}. The prompt data does not match the expected schema. Please check the file contents or recreate the prompt.`);
+      }
+      throw new Error(`Failed to load prompt from ${filePath}: ${error instanceof Error ? error.message : String(error)}. Please check file permissions and system integrity.`);
     }
   }
 
@@ -146,12 +226,17 @@ export class PromptFileSystem implements IPromptFileSystem {
                   const promptModel = new PromptModel(promptData as IPromptModelRequired);
                   prompts.push(promptModel);
                 } catch (error) {
-                  console.warn(`Failed to load prompt ${promptEntry.name}: ${error instanceof Error ? error.message : String(error)}`);
+                  const promptPath = path.join(promptDir, promptEntry.name, PROMPT_FILENAME);
+                  console.warn(`Failed to load prompt from ${promptPath}: ${error instanceof Error ? error.message : String(error)}. 
+                    This prompt will be skipped. If this is unexpected, please check the file permissions and contents. 
+                    You may need to manually review and potentially recreate this prompt.`);
                 }
               }
             }
           } catch (error) {
-            console.warn(`Failed to read prompt directory ${promptDir}: ${error instanceof Error ? error.message : String(error)}`);
+            console.warn(`Failed to read prompt directory at ${promptDir}: ${error instanceof Error ? error.message : String(error)}. 
+              This directory will be skipped. Please check if the directory exists and you have the necessary permissions. 
+              If this is a critical directory, you may need to manually recreate it or restore from a backup.`);
           }
         }
       }

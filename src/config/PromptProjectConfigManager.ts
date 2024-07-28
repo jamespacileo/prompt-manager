@@ -6,6 +6,7 @@ import { getDefaultPromptsPath } from './constants';
 import { ensureDirectoryExists } from '../utils/fileUtils';
 import { configSchema, DEFAULT_CONFIG, z } from '../schemas/config';
 import type { Config } from '../schemas/config';
+import { PromptFileSystem } from '../promptFileSystem';
 
 export type { Config };
 
@@ -24,8 +25,10 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
    */
   private constructor(configPath?: string) {
     const configFileName = process.env.FURY_PROJECT_CONFIG_FILENAME || process.env.FURY_CONFIG_FILENAME || 'fury-config.json';
-    this.configPath = configPath || path.join(process.env.FURY_PROJECT_ROOT || process.cwd(), configFileName);
+    const projectRoot = process.env.FURY_PROJECT_ROOT || process.cwd();
+    this.configPath = configPath || path.join(projectRoot, configFileName);
     this.config = { ...DEFAULT_CONFIG };
+    this.performIntegrityCheck();
   }
 
   public static getInstance(configPath?: string): PromptProjectConfigManager {
@@ -40,46 +43,101 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
    * This method loads the configuration, ensures necessary directories exist, and prints the loaded configuration.
    */
   public async initialize(): Promise<void> {
-    await this.loadConfig();
-    await this.ensureConfigDirectories();
-    this.prettyPrintConfig();
+    try {
+      await this.loadConfig();
+      await this.ensureConfigDirectories();
+      await this.validatePromptsFolder();
+      this.prettyPrintConfig();
+    } catch (error: any) {
+      console.error(chalk.red('Failed to initialize config:'), error.message);
+      throw error;
+    }
+  }
+
+  private async performIntegrityCheck(): Promise<void> {
+    try {
+      await this.loadConfig();
+      await this.ensureConfigDirectories();
+      console.log(chalk.green('✔ Configuration integrity check passed'));
+    } catch (error: any) {
+      if (error instanceof Error && error.message.includes('Project not initialized')) {
+        console.warn(chalk.yellow('⚠ Configuration file not found. Project needs to be initialized.'));
+        throw error;
+      } else if (error instanceof z.ZodError) {
+        console.error(chalk.red('Invalid configuration file:'), error.errors);
+        throw new Error(`Invalid configuration file. Please check the file contents and ensure it matches the expected schema.`);
+      } else {
+        console.warn(chalk.yellow('⚠ Configuration integrity check failed:'), error.message);
+        console.log(chalk.yellow('Attempting to create necessary directories...'));
+        try {
+          await this.ensureConfigDirectories();
+        } catch (dirError) {
+          console.error(chalk.red('Failed to create necessary directories:'), dirError);
+          throw new Error(`Failed to create necessary directories. Please check your file system permissions.`);
+        }
+      }
+    }
+  }
+
+  private async validatePromptsFolder(): Promise<void> {
+    const promptsDir = path.resolve(process.env.FURY_PROJECT_ROOT || process.cwd(), this.config.promptsDir);
+    const promptFileSystem = new PromptFileSystem();
+    await promptFileSystem.initialize();
+
+    const isValid = await promptFileSystem.validatePromptsFolderConfig();
+    if (!isValid) {
+      console.error(chalk.red('Error: Prompts folder is not properly initialized or has an invalid configuration.'));
+      console.error(chalk.yellow('Please make sure you have run the initialization command for your prompts folder.'));
+      console.error(chalk.yellow('If you believe this is an error, check that the promptsDir path in your configuration is correct.'));
+      throw new Error('Invalid prompts folder configuration');
+    }
+  }
+
+  private async ensureConfigDirectories(): Promise<void> {
+    const projectRoot = process.env.FURY_PROJECT_ROOT || process.cwd();
+    try {
+      await ensureDirectoryExists(path.resolve(projectRoot, this.config.promptsDir));
+      console.log(chalk.green(`✔ Created prompts directory: ${this.config.promptsDir}`));
+      await ensureDirectoryExists(path.resolve(projectRoot, this.config.outputDir));
+      console.log(chalk.green(`✔ Created output directory: ${this.config.outputDir}`));
+    } catch (error: any) {
+      console.error(chalk.red('Error: Failed to create necessary directories.'));
+      console.error(chalk.yellow('Please check that you have write permissions in the project directory.'));
+      throw new Error(`Failed to create directories: ${error.message}`);
+    }
   }
 
   private async loadConfig(): Promise<void> {
     try {
-      console.log(`Loading configuration from ${this.configPath}`);
+      console.log(chalk.blue(`Loading configuration from ${this.configPath}`));
       const configData = await fs.readFile(this.configPath, 'utf-8');
       const parsedConfig = JSON.parse(configData);
 
       const validatedConfig = configSchema.parse(parsedConfig);
       this.config = {
         ...validatedConfig,
-        promptsDir: path.resolve(validatedConfig.promptsDir),
-        outputDir: path.resolve(validatedConfig.outputDir),
+        promptsDir: path.relative(process.cwd(), path.resolve(process.env.FURY_PROJECT_ROOT || process.cwd(), validatedConfig.promptsDir)),
+        outputDir: path.relative(process.cwd(), path.resolve(process.env.FURY_PROJECT_ROOT || process.cwd(), validatedConfig.outputDir)),
       };
+      console.log(chalk.green('✔ Configuration loaded successfully'));
     } catch (error: any) {
       if (error.code === 'ENOENT') {
-        console.log('Configuration file not found. Using default configuration.');
-        this.config = {
-          ...DEFAULT_CONFIG,
-          promptsDir: path.resolve(getDefaultPromptsPath()),
-          outputDir: path.resolve(path.join(process.cwd(), 'output')),
-        };
-        await this.saveConfig();
+        console.error(chalk.red('Configuration file not found. Project needs to be initialized.'));
+        throw new Error(`Project not initialized. Configuration file not found at ${this.configPath}. Please run the initialization command first.`);
       } else if (error instanceof z.ZodError) {
-        console.error('Invalid configuration file:', error.errors);
-        throw new Error(`Invalid configuration file: ${error.message}`);
+        console.error(chalk.red('Invalid configuration file:'), error.errors);
+        throw new Error(`Invalid configuration file at ${this.configPath}: ${error.message}. Please check the file contents and ensure it matches the expected schema.`);
       } else {
-        console.error('Failed to load configuration:', error);
-        throw new Error(`Failed to load configuration: ${error.message}`);
+        console.error(chalk.red('Failed to load configuration:'), error);
+        throw new Error(`Failed to load configuration from ${this.configPath}: ${error.message}. This could be due to a corrupted configuration file.`);
       }
     }
   }
 
   private prettyPrintConfig(): void {
     console.log(chalk.bold('\nLoaded Configuration:'));
-    console.log(chalk.white('promptsDir:      ') + chalk.cyan(this.config.promptsDir));
-    console.log(chalk.white('outputDir:       ') + chalk.cyan(this.config.outputDir));
+    console.log(chalk.white('prompts_dir:      ') + chalk.cyan(this.config.promptsDir));
+    console.log(chalk.white('output_dir:       ') + chalk.cyan(this.config.outputDir));
     console.log(chalk.white('preferredModels: ') + chalk.cyan(this.config.preferredModels.join(', ')));
     console.log(chalk.white('modelParams:'));
     Object.entries(this.config.modelParams).forEach(([model, params]) => {
@@ -91,11 +149,6 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
     console.log('\n');
   }
 
-  private async ensureConfigDirectories(): Promise<void> {
-    await ensureDirectoryExists(this.config.promptsDir);
-    await ensureDirectoryExists(this.config.outputDir);
-  }
-
   private async saveConfig(): Promise<void> {
     try {
       const configData = JSON.stringify(this.config, null, 2);
@@ -103,7 +156,10 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       console.log('Configuration saved successfully.');
     } catch (error: any) {
       console.error('Failed to save configuration:', error);
-      throw new Error(`Failed to save configuration: ${error.message}`);
+      throw new Error(`Failed to save configuration to ${this.configPath}: ${error.message}. 
+        This could be due to insufficient permissions or disk space. 
+        Please check your file system permissions and available storage. 
+        If the issue persists, try saving to a different location or contact your system administrator.`);
     }
   }
 

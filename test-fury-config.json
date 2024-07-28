@@ -1,9 +1,9 @@
 {
-  "promptsDir": "prompts",
-  "outputDir": "generated",
+  "promptsDir": "/workspaces/prompt-manager/test_prompts",
+  "outputDir": "",
   "preferredModels": [
     "gpt-4",
-    "gpt-3.5-turbo"
+    "gpt-4o-mini"
   ],
   "modelParams": {
     "gpt-4": {
@@ -13,14 +13,12 @@
       "frequencyPenalty": 0,
       "presencePenalty": 0
     },
-    "gpt-3.5-turbo": {
+    "gpt-4o-mini": {
       "temperature": 0.8,
       "maxTokens": 1500,
       "topP": 1,
       "frequencyPenalty": 0,
       "presencePenalty": 0
     }
-  },
-  "defaultLanguage": "en",
-  "version": "1.0.0"
+  }
 }

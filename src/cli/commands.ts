@@ -8,8 +8,14 @@ import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
 import { configManager } from '../config/PromptProjectConfigManager';
 
 /**
+ * This file contains the implementation of various CLI commands for the Prompt Manager.
+ * Each function represents a different command that can be executed from the command line.
+ */
+
+/**
  * Create a new prompt with AI assistance.
  * Purpose: Guide the user through creating a new prompt, leveraging AI for content generation and refinement.
+ * @returns A Promise that resolves when the prompt creation process is complete.
  */
 export async function createPrompt(): Promise<void> {
   try {
@@ -36,16 +42,20 @@ export async function createPrompt(): Promise<void> {
 
     const manager = new PromptManager();
     await manager.initialize();
+
+    // Validate the AI-generated prompt data
+    const validatedPromptData = PromptSchema.parse(promptData);
+
     const prompt = new PromptModel({
-      ...promptData,
-      name: promptData.name || '',
-      category: promptData.category || '',
-      description: promptData.description || '',
-      template: promptData.template || '',
-      parameters: promptData.parameters || [],
-      inputSchema: promptData.inputSchema || {},
-      outputSchema: promptData.outputSchema || {},
-      version: promptData.version || '1.0.0',
+      ...validatedPromptData,
+      name: validatedPromptData.name || '',
+      category: validatedPromptData.category || '',
+      description: validatedPromptData.description || '',
+      template: validatedPromptData.template || '',
+      parameters: validatedPromptData.parameters || [],
+      inputSchema: validatedPromptData.inputSchema || {},
+      outputSchema: validatedPromptData.outputSchema || {},
+      version: validatedPromptData.version || '1.0.0',
       metadata: {
         created: new Date().toISOString(),
         lastModified: new Date().toISOString(),
@@ -55,7 +65,11 @@ export async function createPrompt(): Promise<void> {
     await manager.createPrompt({ prompt });
     console.log(`Prompt "${prompt.name}" created successfully.`);
   } catch (error) {
-    console.error('An error occurred while creating the prompt:', error);
+    if (error instanceof z.ZodError) {
+      console.error('Invalid prompt data generated:', error.errors);
+    } else {
+      console.error('An error occurred while creating the prompt:', error);
+    }
   }
 }
 
@@ -116,9 +130,29 @@ export async function updatePrompt(props: { category: string; name: string; upda
       return;
     }
 
+    // Determine the type of update (major, minor, or patch)
+    const updateType = await select({
+      message: 'What type of update is this?',
+      choices: [
+        { name: 'Patch (backwards-compatible bug fixes)', value: 'patch' },
+        { name: 'Minor (backwards-compatible new features)', value: 'minor' },
+        { name: 'Major (breaking changes)', value: 'major' },
+      ],
+    });
+
     // Update the version
     const [major, minor, patch] = (currentPrompt.version || '1.0.0').split('.').map(Number);
-    props.updates.version = `${major}.${minor}.${patch + 1}`;
+    switch (updateType) {
+      case 'major':
+        props.updates.version = `${major + 1}.0.0`;
+        break;
+      case 'minor':
+        props.updates.version = `${major}.${minor + 1}.0`;
+        break;
+      case 'patch':
+        props.updates.version = `${major}.${minor}.${patch + 1}`;
+        break;
+    }
 
     if (props.updates.template) {
       const useAI = await confirm({ message: 'Do you want to use AI to refine the new content?' });

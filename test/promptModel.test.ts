@@ -2,8 +2,7 @@ import { expect, test, describe, beforeAll, afterAll, beforeEach, afterEach } fr
 import { PromptModel } from "../src/promptModel";
 import { PromptFileSystem } from "../src/promptFileSystem";
 import fs from "fs/promises";
-import path from "path";
-import path from "path";
+import path from "path"
 import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
 
 const TEST_PROMPTS_PATH = path.join(process.cwd(), "test_prompts");

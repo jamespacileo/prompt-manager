@@ -167,18 +167,26 @@ export class PromptModel<
    * @returns An async iterable stream of the generated text
    */
   async stream(inputs: TInput): Promise<IAsyncIterableStream<string>> {
-    const formattedPrompt = this.format(inputs);
-    const { textStream } = await streamText({
-      model: openai(this.configuration.modelName),
-      prompt: formattedPrompt,
-      temperature: this.configuration.temperature,
-      maxTokens: this.configuration.maxTokens,
-      topP: this.configuration.topP,
-      frequencyPenalty: this.configuration.frequencyPenalty,
-      presencePenalty: this.configuration.presencePenalty
-    });
+    try {
+      if (!this.validateInput(inputs)) {
+        throw new Error('Invalid input');
+      }
+      const formattedPrompt = this.format(inputs);
+      const { textStream } = await streamText({
+        model: openai(this.configuration.modelName),
+        prompt: formattedPrompt,
+        temperature: this.configuration.temperature,
+        maxTokens: this.configuration.maxTokens,
+        topP: this.configuration.topP,
+        frequencyPenalty: this.configuration.frequencyPenalty,
+        presencePenalty: this.configuration.presencePenalty
+      });
 
-    return textStream;
+      return textStream;
+    } catch (error) {
+      console.error('Error streaming prompt:', error);
+      throw new Error(`Failed to stream prompt: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
@@ -189,6 +197,9 @@ export class PromptModel<
    */
   async execute(inputs: TInput): Promise<TOutput> {
     try {
+      if (!this.validateInput(inputs)) {
+        throw new Error('Invalid input');
+      }
       if (this.outputType === 'structured') {
         const formattedPrompt = this.format(inputs);
         const schema = this.outputZodSchema;
@@ -202,7 +213,11 @@ export class PromptModel<
           frequencyPenalty: this.configuration.frequencyPenalty,
           presencePenalty: this.configuration.presencePenalty
         });
-        return object as unknown as TOutput;
+        const output = object as unknown as TOutput;
+        if (!this.validateOutput(output)) {
+          throw new Error('Invalid output');
+        }
+        return output;
       } else {
         const { text } = await generateText({
           model: openai(this.configuration.modelName),
@@ -213,7 +228,11 @@ export class PromptModel<
           frequencyPenalty: this.configuration.frequencyPenalty,
           presencePenalty: this.configuration.presencePenalty
         });
-        return { text } as unknown as TOutput;
+        const output = { text } as unknown as TOutput;
+        if (!this.validateOutput(output)) {
+          throw new Error('Invalid output');
+        }
+        return output;
       }
     } catch (error) {
       console.error('Error executing prompt:', error);

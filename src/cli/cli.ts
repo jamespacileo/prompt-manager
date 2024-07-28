@@ -214,6 +214,10 @@ program
 
     try {
       const [category, promptName] = name.split('/');
+      const promptExists = await PromptModel.promptExists(name);
+      if (!promptExists) {
+        throw new Error(`Prompt "${name}" does not exist.`);
+      }
       const promptDetails = await getPromptDetails({ category, name: promptName });
       log.info('Current prompt details:');
       Object.entries(promptDetails).forEach(([key, value]) => {
@@ -230,7 +234,11 @@ program
       log.success(`Prompt "${name}" updated successfully.`);
       log.info('The new content has been saved and is ready to use.');
     } catch (error) {
-      log.error('Failed to update prompt:');
+      if (error instanceof Error) {
+        log.error(`Failed to update prompt: ${error.message}`);
+      } else {
+        log.error('Failed to update prompt: An unknown error occurred');
+      }
       console.error(error);
     }
   });
