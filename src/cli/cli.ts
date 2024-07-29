@@ -11,6 +11,7 @@ import { Container } from 'typedi';
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
 import { PromptManager } from '../promptManager.js';
 import { PromptFileSystem } from '../promptFileSystem.js';
+import chalk from 'chalk';
 
 // Add TextEncoder and TextDecoder to the global object
 (global as any).TextEncoder = TextEncoder;
@@ -28,13 +29,30 @@ async function ensureInitialized() {
 import { logger } from '../utils/logger';
 const program = new Command();
 
+const asciiArt = `
+${chalk.cyan('   ___                       _   ')}
+${chalk.cyan('  / _ \\___ ___  __ _  ___   | |_ ')}
+${chalk.cyan(' / ___/ _ \\__ \\/ _\` |/ _ \\  | __|')}
+${chalk.cyan('/_/   \\___/___/\\__, |\\___/  |\\__|')}
+${chalk.cyan('              |___/            ')}
+${chalk.magenta('   __  __                                ')}
+${chalk.magenta('  |  \\/  | __ _ _ __   __ _  __ _  ___ _ ')}
+${chalk.magenta('  | |\\/| |/ _` | \'_ \\ / _` |/ _` |/ _ \\')}
+${chalk.magenta('  | |  | | (_| | | | | (_| | (_| |  __/ ')}
+${chalk.magenta('  |_|  |_|\\__,_|_| |_|\\__,_|\\__, |\\___| ')}
+${chalk.magenta('                            |___/       ')}
+`;
+
+console.log(asciiArt);
+console.log(chalk.yellow('Welcome to the Prompt Manager CLI!'));
+console.log(chalk.yellow('A powerful tool for managing and generating prompts\n'));
+
 program
   .version('1.0.0')
   .description('Prompt Manager CLI - A powerful tool for managing and generating prompts')
   .hook('preAction', async (thisCommand) => {
     if (thisCommand.name() !== 'init') {
       await ensureInitialized();
-      // await ensureInitialized();
     }
   });
 
@@ -57,13 +75,13 @@ program
 
     try {
       await fs.writeJSON('prompt-manager.json', config, { spaces: 2 });
-      logger.success('Configuration file created: prompt-manager.json');
+      logger.success('Configuration file created: `prompt-manager.json`');
 
       await fs.ensureDir(promptsDir);
-      logger.success(`Prompts directory created: ${promptsDir}`);
+      logger.success('Prompts directory created: `%s`', promptsDir);
 
       await fs.ensureDir(outputDir);
-      logger.success(`Output directory created: ${outputDir}`);
+      logger.success('Output directory created: `%s`', outputDir);
 
       const configManager = Container.get(PromptProjectConfigManager);
       await configManager.initialize();
@@ -72,10 +90,10 @@ program
       await promptFileSystem.initialize();
 
       logger.success('Project initialized successfully!');
-      logger.info('You can now start creating prompts using the "create" command.');
+      logger.info('You can now start creating prompts using the `create` command.');
     } catch (error) {
       logger.error('Failed to initialize project:');
-      logger.error('An error occurred:', error);
+      logger.error('An error occurred: `%s`', error);
     }
   });
 

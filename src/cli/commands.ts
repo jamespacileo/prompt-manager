@@ -11,7 +11,7 @@ import { PromptFileSystem } from '../promptFileSystem';
 import { z } from 'zod';
 import { PromptSchema } from '../schemas/prompts';
 import { generateExportableSchemaAndType } from '../utils/typeGeneration';
-import { logger } from '../utils/logger';
+import { logger, prettyPrintJsonSchema } from '../utils/logger';
 
 export async function initializeContainer(): Promise<void> {
   const configManager = Container.get(PromptProjectConfigManager);
@@ -35,6 +35,10 @@ export async function createPrompt(): Promise<void> {
     while (!accepted) {
       promptData = await generatePromptWithAI(description);
       prettyPrintPrompt(promptData);
+      logger.info('Input Schema:');
+      logger.info(prettyPrintJsonSchema(promptData.inputSchema));
+      logger.info('Output Schema:');
+      logger.info(prettyPrintJsonSchema(promptData.outputSchema));
 
       if (!promptData.name || !promptData.category) {
         logger.warn('The generated prompt is missing required fields (name or category). Regenerating...');
