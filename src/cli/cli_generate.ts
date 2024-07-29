@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { getConfig } from '../config';
+import { logger } from '../utils/logger';
 
 const PROMPTS_DIR = await getConfig('promptsDir');
 const OUTPUT_DIR = await getConfig('outputDir');
@@ -102,9 +103,9 @@ export async function generate() {
     const indexContent = `export * from './prompts';\nexport { default as promptManager } from './promptManager';\n`;
     await fs.writeFile(path.join(OUTPUT_DIR, 'index.ts'), indexContent);
 
-    console.log('Generation complete.');
+    logger.info('Generation complete.');
   } catch (error) {
-    console.error('Error during generation:', error);
+    logger.error('Error during generation:', error);
     throw error;
   }
 }

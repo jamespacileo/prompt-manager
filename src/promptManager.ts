@@ -1,33 +1,26 @@
+import { Service, Inject } from 'typedi';
 import { IPromptCategory, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
 import { PromptModel } from './promptModel';
-import { getFileSystemManager, PromptFileSystem } from './promptFileSystem';
-import path from 'path';
+import { PromptFileSystem } from './promptFileSystem';
 import { incrementVersion } from './utils/versionUtils';
-import { getConfigManager, PromptProjectConfigManager } from './config/PromptProjectConfigManager';
+import { PromptProjectConfigManager } from './config/PromptProjectConfigManager';
+import { validateCategoryAndName, mapPromptToFileInfo, handlePromptNotFound } from './utils/promptManagerUtils';
+import fs from 'fs-extra';
+import { logger } from './utils/logger';
 
-let fileSystem: PromptFileSystem;
-let configManager: PromptProjectConfigManager;
-
-/**
- * PromptManager is the central class for managing prompts.
- * It provides methods for creating, retrieving, updating, and deleting prompts,
- * as well as managing prompt versions and formatting.
- * 
- * This class serves as the main interface for interacting with prompts in the application.
- * It handles the in-memory storage of prompts and coordinates with the file system for persistence.
- */
+@Service()
 export class PromptManager<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > {
-  private static instance: PromptManager;
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
   public prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
   private initialized: boolean = false;
 
-  private constructor() {
-    // The initialization will be done in the initialize method
-  }
+  constructor(
+    @Inject() private fileSystem: PromptFileSystem,
+    @Inject() private configManager: PromptProjectConfigManager
+  ) {}
 
   async promptExists(props: { category: string; name: string }): Promise<boolean> {
     const { category, name } = props;
@@ -37,14 +30,14 @@ export class PromptManager<
   async createCategory(categoryName: string): Promise<void> {
     if (!this.prompts[categoryName]) {
       this.prompts[categoryName] = {};
-      await fileSystem.createCategory({ categoryName });
+      await this.fileSystem.createCategory({ categoryName });
     }
   }
 
   async deleteCategory(categoryName: string): Promise<void> {
     if (this.prompts[categoryName]) {
       delete this.prompts[categoryName];
-      await fileSystem.deleteCategory({ categoryName });
+      await this.fileSystem.deleteCategory({ categoryName });
     }
   }
 
@@ -58,45 +51,61 @@ export class PromptManager<
     return prompt.execute(params);
   }
 
-  public static async getInstance(): Promise<PromptManager> {
-    if (!PromptManager.instance) {
-      PromptManager.instance = new PromptManager();
-      await PromptManager.instance.initialize();
-    }
-    return PromptManager.instance;
-  }
-
   /**
    * Initialize the PromptManager by loading all prompts from the file system.
-   * This method is called automatically by getInstance().
    * 
    * Purpose: Set up the PromptManager with all existing prompts for further operations.
    * 
    * @throws Error if there's a failure in loading prompts from the file system
    */
-  private async initialize(): Promise<void> {
+  async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    configManager = await getConfigManager();
-    fileSystem = await getFileSystemManager();
     try {
-      const prompts = await fileSystem.listPrompts();
+      await this.loadPrompts();
+      this.initialized = true;
+      logger.success('PromptManager initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize PromptManager:', error);
+      throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Load all prompts from the file system.
+   * 
+   * Purpose: Load all existing prompts into the PromptManager.
+   * 
+   * @throws Error if there's a failure in loading prompts from the file system
+   */
+  async loadPrompts(): Promise<void> {
+    logger.info(`Loading prompts from ${this.configManager.getPromptsDir()}`);
+    if (!fs.existsSync(this.configManager.getPromptsDir())) {
+      logger.warn(`Prompts directory does not exist, creating it`);
+      await fs.mkdir(this.configManager.getPromptsDir(), { recursive: true });
+    }
+    try {
+      const prompts = await this.fileSystem.listPrompts();
       for (const prompt of prompts) {
+        if (!prompt.category) {
+          logger.warn(`Skipping malformed prompt without category: ${prompt.name}`);
+          continue;
+        }
         if (!this.prompts[prompt.category]) {
           this.prompts[prompt.category] = {};
         }
         try {
-          const promptData = await fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData, fileSystem) as unknown as PromptModel<TInput, TOutput>;
+          const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
+          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
         } catch (error) {
-          console.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
+          logger.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
           // Continue loading other prompts even if one fails
         }
       }
-      this.initialized = true;
+      logger.success(`Loaded ${prompts.length} prompts successfully`);
     } catch (error) {
-      console.error('Failed to initialize PromptManager:', error);
-      throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error('Failed to load prompts:', error);
+      throw new Error(`Failed to load prompts: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -130,14 +139,13 @@ export class PromptManager<
    */
   async createPrompt(props: { prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'> }): Promise<void> {
     const { prompt } = props;
-    if (!prompt.category || !prompt.name || prompt.category.trim() === '' || prompt.name.trim() === '') {
-      throw new Error('Prompt category and name are required and cannot be empty');
-    }
+    validateCategoryAndName(prompt.category, prompt.name);
+
     if (!this.prompts[prompt.category]) {
-      // Create the category if it doesn't exist
       this.prompts[prompt.category] = {};
-      console.log(`Created new category: ${prompt.category}`);
+      logger.info(`Created new category: ${prompt.category}`);
     }
+
     if (this.prompts[prompt.category][prompt.name]) {
       throw new Error(`Prompt "${prompt.name}" already exists in category "${prompt.category}".
         To resolve this:
@@ -145,10 +153,11 @@ export class PromptManager<
         - If you meant to update an existing prompt, use the 'update-prompt' command instead.
         - If you want to replace the existing prompt, delete it first with 'delete-prompt' command.`);
     }
+
     const newPrompt = new PromptModel(prompt) as PromptModel<TInput, TOutput>;
     this.prompts[prompt.category][prompt.name] = newPrompt;
-    await fileSystem.savePrompt({ promptData: newPrompt as IPrompt<Record<string, any>, Record<string, any>> });
-    console.log(`Created new prompt "${prompt.name}" in category "${prompt.category}" with TypeScript definitions.`);
+    await this.fileSystem.savePrompt({ promptData: newPrompt as IPrompt<Record<string, any>, Record<string, any>> });
+    logger.success(`Created new prompt "${prompt.name}" in category "${prompt.category}" with TypeScript definitions.`);
   }
 
   /**
@@ -162,7 +171,7 @@ export class PromptManager<
     updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
     bumpVersion?: boolean;
   }): Promise<void> {
-    const { category, name, updates, bumpVersion } = props;
+    const { category, name, updates, bumpVersion = true } = props;
     const prompt = this.getPrompt({ category, name });
     Object.assign(prompt, updates);
     prompt.updateMetadata({ lastModified: new Date().toISOString() });
@@ -171,7 +180,7 @@ export class PromptManager<
       prompt.version = this.incrementVersion(prompt.version);
     }
 
-    await fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
+    await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
   }
 
   /**
@@ -181,10 +190,10 @@ export class PromptManager<
   async deletePrompt(props: { category: string; name: string }): Promise<void> {
     const { category, name } = props;
     if (!this.prompts[category] || !this.prompts[category][name]) {
-      throw new Error(`Prompt "${name}" in category "${category}" does not exist`);
+      handlePromptNotFound(category, name);
     }
     delete this.prompts[category][name];
-    await fileSystem.deletePrompt({ category, promptName: name });
+    await this.fileSystem.deletePrompt({ category, promptName: name });
   }
 
   async listPrompts(props: { category?: string }): Promise<Array<IPrompt<IPromptInput, IPromptOutput> & { filePath: string }>> {
@@ -192,44 +201,42 @@ export class PromptManager<
       ? Object.values(this.prompts[props.category] || {})
       : Object.values(this.prompts).flatMap(categoryPrompts => Object.values(categoryPrompts));
 
-    return prompts.map(prompt => {
-      const promptData = prompt as unknown as IPrompt<IPromptInput, IPromptOutput>;
-      return {
-        ...promptData,
-        filePath: promptData.category && promptData.name
-          ? path.join((fileSystem as any).basePath, promptData.category, promptData.name, 'prompt.json')
-          : ''
-      };
-    });
+    logger.debug('prompts', prompts);
+
+    return prompts.map(prompt => mapPromptToFileInfo(prompt, this.configManager.getBasePath()));
   }
 
   /**
    * Manage prompt versions: list, create, or switch to a specific version.
    * Purpose: Provide version control functionality for prompts.
    */
-  async versionPrompt(props: { action: 'list' | 'create' | 'switch'; category: string; name: string; version?: string }): Promise<void> {
+  async versionPrompt(props: { action: 'list' | 'create' | 'switch'; category: string; name: string; version?: string }): Promise<{
+    action: 'list' | 'create' | 'switch';
+    category: string;
+    name: string;
+    result: string[] | string;
+  }> {
     const { action, category, name, version } = props;
     const prompt = this.getPrompt({ category, name });
 
     switch (action) {
       case 'list':
         const versions = await prompt.versions();
-        console.log(`Versions for ${category}/${name}:`, versions);
-        break;
+        return { action, category, name, result: versions };
       case 'create':
         const newVersion = this.incrementVersion(prompt.version);
         prompt.version = newVersion;
-        await fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
-        console.log(`Created new version ${newVersion} for ${category}/${name}`);
-        break;
+        await this.fileSystem.savePrompt({ promptData: prompt as IPrompt<Record<string, any>, Record<string, any>> });
+        return { action, category, name, result: newVersion };
       case 'switch':
         if (!version) {
           throw new Error(`Version is required for switch action`);
         }
         await prompt.switchVersion(version);
-        await fileSystem.savePrompt({ promptData: prompt });
-        console.log(`Switched ${category}/${name} to version ${version}`);
-        break;
+        await this.fileSystem.savePrompt({ promptData: prompt });
+        return { action, category, name, result: version };
+      default:
+        throw new Error(`Invalid action: ${action}`);
     }
   }
 
@@ -261,11 +268,3 @@ export class PromptManager<
     );
   }
 }
-
-let promptManager;
-
-(async () => {
-  promptManager = await PromptManager.getInstance();
-})();
-
-export { promptManager };

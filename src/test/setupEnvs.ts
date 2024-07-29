@@ -1,5 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
+// import 'reflect-metadata';
+
 
 const TEST_CONFIG = {
   promptsDir: "test_prompts",
@@ -29,7 +31,7 @@ async function setupTestEnvironment() {
   };
   await fs.writeFile(path.join(testPromptsDir, 'prompts-config.json'), JSON.stringify(testPromptsConfig, null, 2), 'utf8');
 
-  process.env.FURY_PROJECT_CONFIG_FILENAME = "test-fury-config.json";
+  process.env.FURY_PROJECT_CONFIG_FILENAME = "prompts-config.json";
   process.env.PROMPTS_DIR = TEST_CONFIG.promptsDir;
   process.env.PROMPT_MANAGER_VERBOSE = "true";
   process.env.FURY_VERBOSITY = "1"; // Add this line to set verbosity

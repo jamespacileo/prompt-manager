@@ -10,15 +10,15 @@ const filesToInclude = [
   'src/config/PromptProjectConfigManager.ts',
   'src/cli/cli.ts',
   "src/cli/commands.ts",
-  // 'test/commands.test.ts',
-  // 'test/index.test.ts',
-  // 'test/promptFileSystem.test.ts',
-  // 'test/promptManager.test.ts',
-  // 'test/promptModel.test.ts',
-  // 'test/PromptProjectConfigManager.test.ts',
-  // 'test/setupEnvs.ts',
+  'test/commands.test.ts',
+  'test/index.test.ts',
+  'test/promptFileSystem.test.ts',
+  'test/promptManager.test.ts',
+  'test/promptModel.test.ts',
+  'test/PromptProjectConfigManager.test.ts',
+  'test/setupEnvs.ts',
   // 'test/setup.ts',
-  // 'test/testsUnload.ts'
+  'test/testsUnload.ts'
   // Add more file paths as needed
 ];
 

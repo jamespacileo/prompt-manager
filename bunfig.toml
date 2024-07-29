@@ -1,6 +1,6 @@
 # scripts to run before `bun run`-ing a file or script
 
 [test]
-preload = ["./test/setup.ts"]
+preload = ["reflect-metadata", "./src/test/setup.ts"]
 include = ["src/**/*.test.ts"]
-postload = ["./test/testsUnload.ts"]
+postload = ["./src/test/testsUnload.ts"]

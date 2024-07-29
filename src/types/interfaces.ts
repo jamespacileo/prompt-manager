@@ -88,6 +88,7 @@ export interface IPromptModelRequired {
     created: string;
     lastModified: string;
   };
+  defaultModelName?: string;
 }
 
 export interface IPromptModel<
@@ -236,6 +237,11 @@ interface IPromptManagerLibrary<TInput extends IPromptInput<any> = IPromptInput<
    * This must be called before using any other methods.
    */
   initialize(props: {}): Promise<void>;
+
+  /**
+   * Load all prompts from the file system.
+   */
+  loadPrompts(): Promise<void>;
 
   /**
    * Retrieves a specific prompt.

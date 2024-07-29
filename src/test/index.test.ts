@@ -1,6 +1,6 @@
 import { expect, test, describe } from "bun:test";
-import * as index from '../src/index';
-import { PromptManager } from '../src/promptManager';
+import * as index from '../index';
+import { PromptManager } from '../promptManager';
 
 describe.skip('index', () => {
   test('exports PromptManager', () => {

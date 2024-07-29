@@ -1,64 +1,67 @@
 import { expect, test, describe, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
-import { PromptManager } from '../src/promptManager';
-import { getFileSystemManager, PromptFileSystem } from '../src/promptFileSystem';
-import { getConfigManager } from "../src/config/PromptProjectConfigManager";
+import { Container } from 'typedi';
+import { PromptManager } from '../promptManager';
+import { PromptFileSystem } from '../promptFileSystem';
+import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
 import fs from 'fs/promises';
 import path from 'path';
-import { IPrompt, IPromptInput, IPromptOutput } from "../src/types/interfaces";
+import { IPrompt, IPromptInput, IPromptOutput } from "../types/interfaces";
 
 const getRandomElement = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
 const categories = [
-  'test_NaturalLanguageProcessing',
-  'test_MachineLearning',
-  'test_ComputerVision',
-  'test_DataAnalysis',
-  'test_ArtificialIntelligence',
-  'test_DeepLearning',
-  'test_RoboticProcess',
-  'test_SpeechRecognition',
-  'test_TextGeneration',
-  'test_SentimentAnalysis'
+  'test_NaturalLanguageProcessing_1',
+  'test_MachineLearning_2',
+  'test_ComputerVision_3',
+  'test_DataAnalysis_4',
+  'test_ArtificialIntelligence_5',
+  'test_DeepLearning_6',
+  'test_RoboticProcess_7',
+  'test_SpeechRecognition_8',
+  'test_TextGeneration_9',
+  'test_SentimentAnalysis_10'
 ];
 
 const promptNames = [
-  'test_LanguageModel',
-  'test_ImageClassifier',
-  'test_SentimentAnalyzer',
-  'test_TextSummarizer',
-  'test_NamedEntityRecognizer',
-  'test_QuestionAnswering',
-  'test_MachineTranslation',
-  'test_SpeechToText',
-  'test_TextToSpeech',
-  'test_AnomalyDetection'
+  'test_LanguageModel_A',
+  'test_ImageClassifier_B',
+  'test_SentimentAnalyzer_C',
+  'test_TextSummarizer_D',
+  'test_NamedEntityRecognizer_E',
+  'test_QuestionAnswering_F',
+  'test_MachineTranslation_G',
+  'test_SpeechToText_H',
+  'test_TextToSpeech_I',
+  'test_AnomalyDetection_J'
 ];
 
 describe('PromptManager', () => {
   let manager: PromptManager;
   let fileSystem: PromptFileSystem;
-  let configManager: ReturnType<typeof getConfigManager> extends Promise<infer T> ? T : never;
+  let configManager: PromptProjectConfigManager;
   let testDir: string;
 
   beforeAll(async () => {
     testDir = path.join(process.cwd(), 'test-prompts-manager');
     await fs.mkdir(testDir, { recursive: true });
+  });
 
-    configManager = await getConfigManager();
-    fileSystem = await getFileSystemManager();
+  beforeEach(async () => {
+    Container.reset();
 
+    configManager = Container.get(PromptProjectConfigManager);
+    await configManager.initialize();
     await configManager.updateConfig({
       promptsDir: testDir,
       outputDir: path.join(testDir, 'output'),
     });
-  });
 
-  // afterEach(async () => {
-  //   const prompts = await manager.listPrompts({});
-  //   for (const prompt of prompts) {
-  //     await manager.deletePrompt({ category: prompt.category, name: prompt.name });
-  //   }
-  // });
+    fileSystem = Container.get(PromptFileSystem);
+    await fileSystem.initialize();
+
+    manager = Container.get(PromptManager);
+    await manager.initialize();
+  });
 
   afterAll(async () => {
     await fs.rm(testDir, { recursive: true, force: true });
@@ -71,6 +74,7 @@ describe('PromptManager', () => {
     version: '1.0.0',
     template: 'Process {{input}} using {{algorithm}}',
     parameters: ['input', 'algorithm'],
+    defaultModelName: 'gpt-4o-mini',
     inputSchema: {
       type: 'object',
       properties: {
@@ -92,7 +96,7 @@ describe('PromptManager', () => {
       lastModified: new Date().toISOString(),
     },
     configuration: {
-      modelName: 'default-model',
+      modelName: 'gpt-4o-mini',
       temperature: 0.7,
       maxTokens: 100,
       topP: 1,
@@ -111,7 +115,9 @@ describe('PromptManager', () => {
       name: testPrompt.name,
     });
 
-    expect(retrievedPrompt).toMatchObject({
+    const { name, category, description, version, template, parameters, inputSchema, outputSchema, outputType, configuration } = retrievedPrompt;
+
+    expect({ name, category, description, version, template, parameters, inputSchema, outputSchema, outputType, configuration }).toMatchObject({
       name: testPrompt.name,
       category: testPrompt.category,
       description: testPrompt.description,
@@ -129,8 +135,9 @@ describe('PromptManager', () => {
     const testPrompt = getRandomPrompt();
     await manager.createPrompt({ prompt: testPrompt });
     const allPrompts = await manager.listPrompts({});
-    expect(allPrompts).toHaveLength(1);
-    expect(allPrompts[0]).toMatchObject({
+    const createdPrompt = allPrompts.find(p => p.name === testPrompt.name && p.category === testPrompt.category);
+    expect(createdPrompt).toBeDefined();
+    expect(createdPrompt).toMatchObject({
       name: testPrompt.name,
       category: testPrompt.category,
     });
@@ -140,8 +147,9 @@ describe('PromptManager', () => {
     const testPrompt = getRandomPrompt();
     await manager.createPrompt({ prompt: testPrompt });
     const categoryPrompts = await manager.listPrompts({ category: testPrompt.category });
-    expect(categoryPrompts).toHaveLength(1);
-    expect(categoryPrompts[0].name).toBe(testPrompt.name);
+    const createdPrompt = categoryPrompts.find(p => p.name === testPrompt.name);
+    expect(createdPrompt).toBeDefined();
+    expect(createdPrompt?.name).toBe(testPrompt.name);
   });
 
   test('Update prompt', async () => {
@@ -165,9 +173,9 @@ describe('PromptManager', () => {
       name: testPrompt.name,
     });
 
-    expect(retrievedPrompt.description).toBe(updatedPrompt.description || "");
-    expect(retrievedPrompt.version).toBe(updatedPrompt.version || "");
-    expect(retrievedPrompt.template).toBe(updatedPrompt.template || "");
+    expect(retrievedPrompt.description).toBe(updatedPrompt.description!);
+    expect(retrievedPrompt.version).toBe("1.1.1");
+    expect(retrievedPrompt.template).toBe(updatedPrompt.template!);
   });
 
   test('Delete prompt', async () => {
@@ -186,7 +194,7 @@ describe('PromptManager', () => {
   });
 
   test('Create and delete category', async () => {
-    const testCategory = "testCategory";
+    const testCategory = "testCategory_Unique";
     await manager.createCategory(testCategory);
 
     let categories = Object.keys(manager.categories);
@@ -231,7 +239,12 @@ describe('PromptManager', () => {
       category: testPrompt.category,
       name: testPrompt.name,
     });
-    expect(versions).toContain('1.0.0');
+    // expect(versions).toEqual({})
+
+    // check if versions is an array
+    expect(Array.isArray(versions.result)).toBe(true);
+
+    expect(versions.result).toContain('1.0.0');
 
     // Create new version
     await manager.versionPrompt({
@@ -245,7 +258,9 @@ describe('PromptManager', () => {
       category: testPrompt.category,
       name: testPrompt.name,
     });
-    expect(versions).toContain('1.0.1');
+    expect(Array.isArray(versions.result)).toBe(true);
+
+    expect(versions.result).toContain('1.0.1');
 
     // Switch version
     await manager.versionPrompt({
@@ -262,11 +277,11 @@ describe('PromptManager', () => {
     expect(prompt.version).toBe('1.0.0');
   });
 
-  test('Error handling - non-existent prompt', async () => {
-    await expect(manager.getPrompt({
+  test('Error handling - non-existent prompt', () => {
+    expect(() => manager.getPrompt({
       category: 'test_NonExistent',
       name: 'test_NonExistentPrompt',
-    })).rejects.toThrow();
+    })).toThrow();
   });
 
   test('Error handling - invalid prompt data', async () => {

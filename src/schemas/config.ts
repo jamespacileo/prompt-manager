@@ -11,14 +11,15 @@ export const configSchema = z.object({
     frequencyPenalty: z.number().min(-2).max(2).optional().describe('Frequency penalty for AI model'),
     presencePenalty: z.number().min(-2).max(2).optional().describe('Presence penalty for AI model'),
   })).describe('Parameters for different AI models'),
+  verbosity: z.number().int().min(0).max(3).default(1).describe('Verbosity level for logging'),
 });
 
 export type Config = z.infer<typeof configSchema>;
 export { z };
 
 export const DEFAULT_CONFIG: Config = {
-  promptsDir: '',
-  outputDir: '',
+  promptsDir: '.prompts',
+  outputDir: 'src/generated',
   preferredModels: ['gpt-4', 'gpt-4o-mini'],
   modelParams: {
     'gpt-4': {
@@ -36,4 +37,5 @@ export const DEFAULT_CONFIG: Config = {
       presencePenalty: 0,
     },
   },
+  verbosity: 1,
 };

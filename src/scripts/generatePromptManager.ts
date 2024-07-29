@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
+import { logger } from '../utils/logger';
 
 const PROMPTS_DIR = path.join(__dirname, '..', '..', 'prompts');
 const OUTPUT_FILE = path.join(__dirname, '..', 'generated', 'promptManager.ts');
@@ -72,8 +73,8 @@ async function generatePromptManager() {
 
   await fs.writeFile(OUTPUT_FILE, output);
   await fs.writeFile(TYPE_DEFINITION_FILE, typeDefinition);
-  console.log(`Generated prompt manager at ${OUTPUT_FILE}`);
-  console.log(`Generated type definitions at ${TYPE_DEFINITION_FILE}`);
+  logger.info(`Generated prompt manager at ${OUTPUT_FILE}`);
+  logger.info(`Generated type definitions at ${TYPE_DEFINITION_FILE}`);
 }
 
 function extractParameters(content: string): string[] {
@@ -88,4 +89,4 @@ function extractParameters(content: string): string[] {
     });
 }
 
-generatePromptManager().catch(console.error);
+generatePromptManager().catch((error) => logger.error('Error generating prompt manager:', error));

@@ -5,6 +5,13 @@ project_documentation.md
 testCategory
 test-prompts-manager
 *.js
+test-project
+test-output
+test-prompts
+.my-prompts
+
+.env 
+.env.test
 
 # Dependency directories
 node_modules/

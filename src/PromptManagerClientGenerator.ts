@@ -1,10 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { getFileSystemManager, PromptFileSystem } from './promptFileSystem';
-import { getConfigManager, PromptProjectConfigManager } from './config/PromptProjectConfigManager';
+import { PromptFileSystem } from './promptFileSystem';
+import { PromptProjectConfigManager } from './config/PromptProjectConfigManager';
+import { Container } from 'typedi';
+import { logger } from './utils/logger';
 
-const fileSystem = await getFileSystemManager();
-const configManager = await getConfigManager();
+const fileSystem = Container.get(PromptFileSystem);
+const configManager = Container.get(PromptProjectConfigManager);
 
 export class PromptManagerClientGenerator {
   private outputPath: string;
@@ -82,6 +84,7 @@ export const promptManager = new PromptManagerClient();
 
   private async writeClientFile(content: string): Promise<void> {
     await fs.writeFile(this.outputPath, content, 'utf8');
+    logger.success(`Client file generated at ${this.outputPath}`);
   }
 
   async detectChanges(): Promise<boolean> {

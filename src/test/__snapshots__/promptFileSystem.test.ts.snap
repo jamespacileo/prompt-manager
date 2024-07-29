@@ -1,0 +1,264 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PromptFileSystem listPrompts 1`] = `
+[
+  PromptModel {
+    "_inputZodSchema": null,
+    "_isSaved": false,
+    "_outputZodSchema": null,
+    "category": "celestialMystery",
+    "configManager": PromptProjectConfigManager {
+      "basePath": "/home/james/Projects/prompt-manager",
+      "config": {
+        "modelParams": {
+          "gpt-4": {
+            "frequencyPenalty": 0,
+            "maxTokens": 2000,
+            "presencePenalty": 0,
+            "temperature": 0.7,
+            "topP": 1,
+          },
+          "gpt-4o-mini": {
+            "frequencyPenalty": 0,
+            "maxTokens": 1500,
+            "presencePenalty": 0,
+            "temperature": 0.8,
+            "topP": 1,
+          },
+        },
+        "outputDir": "/home/james/Projects/prompt-manager/src/generated",
+        "preferredModels": [
+          "gpt-4",
+          "gpt-4o-mini",
+        ],
+        "promptsDir": "/home/james/Projects/prompt-manager/test-prompts",
+        "verbosity": 1,
+      },
+      "configFilePath": "/home/james/Projects/prompt-manager/.promptmanagerrc.json",
+      "explorer": {
+        "clearCaches": [Function: clearCaches],
+        "clearLoadCache": [Function: clearLoadCache],
+        "clearSearchCache": [Function: clearSearchCache],
+        "load": [Function: AsyncFunction],
+        "search": [Function: AsyncFunction],
+      },
+      "initialized": true,
+    },
+    "configuration": {
+      "frequencyPenalty": 0,
+      "maxTokens": 100,
+      "modelName": "gpt-4o-mini",
+      "presencePenalty": 0,
+      "stopSequences": [],
+      "temperature": 0.7,
+      "topP": 1,
+    },
+    "defaultModelName": undefined,
+    "description": "A prompt that echoes the secrets of the universe",
+    "filePath": undefined,
+    "fileSystem": PromptFileSystem {
+      "configManager": PromptProjectConfigManager {
+        "basePath": "/home/james/Projects/prompt-manager",
+        "config": {
+          "modelParams": {
+            "gpt-4": {
+              "frequencyPenalty": 0,
+              "maxTokens": 2000,
+              "presencePenalty": 0,
+              "temperature": 0.7,
+              "topP": 1,
+            },
+            "gpt-4o-mini": {
+              "frequencyPenalty": 0,
+              "maxTokens": 1500,
+              "presencePenalty": 0,
+              "temperature": 0.8,
+              "topP": 1,
+            },
+          },
+          "outputDir": "/home/james/Projects/prompt-manager/src/generated",
+          "preferredModels": [
+            "gpt-4",
+            "gpt-4o-mini",
+          ],
+          "promptsDir": "/home/james/Projects/prompt-manager/test-prompts",
+          "verbosity": 1,
+        },
+        "configFilePath": "/home/james/Projects/prompt-manager/.promptmanagerrc.json",
+        "explorer": {
+          "clearCaches": [Function: clearCaches],
+          "clearLoadCache": [Function: clearLoadCache],
+          "clearSearchCache": [Function: clearSearchCache],
+          "load": [Function: AsyncFunction],
+          "search": [Function: AsyncFunction],
+        },
+        "initialized": true,
+      },
+      "initialized": true,
+    },
+    "inputSchema": {
+      "properties": {
+        "celestialBody": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "celestialBody",
+      ],
+      "type": "object",
+    },
+    "isLoadedFromStorage": false,
+    "metadata": {
+      "created": "2024-07-29T14:39:24.167Z",
+      "lastModified": "2024-07-29T14:39:24.167Z",
+    },
+    "name": "cosmicWhisper",
+    "outputSchema": {
+      "properties": {
+        "cosmicTruth": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "cosmicTruth",
+      ],
+      "type": "object",
+    },
+    "outputType": "structured",
+    "parameters": [
+      "celestialBody",
+    ],
+    "template": "In the vast expanse of cosmic wonder, {{celestialBody}} reveals its hidden truths",
+    "version": "1.0.0",
+  },
+  PromptModel {
+    "_inputZodSchema": null,
+    "_isSaved": false,
+    "_outputZodSchema": null,
+    "category": "celestialMystery",
+    "configManager": PromptProjectConfigManager {
+      "basePath": "/home/james/Projects/prompt-manager",
+      "config": {
+        "modelParams": {
+          "gpt-4": {
+            "frequencyPenalty": 0,
+            "maxTokens": 2000,
+            "presencePenalty": 0,
+            "temperature": 0.7,
+            "topP": 1,
+          },
+          "gpt-4o-mini": {
+            "frequencyPenalty": 0,
+            "maxTokens": 1500,
+            "presencePenalty": 0,
+            "temperature": 0.8,
+            "topP": 1,
+          },
+        },
+        "outputDir": "/home/james/Projects/prompt-manager/src/generated",
+        "preferredModels": [
+          "gpt-4",
+          "gpt-4o-mini",
+        ],
+        "promptsDir": "/home/james/Projects/prompt-manager/test-prompts",
+        "verbosity": 1,
+      },
+      "configFilePath": "/home/james/Projects/prompt-manager/.promptmanagerrc.json",
+      "explorer": {
+        "clearCaches": [Function: clearCaches],
+        "clearLoadCache": [Function: clearLoadCache],
+        "clearSearchCache": [Function: clearSearchCache],
+        "load": [Function: AsyncFunction],
+        "search": [Function: AsyncFunction],
+      },
+      "initialized": true,
+    },
+    "configuration": {
+      "frequencyPenalty": 0,
+      "maxTokens": 100,
+      "modelName": "gpt-4o-mini",
+      "presencePenalty": 0,
+      "stopSequences": [],
+      "temperature": 0.7,
+      "topP": 1,
+    },
+    "defaultModelName": undefined,
+    "description": "A prompt that captures the essence of stargazing",
+    "filePath": undefined,
+    "fileSystem": PromptFileSystem {
+      "configManager": PromptProjectConfigManager {
+        "basePath": "/home/james/Projects/prompt-manager",
+        "config": {
+          "modelParams": {
+            "gpt-4": {
+              "frequencyPenalty": 0,
+              "maxTokens": 2000,
+              "presencePenalty": 0,
+              "temperature": 0.7,
+              "topP": 1,
+            },
+            "gpt-4o-mini": {
+              "frequencyPenalty": 0,
+              "maxTokens": 1500,
+              "presencePenalty": 0,
+              "temperature": 0.8,
+              "topP": 1,
+            },
+          },
+          "outputDir": "/home/james/Projects/prompt-manager/src/generated",
+          "preferredModels": [
+            "gpt-4",
+            "gpt-4o-mini",
+          ],
+          "promptsDir": "/home/james/Projects/prompt-manager/test-prompts",
+          "verbosity": 1,
+        },
+        "configFilePath": "/home/james/Projects/prompt-manager/.promptmanagerrc.json",
+        "explorer": {
+          "clearCaches": [Function: clearCaches],
+          "clearLoadCache": [Function: clearLoadCache],
+          "clearSearchCache": [Function: clearSearchCache],
+          "load": [Function: AsyncFunction],
+          "search": [Function: AsyncFunction],
+        },
+        "initialized": true,
+      },
+      "initialized": true,
+    },
+    "inputSchema": {
+      "properties": {
+        "celestialBody": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "celestialBody",
+      ],
+      "type": "object",
+    },
+    "isLoadedFromStorage": false,
+    "metadata": {
+      "created": "2024-07-29T14:39:24.167Z",
+      "lastModified": "2024-07-29T14:39:24.167Z",
+    },
+    "name": "stargazerDreams",
+    "outputSchema": {
+      "properties": {
+        "cosmicTruth": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "cosmicTruth",
+      ],
+      "type": "object",
+    },
+    "outputType": "structured",
+    "parameters": [
+      "celestialBody",
+    ],
+    "template": "In the vast expanse of cosmic wonder, {{celestialBody}} reveals its hidden truths",
+    "version": "1.0.0",
+  },
+]
+`;

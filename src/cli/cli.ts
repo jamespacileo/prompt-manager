@@ -1,36 +1,31 @@
 #!/usr/bin/env bun
 
+import 'reflect-metadata';
 import { Command } from 'commander';
 import { input, confirm, select, expand, search } from '@inquirer/prompts';
-import chalk from 'chalk';
-import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus, deletePrompt } from './commands.js';
+import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus, deletePrompt, initializeContainer } from './commands.js';
 import { Table } from 'console-table-printer';
 import fs from 'fs-extra';
 import { TextEncoder, TextDecoder } from 'util';
-import { getConfigManager } from "../config/PromptProjectConfigManager"
-import { PromptModel } from '../promptModel.js';
+import { Container } from 'typedi';
+import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
+import { PromptManager } from '../promptManager.js';
+import { PromptFileSystem } from '../promptFileSystem.js';
 
 // Add TextEncoder and TextDecoder to the global object
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
 async function ensureInitialized() {
-  const configManager = await getConfigManager();
-  if (!(await configManager.isInitialized())) {
-    console.error(chalk.red('Project is not initialized. Please run the "init" command first.'));
-    process.exit(1);
-  }
+  const configManager = Container.get(PromptProjectConfigManager);
+  await configManager.initialize();
+  const fileSystem = Container.get(PromptFileSystem);
+  await fileSystem.initialize();
+  const promptManager = Container.get(PromptManager);
+  await promptManager.initialize();
 }
 
-const log = {
-  info: (message: string) => console.log(chalk.blue(message)),
-  success: (message: string) => console.log(chalk.green(message)),
-  error: (message: string) => console.log(chalk.red(message)),
-  warn: (message: string) => console.log(chalk.yellow(message)),
-  title: (message: string) => console.log(chalk.bold.underline(message)),
-  debug: (message: string) => console.log(chalk.gray(message)),
-};
-
+import { logger } from '../utils/logger';
 const program = new Command();
 
 program
@@ -39,6 +34,7 @@ program
   .hook('preAction', async (thisCommand) => {
     if (thisCommand.name() !== 'init') {
       await ensureInitialized();
+      // await ensureInitialized();
     }
   });
 
@@ -46,8 +42,8 @@ program
   .command('init')
   .description('Initialize a new Prompt Manager project')
   .action(async () => {
-    log.title('Initializing a new Prompt Manager project');
-    log.info('This command will set up your project structure and configuration.');
+    logger.info('Initializing a new Prompt Manager project');
+    logger.info('This command will set up your project structure and configuration.');
 
     const projectName = await input({ message: 'Enter project name:' });
     const promptsDir = await input({ message: 'Enter prompts directory:', default: '.prompts' });
@@ -61,19 +57,25 @@ program
 
     try {
       await fs.writeJSON('prompt-manager.json', config, { spaces: 2 });
-      log.success('Configuration file created: prompt-manager.json');
+      logger.success('Configuration file created: prompt-manager.json');
 
       await fs.ensureDir(promptsDir);
-      log.success(`Prompts directory created: ${promptsDir}`);
+      logger.success(`Prompts directory created: ${promptsDir}`);
 
       await fs.ensureDir(outputDir);
-      log.success(`Output directory created: ${outputDir}`);
+      logger.success(`Output directory created: ${outputDir}`);
 
-      log.success('Project initialized successfully!');
-      log.info('You can now start creating prompts using the "create" command.');
+      const configManager = Container.get(PromptProjectConfigManager);
+      await configManager.initialize();
+
+      const promptFileSystem = Container.get(PromptFileSystem);
+      await promptFileSystem.initialize();
+
+      logger.success('Project initialized successfully!');
+      logger.info('You can now start creating prompts using the "create" command.');
     } catch (error) {
-      log.error('Failed to initialize project:');
-      console.error(error);
+      logger.error('Failed to initialize project:');
+      logger.error('An error occurred:', error);
     }
   });
 
@@ -81,28 +83,22 @@ program
   .command('create')
   .description('Create a new prompt')
   .action(async () => {
-    log.title('Creating a new prompt');
-    log.info('Please describe the prompt you want to create. AI will generate a prompt based on your description.');
+    logger.info('Creating a new prompt');
+    logger.info('Please describe the prompt you want to create. AI will generate a prompt based on your description.');
 
     try {
-      const configManager = await getConfigManager();
-      // Check if the project is initialized
-      if (!await configManager.isInitialized()) {
-        throw new Error('Project is not initialized. Please run the "init" command first.');
-      }
-
       await createPrompt();
-      log.success('Prompt created successfully.');
-      log.info('You can now use this prompt in your project.');
+      logger.success('Prompt created successfully.');
+      logger.info('You can now use this prompt in your project.');
     } catch (error) {
-      log.error('Failed to create prompt:');
+      logger.error('Failed to create prompt:');
       if (error instanceof Error) {
-        log.error(error.message);
+        logger.error(error.message);
         if (error.stack) {
-          log.debug(error.stack);
+          logger.debug(error.stack);
         }
       } else {
-        log.error(String(error));
+        logger.error(String(error));
       }
     }
   });
@@ -111,14 +107,14 @@ program
   .command('list')
   .description('List all prompts')
   .action(async () => {
-    log.title('Listing all prompts');
-    log.info('Here are all the prompts currently available in your project:');
+    logger.info('Listing all prompts');
+    logger.info('Here are all the prompts currently available in your project:');
 
     try {
       while (true) {
         const prompts = await listPrompts();
         if (prompts.length === 0) {
-          log.warn('No prompts found. Use the "create" command to add new prompts.');
+          logger.warn('No prompts found. Use the "create" command to add new prompts.');
           return;
         }
 
@@ -160,8 +156,8 @@ program
         }
       }
     } catch (error) {
-      log.error('Failed to list prompts:');
-      console.error(error);
+      logger.error('Failed to list prompts:');
+      logger.error('An error occurred:', error);
     }
   });
 
@@ -169,7 +165,7 @@ async function displayPromptDetails(prompt: any): Promise<string> {
   while (true) {
     try {
       const promptDetails = await getPromptDetails({ category: prompt.category, name: prompt.name });
-      log.info('\nPrompt Details:');
+      logger.info('\nPrompt Details:');
       const detailsTable = new Table({
         columns: [
           { name: 'property', alignment: 'left', color: 'cyan' },
@@ -223,7 +219,7 @@ async function displayPromptDetails(prompt: any): Promise<string> {
           process.exit(0);
       }
     } catch (error) {
-      log.error(`Failed to display prompt details: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(`Failed to display prompt details: ${error instanceof Error ? error.message : String(error)}`);
       return 'error';
     }
   }
@@ -233,22 +229,23 @@ program
   .command('update <name>')
   .description('Update an existing prompt')
   .action(async (name: string) => {
-    log.title(`Updating prompt: ${name}`);
-    log.info('You can update various aspects of the prompt.');
+    logger.info(`Updating prompt: ${name}`);
+    logger.info('You can update various aspects of the prompt.');
 
     try {
       const [category, promptName] = name.split('/');
       if (!category || !promptName) {
         throw new Error('Invalid prompt name format. Please use "category/promptName".');
       }
-      const promptExists = await PromptModel.promptExists(name);
+      const promptManager = Container.get(PromptManager);
+      const promptExists = await promptManager.promptExists({ category, name: promptName });
       if (!promptExists) {
         throw new Error(`Prompt "${name}" does not exist.`);
       }
       const promptDetails = await getPromptDetails({ category, name: promptName });
-      log.info('Current prompt details:');
+      logger.info('Current prompt details:');
       Object.entries(promptDetails).forEach(([key, value]) => {
-        log.info(`${key}: ${value}`);
+        logger.info(`${key}: ${value}`);
       });
 
       const updateField = await select({
@@ -258,15 +255,15 @@ program
 
       const newValue = await input({ message: `Enter new value for ${updateField}:` });
       await updatePrompt({ category, name: promptName, updates: { [updateField]: newValue } });
-      log.success(`Prompt "${name}" updated successfully.`);
-      log.info('The new content has been saved and is ready to use.');
+      logger.success(`Prompt "${name}" updated successfully.`);
+      logger.info('The new content has been saved and is ready to use.');
     } catch (error) {
       if (error instanceof Error) {
-        log.error(`Failed to update prompt: ${error.message}`);
+        logger.error(`Failed to update prompt: ${error.message}`);
       } else {
-        log.error('Failed to update prompt: An unknown error occurred');
+        logger.error('Failed to update prompt: An unknown error occurred');
       }
-      console.error(error);
+      logger.error('An error occurred:', error);
     }
   });
 
@@ -274,29 +271,29 @@ program
   .command('generate')
   .description('Generate TypeScript types for prompts')
   .action(async () => {
-    log.title('Generating TypeScript types for prompts');
-    log.info('This command will create type definitions based on your current prompts.');
+    logger.info('Generating TypeScript types for prompts');
+    logger.info('This command will create type definitions based on your current prompts.');
 
     try {
       const shouldProceed = await confirm({ message: 'This action will overwrite existing type definitions. Continue?' });
       if (!shouldProceed) {
-        log.info('Type generation cancelled.');
+        logger.info('Type generation cancelled.');
         return;
       }
 
       await generateTypes();
-      log.success('Type definitions generated successfully.');
-      log.info('You can now use these types in your TypeScript projects for better type safety and autocompletion.');
+      logger.success('Type definitions generated successfully.');
+      logger.info('You can now use these types in your TypeScript projects for better type safety and autocompletion.');
 
       const viewTypes = await confirm({ message: 'Would you like to view the generated types?' });
       if (viewTypes) {
         const types = await getGeneratedTypes();
-        log.info('\nGenerated Types:');
-        console.log(types);
+        logger.info('\nGenerated Types:');
+        logger.info(types);
       }
     } catch (error) {
-      log.error('Failed to generate type definitions:');
-      console.error(error);
+      logger.error('Failed to generate type definitions:');
+      logger.error('An error occurred:', error);
     }
   });
 
@@ -304,42 +301,42 @@ program
   .command('status')
   .description('Display the current status of the Prompt Manager project')
   .action(async () => {
-    log.title('Prompt Manager Status');
-    log.info('Fetching current project status...');
+    logger.info('Prompt Manager Status');
+    logger.info('Fetching current project status...');
 
     try {
       const status = await getStatus();
-      log.info('Project Configuration:');
-      log.info(`  Name: ${status.config.name}`);
-      log.info(`  Prompts Directory: ${status.config.promptsDir}`);
-      log.info(`  Output Directory: ${status.config.outputDir}`);
+      logger.info('Project Configuration:');
+      logger.info(`  Name: ${status.config.name}`);
+      logger.info(`  Prompts Directory: ${status.config.promptsDir}`);
+      logger.info(`  Output Directory: ${status.config.outputDir}`);
 
-      log.info('\nPrompt Statistics:');
-      log.info(`  Total Prompts: ${status.totalPrompts}`);
-      log.info(`  Categories: ${status.categories.join(', ')}`);
+      logger.info('\nPrompt Statistics:');
+      logger.info(`  Total Prompts: ${status.totalPrompts}`);
+      logger.info(`  Categories: ${status.categories.join(', ')}`);
 
-      log.info('\nLast Generated:');
-      log.info(`  ${status.lastGenerated || 'Types have not been generated yet'}`);
+      logger.info('\nLast Generated:');
+      logger.info(`  ${status.lastGenerated || 'Types have not been generated yet'}`);
 
       if (status.warnings.length > 0) {
-        log.warn('\nWarnings:');
-        status.warnings.forEach(warning => log.warn(`  - ${warning}`));
+        logger.warn('\nWarnings:');
+        status.warnings.forEach(warning => logger.warn(`  - ${warning}`));
       }
 
       const showDetails = await confirm({ message: 'Would you like to see detailed prompt information?' });
       if (showDetails) {
         const detailedStatus = await getDetailedStatus();
-        log.info('\nDetailed Prompt Information:');
+        logger.info('\nDetailed Prompt Information:');
         detailedStatus.forEach(prompt => {
-          log.info(`\n${prompt.category}/${prompt.name}:`);
-          log.info(`  Version: ${prompt.version}`);
-          log.info(`  Parameters: ${prompt.parameters?.join(', ')}`);
-          log.info(`  Last Modified: ${prompt.metadata?.lastModified}`);
+          logger.info(`\n${prompt.category}/${prompt.name}:`);
+          logger.info(`  Version: ${prompt.version}`);
+          logger.info(`  Parameters: ${prompt.parameters?.join(', ')}`);
+          logger.info(`  Last Modified: ${prompt.metadata?.lastModified}`);
         });
       }
     } catch (error) {
-      log.error('Failed to retrieve status:');
-      console.error(error);
+      logger.error('Failed to retrieve status:');
+      logger.error('An error occurred:', error);
     }
   });
 

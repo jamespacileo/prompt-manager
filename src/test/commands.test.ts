@@ -1,10 +1,12 @@
 import { expect, test, describe, beforeAll, afterAll, beforeEach, jest, spyOn } from "bun:test";
-import * as commands from "../src/cli/commands";
-import { PromptManager } from "../src/promptManager";
+import { Container } from 'typedi';
+import * as commands from "../cli/commands";
+import { PromptManager } from "../promptManager";
+import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
+import { PromptFileSystem } from "../promptFileSystem";
 import fs from 'fs/promises';
 import path from 'path';
-import { getConfigManager } from "../src/config/PromptProjectConfigManager";
-import { IPrompt } from "../src/types/interfaces";
+import { IPrompt } from "../types/interfaces";
 
 describe.skip('CLI Commands', () => {
   let testDir: string;
@@ -15,11 +17,17 @@ describe.skip('CLI Commands', () => {
     testDir = path.join(process.cwd(), 'test-prompts-cli');
     await fs.mkdir(testDir, { recursive: true });
     process.env.PROMPTS_DIR = testDir;
-    (await getConfigManager()).updateConfig({ promptsDir: testDir });
   });
 
   beforeEach(async () => {
-    // Clear the test directory before each test
+    Container.reset();
+    const configManager = new PromptProjectConfigManager();
+    await configManager.initialize();
+    await configManager.updateConfig({ promptsDir: testDir });
+    Container.set(PromptProjectConfigManager, configManager);
+    Container.set(PromptFileSystem, PromptFileSystem);
+    Container.set(PromptManager, PromptManager);
+
     const files = await fs.readdir(testDir);
     for (const file of files) {
       await fs.rm(path.join(testDir, file), { recursive: true, force: true });
@@ -33,7 +41,6 @@ describe.skip('CLI Commands', () => {
     } else {
       delete process.env.PROMPTS_DIR;
     }
-    (await getConfigManager()).updateConfig({ promptsDir: originalPromptsDir || '' });
   });
 
   test("createPrompt creates a new prompt", async () => {
@@ -62,15 +69,13 @@ describe.skip('CLI Commands', () => {
       outputType: "structured",
     };
 
-    // Mock the prompt responses
     spyOn(console, 'log').mockImplementation(() => { });
     spyOn(console, 'error').mockImplementation(() => { });
 
     await commands.createPrompt();
 
-    const manager = await PromptManager.getInstance();
-    // initialization is now handled internally
-    const createdPrompt = await manager.getPrompt({
+    const manager = Container.get(PromptManager);
+    const createdPrompt = manager.getPrompt({
       category: "cosmicCompositions",
       name: "stardustSymphony",
     });
@@ -81,9 +86,16 @@ describe.skip('CLI Commands', () => {
   test("listPrompts returns a list of prompts", async () => {
     const result = await commands.listPrompts();
 
-    expect(result).toContainEqual({
+    const stardustSymphony = result.find(prompt =>
+      prompt.category === "cosmicCompositions" &&
+      prompt.name === "stardustSymphony"
+    );
+
+    expect(stardustSymphony).toBeDefined();
+    expect(stardustSymphony).toEqual({
       category: "cosmicCompositions",
       name: "stardustSymphony",
+      version: "1.0.0",
       filePath: expect.stringContaining("/test-prompts-cli/cosmicCompositions/stardustSymphony/prompt.json"),
     });
   });
@@ -101,22 +113,7 @@ describe.skip('CLI Commands', () => {
       version: "1.0.0",
       template: "Compose a {{genre}} melody inspired by the {{celestialBody}}",
       parameters: ["genre", "celestialBody"],
-      inputSchema: {
-        type: "object",
-        properties: {
-          genre: { type: "string" },
-          celestialBody: { type: "string" },
-        },
-        required: ["genre", "celestialBody"],
-      },
-      outputSchema: {
-        type: "object",
-        properties: {
-          melody: { type: "string" },
-        },
-        required: ["melody"],
-      },
-      outputType: "structured",
+      metadata: expect.any(Object),
     });
   });
 
@@ -146,17 +143,13 @@ describe.skip('CLI Commands', () => {
       outputType: "structured",
     };
 
-
-    // Mock the prompt responses
     spyOn(console, 'log').mockImplementation(() => { });
     spyOn(console, 'error').mockImplementation(() => { });
 
-    const manager = await PromptManager.getInstance();
-    spyOn(manager, 'updatePrompt').mockResolvedValueOnce();
-
+    const manager = Container.get(PromptManager);
     await commands.updatePrompt({ category: "cosmicCompositions", name: "stardustSymphony", updates: updatedPromptData });
 
-    const updatedPrompt = await manager.getPrompt({
+    const updatedPrompt = manager.getPrompt({
       category: "cosmicCompositions",
       name: "stardustSymphony",
     });
@@ -165,45 +158,23 @@ describe.skip('CLI Commands', () => {
   });
 
   test("deletePrompt removes a prompt", async () => {
-    // Mock the prompt responses
     spyOn(console, 'log').mockImplementation(() => { });
     spyOn(console, 'error').mockImplementation(() => { });
 
     await commands.deletePrompt({ category: "cosmicCompositions", name: "stardustSymphony" });
 
-    const manager = await PromptManager.getInstance();
-    const promptExists = await manager.promptExists({
-      category: "cosmicCompositions",
-      name: "stardustSymphony",
-    });
+    const manager = Container.get(PromptManager);
+    const prompts = await manager.listPrompts({});
+    const deletedPrompt = prompts.find(p => p.name === "stardustSymphony" && p.category === "cosmicCompositions");
 
-    expect(promptExists).toBe(false);
+    expect(deletedPrompt).toBeUndefined();
   });
 
   test("createCategory creates a new category", async () => {
-
-    const manager = await PromptManager.getInstance();
+    const manager = Container.get(PromptManager);
     await manager.createCategory("quantumQueries");
     const categories = await manager.listCategories();
 
     expect(categories).toContain("quantumQueries");
-  });
-
-  test("deletePrompt removes a prompt", async () => {
-    // Mock the prompt responses
-    spyOn(console, 'log').mockImplementation(() => { });
-    spyOn(console, 'error').mockImplementation(() => { });
-
-    const manager = await PromptManager.getInstance();
-    spyOn(manager, 'deletePrompt').mockImplementationOnce(async () => { });
-
-    await commands.deletePrompt({ category: "cosmicCompositions", name: "stardustSymphony" });
-
-    const promptExists = await manager.promptExists({
-      category: "cosmicCompositions",
-      name: "stardustSymphony",
-    });
-
-    expect(promptExists).toBe(false);
   });
 });

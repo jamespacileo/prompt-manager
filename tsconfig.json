@@ -14,12 +14,17 @@
       "node_modules/.pnpm/@types",
       "node_modules/@types"
     ],
-    // "rootDir": "./src",
+    // "types": [
+    //   "reflect-metadata"
+    // ],
+    "rootDir": "./src",
     "moduleResolution": "Bundler",
     // "moduleDetection": "force",
     // "resolveJsonModule": true,
     // "allowImportingTsExtensions": true,
     // "verbatimModuleSyntax": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "noEmit": false,
     "strict": true,
     // "noUnusedLocals": true,
@@ -29,7 +34,7 @@
   },
   "include": [
     "src/**/*",
-    "test/**/*",
+    "src/test/**/*",
     "types/**/*",
     "src/config.ts"
   ],

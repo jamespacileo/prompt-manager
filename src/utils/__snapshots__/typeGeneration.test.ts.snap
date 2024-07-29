@@ -1,0 +1,28 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Type Generation Utilities generateExportableSchemaAndType 1`] = `
+{
+  "formattedSchemaTs": 
+"
+
+export const Person = z.object({
+  name: z.string(),
+  age: z.number(),
+  isStudent: z.boolean().optional(),
+});
+export type Person = z.infer<typeof Person>;
+"
+,
+  "formattedSchemaTsNoImports": 
+"
+
+export const Person = z.object({
+  name: z.string(),
+  age: z.number(),
+  isStudent: z.boolean().optional(),
+});
+export type Person = z.infer<typeof Person>;
+"
+,
+}
+`;

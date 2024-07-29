@@ -1,29 +1,21 @@
-import { IPromptModel, IPromptModelRequired, IPromptModelStatic, IPromptInput, IPromptOutput, IAsyncIterableStream, IPromptFileSystem, IPrompt } from './types/interfaces';
+import Container, { Service, Inject } from 'typedi';
+import { IPromptModel, IPromptInput, IPromptOutput, IAsyncIterableStream, IPrompt } from './types/interfaces';
+import type { IPromptModelRequired, IPromptFileSystem } from './types/interfaces';
 import { JSONSchema7 } from 'json-schema';
 import { generateText, generateObject, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { jsonSchemaToZod } from './utils/jsonSchemaToZod';
 import { incrementVersion, compareVersions } from './utils/versionUtils';
-
-/**
- * Represents a single prompt model with all its properties and methods.
- * 
- * Purpose: Encapsulate all data and behavior related to a specific prompt,
- * including validation, formatting, and execution.
- * 
- * This class is the core representation of a prompt in the system, handling
- * all operations specific to an individual prompt, such as formatting,
- * validation, execution, and version management.
- */
 import path from 'path';
-import { getConfigManager } from './config/PromptProjectConfigManager';
+import { PromptProjectConfigManager } from './config/PromptProjectConfigManager';
+import { PromptFileSystem } from './promptFileSystem';
+import { logger } from './utils/logger';
 
 export class PromptModel<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any>> = IPromptOutput<Record<string, any>>
 > implements IPromptModel<TInput, TOutput> {
-  private fileSystem: IPromptFileSystem;
   name: string;
   category: string;
   description: string;
@@ -49,29 +41,23 @@ export class PromptModel<
   outputSchema: JSONSchema7;
   private _isSaved: boolean = false;
   isLoadedFromStorage: boolean = false;
-  filePath: string | undefined | null = undefined
+  filePath: string | undefined | null = undefined;
 
-  async getFilePath(): Promise<string> {
-    const configManager = await getConfigManager();
-    const promptsDir = configManager.getConfig('promptsDir');
-    const filePath = path.join(promptsDir, this.category, this.name, 'prompt.json');
-    this.filePath = filePath
-    return filePath
-  }
+  fileSystem: PromptFileSystem;
+  configManager: PromptProjectConfigManager;
 
-  /**
-   * Create a new PromptModel instance.
-   * 
-   * Purpose: Initialize a new prompt with all necessary data.
-   * 
-   * @param promptData Required data to initialize the prompt
-   * @throws Error if required fields are missing in promptData
-   */
-  constructor(promptData: IPromptModelRequired, fileSystem: IPromptFileSystem) {
-    this.fileSystem = fileSystem;
+  constructor(
+    promptData: IPromptModelRequired,
+    // @Inject()
+    // public fileSystem: PromptFileSystem,
+    // @Inject()
+    // public configManager: PromptProjectConfigManager,
+  ) {
     if (!promptData.name || !promptData.category || !promptData.description || !promptData.template) {
       throw new Error('Invalid prompt data: missing required fields');
     }
+    this.fileSystem = Container.get(PromptFileSystem);
+    this.configManager = Container.get(PromptProjectConfigManager);
     this.name = promptData.name;
     this.category = promptData.category;
     this.description = promptData.description;
@@ -82,7 +68,15 @@ export class PromptModel<
     this.version = promptData.version || '1.0.0';
     this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
     this.outputType = this.determineOutputType(promptData.outputSchema);
+    this.defaultModelName = promptData.defaultModelName;
     this.configuration = this.initializeConfiguration();
+  }
+
+  async getFilePath(): Promise<string> {
+    const promptsDir = this.configManager.getConfig('promptsDir');
+    const filePath = path.join(promptsDir, this.category, this.name, 'prompt.json');
+    this.filePath = filePath;
+    return filePath;
   }
 
   private determineOutputType(outputSchema: JSONSchema7): 'structured' | 'plain' {
@@ -135,8 +129,8 @@ export class PromptModel<
       this.inputZodSchema.parse(input);
       return true;
     } catch (error) {
-      console.error(`Input validation error for prompt "${this.name}":`, error);
-      console.error(`This could be because:
+      logger.error(`Input validation error for prompt "${this.name}":`, error);
+      logger.error(`This could be because:
         1. The input doesn't match the expected schema.
         2. The input schema might be outdated or incorrect.
         
@@ -159,7 +153,7 @@ export class PromptModel<
       this.outputZodSchema.parse(output);
       return true;
     } catch (error) {
-      console.error('Output validation error:', error);
+      logger.error('Output validation error:', error);
       return false;
     }
   }
@@ -203,7 +197,7 @@ export class PromptModel<
 
       return textStream;
     } catch (error) {
-      console.error('Error streaming prompt:', error);
+      logger.error('Error streaming prompt:', error);
       throw new Error(`Failed to stream prompt: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -262,7 +256,7 @@ export class PromptModel<
         }
       }
     } catch (error) {
-      console.error('Error executing prompt:', error);
+      logger.error('Error executing prompt:', error);
       throw new Error(`Failed to execute prompt: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -346,9 +340,9 @@ export class PromptModel<
       Object.assign(this, versionData);
       this.version = version;
       await this.save();
-      console.info(`Rolled back prompt ${this.name} to version ${version}`);
+      logger.info(`Rolled back prompt ${this.name} to version ${version}`);
     } catch (error) {
-      console.error(`Failed to rollback prompt ${this.name} to version ${version}: ${error}`);
+      logger.error(`Failed to rollback prompt ${this.name} to version ${version}: ${error}`);
       throw error;
     }
   }
@@ -361,25 +355,5 @@ export class PromptModel<
   get isSaved(): boolean {
     return this._isSaved;
   }
-
-  static async loadPromptByName(name: string, fileSystem: IPromptFileSystem): Promise<PromptModel> {
-    const [category, promptName] = name.split('/');
-    const promptData = await this.fileSystem.loadPrompt({ category, promptName });
-    const prompt = new PromptModel(promptData as IPromptModelRequired, fileSystem);
-    prompt.isLoadedFromStorage = true;
-    return prompt;
-  }
-
-  static async promptExists(name: string, fileSystem: IPromptFileSystem): Promise<boolean> {
-    const [category, promptName] = name.split('/');
-    return fileSystem.promptExists({ category, promptName });
-  }
-
-  static async listPrompts(fileSystem: IPromptFileSystem, category?: string): Promise<Array<IPromptModel>> {
-    return await fileSystem.listPrompts({ category });
-  }
-
-  static async deletePrompt(category: string, name: string, fileSystem: IPromptFileSystem): Promise<void> {
-    await fileSystem.deletePrompt({ category, promptName: name });
-  }
 }
+
