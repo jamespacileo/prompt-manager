@@ -1,17 +1,17 @@
 #!/usr/bin/env bun
 
+import fs from 'fs-extra';
+import { TextEncoder, TextDecoder } from 'util';
 import 'reflect-metadata';
 import { Command } from 'commander';
 import { input, confirm, select, expand, search } from '@inquirer/prompts';
-import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus, deletePrompt, initializeContainer } from './commands.js';
+import chalk from 'chalk';
 import { Table } from 'console-table-printer';
-import fs from 'fs-extra';
-import { TextEncoder, TextDecoder } from 'util';
 import { Container } from 'typedi';
+import { createPrompt, listPrompts, updatePrompt, generateTypes, getStatus, getPromptDetails, getGeneratedTypes, getDetailedStatus, deletePrompt, initializeContainer } from './commands.js';
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
 import { PromptManager } from '../promptManager.js';
 import { PromptFileSystem } from '../promptFileSystem.js';
-import chalk from 'chalk';
 
 // Add TextEncoder and TextDecoder to the global object
 (global as any).TextEncoder = TextEncoder;
@@ -44,7 +44,7 @@ ${chalk.magenta('                            |___/       ')}
 `;
 
 console.log(asciiArt);
-console.log(chalk.yellow('Welcome to the Prompt Manager CLI!'));
+console.log(chalk.yellow('Welcome to the Prompt Manager CLI! v 1.0.0'));
 console.log(chalk.yellow('A powerful tool for managing and generating prompts\n'));
 
 program
@@ -92,8 +92,7 @@ program
       logger.success('Project initialized successfully!');
       logger.info('You can now start creating prompts using the `create` command.');
     } catch (error) {
-      logger.error('Failed to initialize project:');
-      logger.error('An error occurred: `%s`', error);
+      logger.error('Failed to initialize project:', error);
     }
   });
 
@@ -109,15 +108,7 @@ program
       logger.success('Prompt created successfully.');
       logger.info('You can now use this prompt in your project.');
     } catch (error) {
-      logger.error('Failed to create prompt:');
-      if (error instanceof Error) {
-        logger.error(error.message);
-        if (error.stack) {
-          logger.debug(error.stack);
-        }
-      } else {
-        logger.error(String(error));
-      }
+      logger.error('Failed to create prompt:', error);
     }
   });
 
@@ -237,7 +228,7 @@ async function displayPromptDetails(prompt: any): Promise<string> {
           process.exit(0);
       }
     } catch (error) {
-      logger.error(`Failed to display prompt details: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error('Failed to display prompt details:', error);
       return 'error';
     }
   }
@@ -277,7 +268,7 @@ program
       logger.info('The new content has been saved and is ready to use.');
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`Failed to update prompt: ${error.message}`);
+        logger.error('Failed to update prompt:', error.message);
       } else {
         logger.error('Failed to update prompt: An unknown error occurred');
       }
@@ -310,8 +301,7 @@ program
         logger.info(types);
       }
     } catch (error) {
-      logger.error('Failed to generate type definitions:');
-      logger.error('An error occurred:', error);
+      logger.error('Failed to generate type definitions:', error);
     }
   });
 
@@ -353,8 +343,7 @@ program
         });
       }
     } catch (error) {
-      logger.error('Failed to retrieve status:');
-      logger.error('An error occurred:', error);
+      logger.error('Failed to retrieve status:', error);
     }
   });
 

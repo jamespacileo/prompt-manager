@@ -87,6 +87,10 @@ export interface IPromptModelRequired {
   metadata: {
     created: string;
     lastModified: string;
+    author?: string;
+    sourceName?: string;
+    sourceUrl?: string;
+    license?: string;
   };
   defaultModelName?: string;
 }
@@ -100,6 +104,10 @@ export interface IPromptModel<
   metadata: {
     created: string;
     lastModified: string;
+    author?: string;
+    sourceName?: string;
+    sourceUrl?: string;
+    license?: string;
   };
   configuration: {
     modelName: string;

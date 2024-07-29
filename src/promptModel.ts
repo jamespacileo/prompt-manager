@@ -26,6 +26,10 @@ export class PromptModel<
   metadata: {
     created: string;
     lastModified: string;
+    author?: string;
+    sourceName?: string;
+    sourceUrl?: string;
+    license?: string;
   };
   configuration: {
     modelName: string;
@@ -66,7 +70,11 @@ export class PromptModel<
     this.inputSchema = promptData.inputSchema || {};
     this.outputSchema = promptData.outputSchema || {};
     this.version = promptData.version || '1.0.0';
-    this.metadata = promptData.metadata || { created: new Date().toISOString(), lastModified: new Date().toISOString() };
+    this.metadata = {
+      ...promptData.metadata,
+      created: promptData.metadata?.created || new Date().toISOString(),
+      lastModified: promptData.metadata?.lastModified || new Date().toISOString(),
+    };
     this.outputType = this.determineOutputType(promptData.outputSchema);
     this.defaultModelName = promptData.defaultModelName;
     this.configuration = this.initializeConfiguration();
@@ -324,7 +332,7 @@ export class PromptModel<
     return this._outputZodSchema;
   }
 
-  async load(filePath: string): Promise<void> {
+  async load(): Promise<void> {
     const promptData = await this.fileSystem.loadPrompt({ category: this.category, promptName: this.name });
     Object.assign(this, promptData);
     this._isSaved = true;

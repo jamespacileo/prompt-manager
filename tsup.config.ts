@@ -12,4 +12,7 @@ export default defineConfig({
   minify: true,
   treeshake: true,
   legacyOutput: true,
+  // banner: {
+  //   js: "#!/usr/bin/env node",
+  // },
 });

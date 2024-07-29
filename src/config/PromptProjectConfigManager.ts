@@ -127,9 +127,9 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
   private async ensureConfigDirectories(): Promise<void> {
     try {
       await ensureDirectoryExists(this.config.promptsDir);
-      logger.success(`Created prompts directory: ${this.config.promptsDir}`);
+      logger.success(`Created prompts directory: ${chalk.yellow(this.config.promptsDir)}`);
       await ensureDirectoryExists(this.config.outputDir);
-      logger.success(`Created output directory: ${this.config.outputDir}`);
+      logger.success(`Created output directory: ${chalk.yellow(this.config.outputDir)}`);
     } catch (error: any) {
       logger.error('Error: Failed to create necessary directories.');
       logger.warn('Please check that you have write permissions in the project directory.');

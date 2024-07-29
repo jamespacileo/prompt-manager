@@ -1,17 +1,18 @@
-import { Container } from 'typedi';
-import { PromptManager } from '../promptManager';
-import { PromptModel } from '../promptModel';
 import fs from 'fs-extra';
 import path from 'path';
+import { z } from 'zod';
+import { Container } from 'typedi';
 import { input, confirm, select } from '@inquirer/prompts';
+import { logger } from '../utils/logger';
 import { generatePromptWithAI, updatePromptWithAI, prettyPrintPrompt } from './aiHelpers';
+import { PromptManager } from '../promptManager';
+import { PromptModel } from '../promptModel';
 import { IPrompt, IPromptInput, IPromptOutput } from '../types/interfaces';
 import { PromptProjectConfigManager } from '../config/PromptProjectConfigManager';
 import { PromptFileSystem } from '../promptFileSystem';
-import { z } from 'zod';
 import { PromptSchema } from '../schemas/prompts';
 import { generateExportableSchemaAndType } from '../utils/typeGeneration';
-import { logger, prettyPrintJsonSchema } from '../utils/logger';
+import { prettyPrintJsonSchema } from '../utils/logger';
 
 export async function initializeContainer(): Promise<void> {
   const configManager = Container.get(PromptProjectConfigManager);
@@ -36,9 +37,9 @@ export async function createPrompt(): Promise<void> {
       promptData = await generatePromptWithAI(description);
       prettyPrintPrompt(promptData);
       logger.info('Input Schema:');
-      logger.info(prettyPrintJsonSchema(promptData.inputSchema));
+      logger.info(promptData.inputSchema ? prettyPrintJsonSchema(promptData.inputSchema) : 'No input schema provided');
       logger.info('Output Schema:');
-      logger.info(prettyPrintJsonSchema(promptData.outputSchema));
+      logger.info(promptData.outputSchema ? prettyPrintJsonSchema(promptData.outputSchema) : 'No output schema provided');
 
       if (!promptData.name || !promptData.category) {
         logger.warn('The generated prompt is missing required fields (name or category). Regenerating...');
@@ -67,8 +68,7 @@ export async function createPrompt(): Promise<void> {
     logger.success(`Prompt "${validatedPromptData.name}" created successfully.`);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error(`Failed to create prompt "${promptData.name}": Invalid prompt data`);
-      logger.error('Validation errors:', error.errors);
+      logger.error(`Failed to create prompt "${promptData.name}": Invalid prompt data`, error.errors);
       logger.warn(`This could be because:
         1. The AI-generated prompt doesn't meet the required schema.
         2. Manual edits introduced invalid data.
@@ -78,7 +78,7 @@ export async function createPrompt(): Promise<void> {
         - Try regenerating the prompt with a more specific description.
         - If you made manual edits, double-check them against the prompt schema.`);
     } else if (error instanceof Error) {
-      logger.error(`Failed to create prompt "${promptData.name}": ${error.message}`);
+      logger.error(`Failed to create prompt "${promptData.name}":`, error.message);
       logger.warn(`This could be due to:
         1. File system issues (e.g., permissions, disk space).
         2. Conflicts with existing prompts.
@@ -90,8 +90,7 @@ export async function createPrompt(): Promise<void> {
         - Try creating a simpler prompt to isolate the issue.
         - If the problem persists, run 'status' to check the overall project health.`);
     } else {
-      logger.error(`Failed to create prompt "${promptData.name}": Unknown error`);
-      logger.error('Error details:', error);
+      logger.error(`Failed to create prompt "${promptData.name}": Unknown error`, error);
     }
     throw error;
   }
@@ -201,14 +200,14 @@ export async function updatePrompt(props: { category: string; name: string; upda
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error('Invalid prompt data:', error.errors);
+      logger.error('Invalid prompt data', error.errors);
     } else if (error instanceof Error) {
       logger.error('An error occurred while updating the prompt:', error.message);
       if (error.stack) {
         logger.debug(error.stack);
       }
     } else {
-      logger.error('An unknown error occurred while updating the prompt:', String(error));
+      logger.error('An unknown error occurred while updating the prompt:', error);
     }
   }
 }
