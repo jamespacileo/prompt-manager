@@ -8,9 +8,12 @@ import { PromptModel } from './promptModel';
 import { z } from 'zod';
 import lockfile from 'proper-lockfile';
 import { logger } from './utils/logger';
+import { generateExportableSchemaAndType, generateTestInputs } from './utils/typeGeneration';
 
 export const DEFAULT_PROMPT_FILENAME = "prompt.json";
 export const DEFAULT_TYPE_DEFINITION_FILENAME = "prompt.d.ts";
+export const DEFAULT_TS_OUTPUT_FILENAME = "prompt.ts";
+export const DEFAULT_TEST_INPUTS_FILENAME = "test-inputs.json";
 export const DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
 
 /**
@@ -216,6 +219,14 @@ export class PromptFileSystem implements IPromptFileSystem {
       const typeDefinitionPath = this.getTypeDefinitionPath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
       logger.debug(`Generating type definition file at ${typeDefinitionPath}`);
       await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
+
+      const tsOutputPath = this.getTsOutputPath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
+      logger.debug(`Generating TS output file at ${tsOutputPath}`);
+      await this.generateTsOutputFile(validatedPromptData, tsOutputPath);
+
+      const testInputsPath = this.getTestInputsPath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
+      logger.debug(`Generating test inputs file at ${testInputsPath}`);
+      await this.generateTestInputsFile(validatedPromptData, testInputsPath);
 
       const versionsDir = this.getVersionsDir({ category: validatedPromptData.category, promptName: validatedPromptData.name });
       logger.debug(`Creating versions directory at ${versionsDir}`);
@@ -512,4 +523,49 @@ export interface ${promptData.name}Output ${outputType}
         return 'any';
     }
   }
+
+  private getTsOutputPath(props: { category: string; promptName: string }): string {
+    const { category, promptName } = props;
+    return path.join(this.getPromptDir({ category, promptName }), DEFAULT_TS_OUTPUT_FILENAME);
+  }
+
+  private getTestInputsPath(props: { category: string; promptName: string }): string {
+    const { category, promptName } = props;
+    return path.join(this.getPromptDir({ category, promptName }), DEFAULT_TEST_INPUTS_FILENAME);
+  }
+
+  private async generateTsOutputFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
+    const { formattedSchemaTs } = await generateExportableSchemaAndType({
+      schema: promptData.inputSchema,
+      name: `${promptData.category}${promptData.name}Input`
+    });
+    await fs.writeFile(filePath, formattedSchemaTs);
+  }
+
+  private async generateTestInputsFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
+    const testInputs = generateTestInputs(promptData.inputSchema);
+    await fs.writeFile(filePath, JSON.stringify(testInputs, null, 2));
+  }
 }
+  private getTsOutputPath(props: { category: string; promptName: string }): string {
+    const { category, promptName } = props;
+    return path.join(this.getPromptDir({ category, promptName }), DEFAULT_TS_OUTPUT_FILENAME);
+  }
+
+  private getTestInputsPath(props: { category: string; promptName: string }): string {
+    const { category, promptName } = props;
+    return path.join(this.getPromptDir({ category, promptName }), DEFAULT_TEST_INPUTS_FILENAME);
+  }
+
+  private async generateTsOutputFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
+    const { formattedSchemaTs } = await generateExportableSchemaAndType({
+      schema: promptData.inputSchema,
+      name: `${promptData.category}${promptData.name}Input`
+    });
+    await fs.writeFile(filePath, formattedSchemaTs);
+  }
+
+  private async generateTestInputsFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
+    const testInputs = generateTestInputs(promptData.inputSchema);
+    await fs.writeFile(filePath, JSON.stringify(testInputs, null, 2));
+  }
