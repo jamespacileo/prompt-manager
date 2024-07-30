@@ -1,0 +1,52 @@
+{
+  "name": "extract_glossary_words",
+  "category": "Text Processing",
+  "description": "Extracts key terms and definitions for a glossary from a given text.",
+  "version": "1.0",
+  "template": "Given the text: \"{text}\", extract key terms and their definitions to create a glossary.",
+  "parameters": [
+    "text"
+  ],
+  "metadata": {
+    "created": "2023-10-01",
+    "lastModified": "2023-10-01"
+  },
+  "outputType": "structured",
+  "defaultModelName": "text-extraction-model",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "glossaryEntries": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "term": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "configuration": {
+    "modelName": "text-extraction-model",
+    "temperature": 0.7,
+    "maxTokens": 100,
+    "topP": 1,
+    "frequencyPenalty": 0,
+    "presencePenalty": 0,
+    "stopSequences": []
+  }
+}

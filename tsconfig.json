@@ -8,6 +8,8 @@
     ],
     "declaration": true,
     "outDir": "dist",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "declarationDir": "dist",
     "esModuleInterop": true,
     "typeRoots": [

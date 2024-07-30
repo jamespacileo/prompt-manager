@@ -72,7 +72,7 @@ describe.skip('CLI Commands', () => {
     spyOn(console, 'log').mockImplementation(() => { });
     spyOn(console, 'error').mockImplementation(() => { });
 
-    await commands.createPrompt();
+    await commands.createPrompt(promptData as any);
 
     const manager = Container.get(PromptManager);
     const createdPrompt = manager.getPrompt({

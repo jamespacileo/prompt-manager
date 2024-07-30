@@ -1,0 +1,49 @@
+{
+  "name": "generate_prompt_template",
+  "category": "Prompt Generation",
+  "description": "Create a prompt template based on given instructions. (amended) (amended)",
+  "version": "1.2",
+  "template": "Create a prompt template that allows users to generate useful prompts based on specific instructions. The template should include fields for the instruction, expected output, and any additional context or parameters that may enhance the prompt's effectiveness.",
+  "parameters": [
+    "instruction",
+    "expectedOutput",
+    "context"
+  ],
+  "metadata": {
+    "created": "2023-10-01",
+    "lastModified": "2024-07-29T20:45:15.873Z"
+  },
+  "outputType": "structured",
+  "defaultModelName": "gpt-3.5-turbo",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "instruction": {
+        "type": "string"
+      },
+      "expectedOutput": {
+        "type": "string"
+      },
+      "context": {
+        "type": "string"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "promptTemplate": {
+        "type": "string"
+      }
+    }
+  },
+  "configuration": {
+    "modelName": "gpt-3.5-turbo",
+    "temperature": 0.7,
+    "maxTokens": 100,
+    "topP": 1,
+    "frequencyPenalty": 0,
+    "presencePenalty": 0,
+    "stopSequences": []
+  }
+}

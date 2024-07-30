@@ -1,0 +1,27 @@
+[
+  {
+    "instruction": "id anim magna",
+    "expectedOutput": "eu eiusmod culpa nostrud fugiat",
+    "context": "labore deserunt"
+  },
+  {
+    "instruction": "ipsum in",
+    "expectedOutput": "Excepteur sunt incididunt",
+    "context": "eu officia deserunt voluptate labore"
+  },
+  {
+    "instruction": "labore pariatur magna",
+    "expectedOutput": "voluptate mollit nostrud non",
+    "context": "quis"
+  },
+  {
+    "instruction": "minim eiusmod labore",
+    "expectedOutput": "occaecat dolore id non sit",
+    "context": "Excepteur qui voluptate nostrud"
+  },
+  {
+    "instruction": "mollit commodo pariatur velit",
+    "expectedOutput": "laborum consequat do id dolor",
+    "context": "eu amet laboris id occaecat"
+  }
+]

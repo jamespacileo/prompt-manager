@@ -52,22 +52,22 @@ export class PromptFileSystem implements IPromptFileSystem {
 
   getFilePath(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
-    return path.join(this.getPromptsDir(), category, promptName, DEFAULT_PROMPT_FILENAME);
+    return path.join(this.getPromptsDir(), cleanName(category), cleanName(promptName), DEFAULT_PROMPT_FILENAME);
   }
 
   getVersionFilePath(props: { category: string; promptName: string; version: string }): string {
     const { category, promptName, version } = props;
-    return path.join(this.getPromptsDir(), category, promptName, '.versions', `v${version}.json`);
+    return path.join(this.getPromptsDir(), cleanName(category), cleanName(promptName), '.versions', `v${version}.json`);
   }
 
   private getCategoryDir(props: { category: string }): string {
     const { category } = props;
-    return path.join(this.getPromptsDir(), category);
+    return path.join(this.getPromptsDir(), cleanName(category));
   }
 
   private getPromptDir(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
-    return path.join(this.getPromptsDir(), category, promptName);
+    return path.join(this.getPromptsDir(), cleanName(category), cleanName(promptName));
   }
 
   private getVersionsDir(props: { category: string; promptName: string }): string {
@@ -98,7 +98,7 @@ export class PromptFileSystem implements IPromptFileSystem {
   private async generateTsOutputFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
     const { formattedSchemaTs } = await generateExportableSchemaAndType({
       schema: promptData.inputSchema,
-      name: `${promptData.category}${promptData.name}Input`
+      name: `${cleanName(promptData.category)}${cleanName(promptData.name)}Input`
     });
     await fs.writeFile(filePath, formattedSchemaTs);
   }

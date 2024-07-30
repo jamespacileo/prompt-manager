@@ -1,0 +1,36 @@
+{
+  "name": "Generate Prompt",
+  "category": "Prompt Creation",
+  "description": "Create a prompt based on a given description.",
+  "version": "1.0",
+  "template": "Create a detailed and engaging prompt based on the description provided: {description}.",
+  "parameters": [
+    "description"
+  ],
+  "metadata": {
+    "created": "2023-10-05",
+    "lastModified": "2023-10-05"
+  },
+  "outputType": "plain",
+  "defaultModelName": "text-davinci-003",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "string"
+  },
+  "configuration": {
+    "modelName": "text-davinci-003",
+    "temperature": 0.7,
+    "maxTokens": 100,
+    "topP": 1,
+    "frequencyPenalty": 0,
+    "presencePenalty": 0,
+    "stopSequences": []
+  }
+}

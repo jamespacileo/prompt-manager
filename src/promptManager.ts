@@ -13,6 +13,9 @@ export class PromptManager<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > {
+  generateAmendedPrompt(props: { category: string; name: string; amendQuery?: string; amendedPrompt?: Partial<import("./types/interfaces").IPromptModel>; }): Partial<import("./types/interfaces").IPromptModel<any, any>> | PromiseLike<Partial<import("./types/interfaces").IPromptModel<any, any>>> {
+    throw new Error("Method not implemented.");
+  }
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
   public prompts: Record<string, Record<string, PromptModel<any, any>>> = {};
   private initialized: boolean = false;
@@ -131,6 +134,11 @@ export class PromptManager<
     }
     const prompt = this.prompts[props.category][props.name];
     return prompt as PromptModel<TInput, TOutput>;
+  }
+
+  async getPromptVersion({ category, name, version }: { category: string; name: string; version: string }): Promise<PromptModel<TInput, TOutput>> {
+    const versionData = await this.fileSystem.loadPromptVersion({ category, promptName: name, version });
+    return new PromptModel(versionData) as PromptModel<TInput, TOutput>;
   }
 
   /**

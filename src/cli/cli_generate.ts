@@ -1,10 +1,10 @@
-import fs from 'fs-extra';
-import path from 'path';
-import { getConfig } from '../config';
-import { logger } from '../utils/logger';
+import fs from "fs-extra";
+import { getConfig } from "../config";
+import { logger } from "../utils/logger";
+import path from "path";
 
-const PROMPTS_DIR = await getConfig('promptsDir');
-const OUTPUT_DIR = await getConfig('outputDir');
+const PROMPTS_DIR = await getConfig("promptsDir");
+const OUTPUT_DIR = await getConfig("outputDir");
 
 // Ensure the output directory exists
 fs.ensureDirSync(OUTPUT_DIR);
@@ -25,7 +25,7 @@ export async function discoverPrompts(): Promise<PromptData[]> {
     const categoryPath = path.join(PROMPTS_DIR, category);
     const promptFiles = await fs.readdir(categoryPath);
     for (const promptFile of promptFiles) {
-      if (promptFile === 'prompt.json') {
+      if (promptFile === "prompt.json") {
         const promptPath = path.join(categoryPath, promptFile);
         const promptData = await fs.readJson(promptPath);
         prompts.push(promptData);
@@ -36,12 +36,12 @@ export async function discoverPrompts(): Promise<PromptData[]> {
 }
 
 export function generateTypes(prompts: PromptData[]): string {
-  let output = 'export interface PromptManager {\n';
-  const categories = new Set(prompts.map(p => p.category));
+  let output = "export interface PromptManager {\n";
+  const categories = new Set(prompts.map((p) => p.category));
 
   for (const category of categories) {
     output += `  ${category}: {\n`;
-    const categoryPrompts = prompts.filter(p => p.category === category);
+    const categoryPrompts = prompts.filter((p) => p.category === category);
     for (const prompt of categoryPrompts) {
       output += `    ${prompt.name}: {\n`;
       output += `      name: string;\n`;
@@ -50,23 +50,23 @@ export function generateTypes(prompts: PromptData[]): string {
       output += `      content: string;\n`;
       output += `      parameters: string[];\n`;
       output += `      description: string;\n`;
-      output += `      format: (inputs: {${prompt.parameters.map((p: string) => `${p}: string`).join('; ')}}) => string;\n`;
+      output += `      format: (inputs: {${prompt.parameters.map((p: string) => `${p}: string`).join("; ")}}) => string;\n`;
       output += `    };\n`;
     }
     output += `  };\n`;
   }
 
-  output += '}\n';
+  output += "}\n";
   return output;
 }
 
 export function generateImplementation(prompts: PromptData[]): string {
-  let output = 'const promptManager: PromptManager = {\n';
-  const categories = new Set(prompts.map(p => p.category));
+  let output = "const promptManager: PromptManager = {\n";
+  const categories = new Set(prompts.map((p) => p.category));
 
   for (const category of categories) {
     output += `  ${category}: {\n`;
-    const categoryPrompts = prompts.filter(p => p.category === category);
+    const categoryPrompts = prompts.filter((p) => p.category === category);
     for (const prompt of categoryPrompts) {
       output += `    ${prompt.name}: {\n`;
       output += `      name: "${prompt.name}",\n`;
@@ -87,7 +87,7 @@ export function generateImplementation(prompts: PromptData[]): string {
     output += `  },\n`;
   }
 
-  output += '};\n\nexport default promptManager;\n';
+  output += "};\n\nexport default promptManager;\n";
   return output;
 }
 
@@ -97,15 +97,18 @@ export async function generate() {
     const types = generateTypes(prompts);
     const implementation = generateImplementation(prompts);
 
-    await fs.writeFile(path.join(OUTPUT_DIR, 'prompts.d.ts'), types);
-    await fs.writeFile(path.join(OUTPUT_DIR, 'promptManager.ts'), implementation);
+    await fs.writeFile(path.join(OUTPUT_DIR, "prompts.d.ts"), types);
+    await fs.writeFile(
+      path.join(OUTPUT_DIR, "promptManager.ts"),
+      implementation,
+    );
 
     const indexContent = `export * from './prompts';\nexport { default as promptManager } from './promptManager';\n`;
-    await fs.writeFile(path.join(OUTPUT_DIR, 'index.ts'), indexContent);
+    await fs.writeFile(path.join(OUTPUT_DIR, "index.ts"), indexContent);
 
-    logger.info('Generation complete.');
+    logger.info("Generation complete.");
   } catch (error) {
-    logger.error('Error during generation:', error);
+    logger.error("Error during generation:", error);
     throw error;
   }
 }

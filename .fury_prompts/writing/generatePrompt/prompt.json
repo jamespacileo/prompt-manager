@@ -1,0 +1,53 @@
+{
+  "name": "generate_prompt",
+  "category": "writing",
+  "description": "Create a writing prompt based on a given description. (amended) (amended)",
+  "version": "1.2",
+  "template": "Write a story that explores the themes of friendship and betrayal in a fantasy setting. The main character discovers a hidden power that could change the fate of their kingdom, but they must decide whether to share it with their closest friend or keep it a secret. What choices do they make, and how do those choices affect their relationships?",
+  "parameters": [
+    "themes",
+    "setting",
+    "main_character",
+    "conflict"
+  ],
+  "metadata": {
+    "created": "2023-10-01",
+    "lastModified": "2024-07-29T23:34:31.743Z"
+  },
+  "outputType": "structured",
+  "defaultModelName": "text-davinci-003",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "themes": {
+        "type": "string"
+      },
+      "setting": {
+        "type": "string"
+      },
+      "main_character": {
+        "type": "string"
+      },
+      "conflict": {
+        "type": "string"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "story": {
+        "type": "string"
+      }
+    }
+  },
+  "configuration": {
+    "modelName": "text-davinci-003",
+    "temperature": 0.7,
+    "maxTokens": 100,
+    "topP": 1,
+    "frequencyPenalty": 0,
+    "presencePenalty": 0,
+    "stopSequences": []
+  }
+}
