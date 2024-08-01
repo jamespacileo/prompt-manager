@@ -1,71 +1,69 @@
 import { Box, Text, useInput } from "ink";
 import React, { FC, useCallback, useState } from "react";
 
-import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
 import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
 import FireSpinner from "../components/ui/FireSpinner";
 import { IPromptModel } from "../../types/interfaces";
-import { PaginatedList } from "../components/utils/PaginatedList";
 import PromptView from "../components/prompt/PromptView";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { THEME_COLORS } from "../uiConfig";
-import { currentScreenAtom, selectedPromptAtom } from "../atoms";
-import { updatePrompt } from "../commands";
-import { updatePromptWithAI } from "../aiHelpers";
+import { currentScreenAtom } from "../atoms";
+import { createPrompt } from "../commands";
+import { generatePromptWithAI } from "../aiHelpers";
 import { useAtom } from "jotai";
+import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
+import OptionSelect from "../components/OptionSelect";
+import MultiOptionSelect from "../components/MultiOptionSelect";
+import AutoCompleteInput from "../components/AutoCompleteInput";
 
-const amendOptions = [
-  { key: "all", name: "All" },
-  { key: "template", name: "Template" },
-  { key: "inputSchema", name: "Input Schema" },
-  { key: "outputSchema", name: "Output Schema" },
+const promptTypeOptions = [
+  { label: 'Text Generation', value: 'text', description: 'Generate text based on a prompt' },
+  { label: 'Image Generation', value: 'image', description: 'Generate an image based on a description' },
+  { label: 'Code Generation', value: 'code', description: 'Generate code based on requirements' },
 ];
 
-const PromptAmendScreen: FC = () => {
+const promptTagOptions = [
+  { label: 'Creative', value: 'creative' },
+  { label: 'Technical', value: 'technical' },
+  { label: 'Business', value: 'business' },
+  { label: 'Academic', value: 'academic' },
+  { label: 'Personal', value: 'personal' },
+];
+
+const PromptCreateScreen: FC = () => {
   const [, setCurrentScreen] = useAtom(currentScreenAtom);
-  const [selectedPrompt] = useAtom(selectedPromptAtom);
-  const [updatedPrompt, setUpdatedPrompt] = useState<Partial<IPromptModel> | null>(null);
-  const [status, setStatus] = useState<"select" | "input" | "confirm">("select");
-  const [selectedOption, setSelectedOption] = useState<typeof amendOptions[0] | null>(null);
+  const [generatedPrompt, setGeneratedPrompt] =
+    useState<Partial<IPromptModel> | null>(null);
+  const [status, setStatus] = useState<"type" | "tags" | "input" | "confirm" | "amend">("type");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState("");
 
-  const onAiSubmitSuccess = useCallback(
-    async (promptData: Partial<IPromptModel>) => {
-      setUpdatedPrompt(promptData);
-      setStatus("confirm");
-    },
-    [],
-  );
-
-  const onAiSubmitRequest = useCallback(async (instruction: string) => {
-    if (!selectedPrompt) return;
+  const onAiSubmitRequest = useCallback(async (description: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const promptData = await updatePromptWithAI({
-        currentPrompt: selectedPrompt,
-        instruction,
-        updateTemplate: selectedOption?.key === "all" || selectedOption?.key === "template",
-        updateInputSchema: selectedOption?.key === "all" || selectedOption?.key === "inputSchema",
-        updateOutputSchema: selectedOption?.key === "all" || selectedOption?.key === "outputSchema",
-      });
+      const promptData = await generatePromptWithAI(description);
+      setGeneratedPrompt(promptData);
+      setStatus("confirm");
       return promptData;
     } catch (error) {
-      console.error("Error updating prompt:", error);
-      setError("Failed to update prompt. Please try again.");
+      console.error("Error generating prompt:", error);
+      setError("Failed to generate prompt. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-  }, [selectedPrompt, selectedOption]);
+  }, []);
 
   const handleSave = useCallback(async () => {
-    if (updatedPrompt && selectedPrompt) {
+    if (generatedPrompt) {
       setIsLoading(true);
       setError(null);
       try {
-        await updatePrompt({
-          category: selectedPrompt.category,
-          name: selectedPrompt.name,
-          updates: updatedPrompt,
-        });
-        setCurrentScreen("detail");
+        await createPrompt(generatedPrompt);
+        setCurrentScreen("list");
       } catch (error) {
         console.error("Error saving prompt:", error);
         setError("Failed to save prompt. Please try again.");
@@ -73,18 +71,13 @@ const PromptAmendScreen: FC = () => {
         setIsLoading(false);
       }
     }
-  }, [updatedPrompt, selectedPrompt, setCurrentScreen]);
-
-  const handleSelectOption = useCallback((option: typeof amendOptions[0]) => {
-    setSelectedOption(option);
-    setStatus("input");
-  }, []);
+  }, [generatedPrompt, setCurrentScreen]);
 
   useInput((input) => {
     if (status === "confirm") {
-      if (input === "q") setCurrentScreen("detail");
+      if (input === "q") setCurrentScreen("list");
       if (input === "s") handleSave();
-      if (input === "a") setStatus("select");
+      if (input === "a") setStatus("amend");
     }
   });
 
@@ -103,52 +96,75 @@ const PromptAmendScreen: FC = () => {
     }
 
     switch (status) {
-      case "select":
+      case "type":
         return (
-          <Box flexDirection="column">
-            <Text color={THEME_COLORS.primary}>
-              Select what you want to amend:
-            </Text>
-            <PaginatedList
-              items={amendOptions}
-              itemsPerPage={amendOptions.length}
-              renderItem={(item, index, isSelected) => (
-                <Text color={isSelected ? THEME_COLORS.primary : THEME_COLORS.text}>
-                  {item.name}
-                </Text>
-              )}
-              onSelectItem={handleSelectOption}
-            />
-          </Box>
+          <OptionSelect
+            options={promptTypeOptions}
+            onSelect={(option) => {
+              setSelectedType(option.value);
+              setStatus("tags");
+            }}
+            label="Select prompt type:"
+            onCancel={() => setCurrentScreen("list")}
+          />
+        );
+      case "tags":
+        return (
+          <MultiOptionSelect
+            options={promptTagOptions}
+            onSelect={(options) => {
+              setSelectedTags(options.map(o => o.value));
+              setStatus("input");
+            }}
+            label="Select prompt tags:"
+            maxSelections={3}
+            onCancel={() => setStatus("type")}
+          />
         );
       case "input":
         return (
           <Box flexDirection="column">
             <Text color={THEME_COLORS.primary}>
-              Enter instructions to amend the {selectedOption?.name.toLowerCase()}:
+              Enter a description of the prompt you want:
             </Text>
-            <AsyncInputHandler<IPromptModel>
+            <AutoCompleteInput
+              value={inputValue}
+              onChange={setInputValue}
               onSubmit={onAiSubmitRequest}
-              onSuccess={onAiSubmitSuccess}
-              placeholder={`Enter instructions to amend the ${selectedOption?.name.toLowerCase()}`}
-              errorMessage="Failed to update prompt. Please try again."
+              placeholder="Enter a description of the prompt you want"
+              context={`User is describing a ${selectedType} prompt template. Think of typical usage of LLMs.`}
             />
           </Box>
         );
       case "confirm":
-        if (!updatedPrompt) {
-          return <Text>No prompt updated</Text>;
+        if (!generatedPrompt) {
+          return <Text>No prompt generated</Text>;
         }
         return (
           <Box flexDirection="column">
             <Text bold color={THEME_COLORS.primary}>
-              Updated Prompt:
+              Generated Prompt:
             </Text>
-            <PromptView prompt={updatedPrompt} />
+            <PromptView prompt={generatedPrompt} />
             <ConfirmationDialog
-              message="Do you want to save this updated prompt?"
+              message="Do you want to save this prompt?"
               onConfirm={handleSave}
-              onCancel={() => setStatus("select")}
+              onCancel={() => setStatus("amend")}
+            />
+          </Box>
+        );
+      case "amend":
+        return (
+          <Box flexDirection="column">
+            <Text color={THEME_COLORS.primary}>
+              Enter additional instructions to refine the prompt:
+            </Text>
+            <AutoCompleteInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={onAiSubmitRequest}
+              placeholder="Enter additional instructions to refine the prompt"
+              context={`User is describing a ${selectedType} prompt template. Think of typical usage of LLMs.`}
             />
           </Box>
         );
@@ -156,13 +172,13 @@ const PromptAmendScreen: FC = () => {
   };
 
   return (
-    <ScreenWrapper title="Amend Prompt">
+    <ScreenWrapper title="Create New Prompt">
       <Text bold color={THEME_COLORS.heading}>
-        Amend Prompt
+        Create New Prompt
       </Text>
       {renderContent()}
     </ScreenWrapper>
   );
 };
 
-export default PromptAmendScreen;
+export default PromptCreateScreen;

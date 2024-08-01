@@ -1,4 +1,5 @@
 import { IPrompt, IPromptInput, IPromptModel, IPromptOutput } from "../types/interfaces";
+import axios from "axios";
 
 import { Container } from "typedi";
 import { PromptManager } from "../promptManager";
@@ -7,6 +8,41 @@ import { PromptSchema } from "../schemas/prompts";
 import fs from "fs-extra";
 import { generateExportableSchemaAndType, generatePromptTypeScript } from "../utils/typeGeneration";
 import path from "path";
+import { cleanName } from "../utils/promptManagerUtils";
+
+export const fetchContentFromUrl = async (url: string): Promise<string> => {
+  const response = await axios.get(url);
+  return response.data;
+};
+
+export const createPromptFromContent = async (content: string): Promise<Partial<IPromptModel>> => {
+  // Implement the logic to send a request to the AI to create a prompt from the content
+  // This is a placeholder implementation
+  return {
+    name: "Imported Prompt",
+    category: "Imported",
+    description: "This prompt was imported from external content.",
+    template: content,
+    version: "1.0",
+    parameters: [],
+    metadata: {
+      created: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+    },
+    outputType: "plain",
+    inputSchema: {},
+    outputSchema: {},
+    configuration: {
+      modelName: "default",
+      temperature: 0.7,
+      maxTokens: 100,
+      topP: 1.0,
+      frequencyPenalty: 0.0,
+      presencePenalty: 0.0,
+      stopSequences: [],
+    },
+  };
+};
 
 export async function createPrompt(
   promptData: Partial<Omit<IPrompt<IPromptInput, IPromptOutput>, "versions">>,
@@ -60,39 +96,53 @@ export async function updatePrompt(props: {
   await promptManager.updatePrompt({ ...props, updates: validatedUpdates });
 }
 
-export async function generateTypes(): Promise<void> {
+export async function generateTypes(): Promise<string> {
   const configManager = Container.get(PromptProjectConfigManager);
   const outputDir = configManager.getConfig("outputDir");
   const promptManager = Container.get(PromptManager);
   const prompts = await promptManager.listPrompts({});
-  let typeDefs = 'declare module "prompt-manager" {\n';
+  let typeDefs = 'import { IAsyncIterableStream } from "./types/interfaces";\n\n';
+  typeDefs += 'declare module "prompt-manager" {\n';
+  typeDefs += '  export class PromptManagerClient {\n';
+
+  const categories = new Set<string>();
 
   for (const prompt of prompts) {
+    categories.add(prompt.category);
     const inputTypes = await generateExportableSchemaAndType({
       schema: prompt.inputSchema,
-      name: `${prompt.category}/${prompt.name}Input`,
+      name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Input`,
     });
     const outputTypes = await generateExportableSchemaAndType({
       schema: prompt.outputSchema,
-      name: `${prompt.category}/${prompt.name}Output`,
+      name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Output`,
     });
 
-    typeDefs += `  ${inputTypes.formattedSchemaTsNoImports};\n`;
-    typeDefs += `  ${outputTypes.formattedSchemaTsNoImports};\n`;
-
-    const promptData = prompt as IPrompt<IPromptInput, IPromptOutput>;
-    typeDefs += `  export namespace ${promptData.category} {\n`;
-    typeDefs += `    export const ${promptData.name}: {\n`;
-    typeDefs += `      format: (inputs: ${promptData.name}Input) => ${promptData.name}Output;\n`;
-    typeDefs += `      description: string;\n`;
-    typeDefs += `      version: string;\n`;
-    typeDefs += `    };\n`;
-    typeDefs += `  }\n\n`;
+    typeDefs += `    ${inputTypes.formattedSchemaTsNoImports}\n`;
+    typeDefs += `    ${outputTypes.formattedSchemaTsNoImports}\n`;
   }
 
+  for (const category of categories) {
+    typeDefs += `    ${category}: {\n`;
+    const categoryPrompts = prompts.filter(p => p.category === category);
+    for (const prompt of categoryPrompts) {
+      typeDefs += `      ${cleanName(prompt.name)}: {\n`;
+      typeDefs += `        format: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<string>;\n`;
+      typeDefs += `        execute: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<${cleanName(category)}${cleanName(prompt.name)}Output>;\n`;
+      typeDefs += `        stream: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<IAsyncIterableStream<string>>;\n`;
+      typeDefs += `        description: string;\n`;
+      typeDefs += `        version: string;\n`;
+      typeDefs += `      };\n`;
+    }
+    typeDefs += `    };\n`;
+  }
+
+  typeDefs += "  }\n\n";
+  typeDefs += "  export const promptManager: PromptManagerClient;\n";
   typeDefs += "}\n";
 
   await fs.writeFile(path.join(outputDir, "prompts.d.ts"), typeDefs);
+  return typeDefs;
 }
 
 export async function getStatus(): Promise<{
@@ -205,3 +255,6 @@ export async function getGeneratedTypeScript(props: {
   const prompt = await promptManager.getPrompt(props);
   return await generatePromptTypeScript(prompt);
 }
+export const importPrompt = async (promptData: any) => {
+  // Implementation here
+};

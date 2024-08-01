@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useState } from "react";
+import React, { FC, useCallback, useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import { useAtom } from "jotai";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
@@ -88,10 +88,20 @@ const PromptAmendScreen: FC = () => {
   });
 
   if (!selectedPrompt) {
-    return <Text>No prompt selected. Please select a prompt from the list.</Text>;
+    return (
+      <ScreenWrapper title="Amend Prompt">
+        <Box flexDirection="column" alignItems="center" justifyContent="center">
+          <Text color={THEME_COLORS.error}>No prompt selected.</Text>
+          <Text color={THEME_COLORS.secondary}>Please select a prompt from the list.</Text>
+          <Box marginTop={1}>
+            <Text color={THEME_COLORS.primary}>Press any key to go back to the list.</Text>
+          </Box>
+        </Box>
+      </ScreenWrapper>
+    );
   }
 
-  const renderContent = () => {
+  const renderLeftContent = () => {
     if (isLoading) {
       return <FireSpinner label="Processing..." />;
     }
@@ -100,7 +110,7 @@ const PromptAmendScreen: FC = () => {
       return (
         <Box flexDirection="column">
           <Text color={THEME_COLORS.error}>{error}</Text>
-          <Text>Press any key to continue</Text>
+          <Text color={THEME_COLORS.secondary}>Press any key to continue</Text>
         </Box>
       );
     }
@@ -109,7 +119,7 @@ const PromptAmendScreen: FC = () => {
       case "select":
         return (
           <Box flexDirection="column">
-            <Text color={THEME_COLORS.primary}>
+            <Text color={THEME_COLORS.primary} bold>
               Select what you want to amend:
             </Text>
             <PaginatedList
@@ -117,7 +127,7 @@ const PromptAmendScreen: FC = () => {
               itemsPerPage={amendOptions.length}
               renderItem={(item, index, isSelected) => (
                 <Text color={isSelected ? THEME_COLORS.primary : THEME_COLORS.text}>
-                  {item.name}
+                  {isSelected ? '>' : ' '} {item.name}
                 </Text>
               )}
               onSelectItem={handleSelectOption}
@@ -127,7 +137,7 @@ const PromptAmendScreen: FC = () => {
       case "input":
         return (
           <Box flexDirection="column">
-            <Text color={THEME_COLORS.primary}>
+            <Text color={THEME_COLORS.primary} bold>
               Enter instructions to amend the {selectedOption?.name.toLowerCase()}:
             </Text>
             <AsyncInputHandler<IPromptModel>
@@ -135,19 +145,18 @@ const PromptAmendScreen: FC = () => {
               onSuccess={onAiSubmitSuccess}
               placeholder={`Enter instructions to amend the ${selectedOption?.name.toLowerCase()}`}
               errorMessage="Failed to update prompt. Please try again."
+              // context for the ai for auto complete
+              context={`The current ${selectedOption?.name.toLowerCase()} is: ${selectedPrompt[selectedOption?.key as keyof IPromptModel]}`}
             />
           </Box>
         );
       case "confirm":
-        if (!updatedPrompt) {
-          return <Text>No prompt updated</Text>;
-        }
         return (
           <Box flexDirection="column">
             <Text bold color={THEME_COLORS.primary}>
               Updated Prompt:
             </Text>
-            <PromptView prompt={updatedPrompt} />
+            <PromptView prompt={updatedPrompt || {}} />
             <ConfirmationDialog
               message="Do you want to save this updated prompt?"
               onConfirm={handleSave}
@@ -158,12 +167,28 @@ const PromptAmendScreen: FC = () => {
     }
   };
 
+  const renderRightContent = () => (
+    <Box flexDirection="column">
+      <Text bold color={THEME_COLORS.primary}>
+        Current Prompt:
+      </Text>
+      <PromptView prompt={selectedPrompt} />
+    </Box>
+  );
+
   return (
     <ScreenWrapper title="Amend Prompt">
       <Text bold color={THEME_COLORS.heading}>
         Amend Prompt: {selectedPrompt.name}
       </Text>
-      {renderContent()}
+      <Box flexDirection="row">
+        <Box width="50%" marginRight={1} borderStyle="single" borderColor={THEME_COLORS.secondary} padding={1}>
+          {renderLeftContent()}
+        </Box>
+        <Box width="50%" marginLeft={1} borderStyle="single" borderColor={THEME_COLORS.secondary} padding={1}>
+          {renderRightContent()}
+        </Box>
+      </Box>
     </ScreenWrapper>
   );
 };

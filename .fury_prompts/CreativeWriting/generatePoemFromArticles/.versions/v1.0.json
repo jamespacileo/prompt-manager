@@ -1,0 +1,47 @@
+{
+  "name": "generate_poem_from_articles",
+  "category": "Creative Writing",
+  "description": "This prompt generates a poem based on a list of articles provided by the user.",
+  "version": "1.0",
+  "template": "Create a poem that captures the essence and themes of the following articles: {{articles}}. Use vivid imagery and emotional language to convey the messages and ideas presented in the articles.",
+  "parameters": [
+    "articles"
+  ],
+  "metadata": {
+    "created": "2023-10-01",
+    "lastModified": "2023-10-01"
+  },
+  "outputType": "structured",
+  "defaultModelName": "text-davinci-003",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "articles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "articles"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "poem": {
+        "type": "string"
+      }
+    }
+  },
+  "configuration": {
+    "modelName": "text-davinci-003",
+    "temperature": 0.7,
+    "maxTokens": 100,
+    "topP": 1,
+    "frequencyPenalty": 0,
+    "presencePenalty": 0,
+    "stopSequences": []
+  }
+}

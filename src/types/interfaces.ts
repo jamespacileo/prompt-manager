@@ -40,7 +40,7 @@ interface IPrompt<PromptInput extends IPromptInput<any>, PromptOutput extends IP
   /** The actual content of the prompt */
   template: string;
   /** List of parameter names expected by the prompt */
-  parameters: string[];
+  parameters?: string[];
   /** Metadata associated with the prompt */
   metadata: {
     /** Timestamp of when the prompt was created */
@@ -62,14 +62,14 @@ interface IPrompt<PromptInput extends IPromptInput<any>, PromptOutput extends IP
   /** Type of output expected by the prompt */
   outputSchema: JSONSchema7;
   /** Configuration for the AI model */
-  configuration: {
-    modelName: string;
-    temperature: number;
-    maxTokens: number;
-    topP: number;
-    frequencyPenalty: number;
-    presencePenalty: number;
-    stopSequences: string[];
+  configuration?: {
+    modelName?: string;
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    stopSequences?: string[];
   };
 }
 
@@ -80,7 +80,7 @@ export interface IPromptModelRequired {
   category: string;
   description: string;
   template: string;
-  parameters: string[];
+  parameters?: string[];
   inputSchema: JSONSchema7;
   outputSchema: JSONSchema7;
   version: string;
@@ -110,13 +110,13 @@ export interface IPromptModel<
     license?: string;
   };
   configuration: {
-    modelName: string;
-    temperature: number;
-    maxTokens: number;
-    topP: number;
-    frequencyPenalty: number;
-    presencePenalty: number;
-    stopSequences: string[];
+    modelName?: string;
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    stopSequences?: string[];
   };
   outputType: 'structured' | 'plain';
   // fileSystem: IPromptFileSystem;
@@ -232,7 +232,7 @@ interface IPromptCategory<T extends Record<string, IPrompt<IPromptInput, IPrompt
      * Formats the prompt with given inputs
      * @param inputs Object containing the required parameters
      */
-    format(inputs: { [K in T[keyof T]['parameters'][number]]: string }): string;
+    format(inputs: IPromptInput): string;
   };
 }
 

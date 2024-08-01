@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import "reflect-metadata";
+import "./cliPolyfills";
 
 import { Container } from "typedi";
 import { PromptFileSystem } from "../promptFileSystem";

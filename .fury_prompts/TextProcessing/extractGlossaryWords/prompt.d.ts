@@ -17,6 +17,7 @@ export const extractGlossaryWordsOutput = z.object({
       z.object({
         term: z.string().optional(),
         definition: z.string().optional(),
+        tags: z.array(z.string()).optional(),
       }),
     )
     .optional(),

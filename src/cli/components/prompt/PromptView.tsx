@@ -1,16 +1,16 @@
 import { Box, Text } from "ink";
-
 import { IPrompt } from "../../../types/interfaces";
 import React from "react";
 import chalk from "chalk";
 import yaml from "js-yaml";
+import JsonSchemaTree from "../JSONSchemaTree";
 
 const renderSection = (
   title: string,
   content: string | string[] | undefined,
   color: string,
 ) => (
-  <Box flexDirection="column">
+  <Box flexDirection="row">
     <Text bold color={color}>
       {title}:
     </Text>
@@ -59,6 +59,120 @@ const renderSchema = (schema: Record<string, any>): React.ReactNode => {
   );
 };
 
+interface JSONSchemaType {
+  type?: string;
+  properties?: { [key: string]: JSONSchemaType };
+  items?: JSONSchemaType;
+  required?: string[];
+  description?: string;
+  format?: string;
+  minimum?: number;
+  maximum?: number;
+  title?: string;
+  [key: string]: any; // for any additional properties
+}
+
+interface SchemaTreeProps {
+  schema: JSONSchemaType | { [key: string]: JSONSchemaType };
+  indent?: number;
+  isLast?: boolean;
+}
+
+interface JsonSchemaTreeProps {
+  schema: JSONSchemaType;
+}
+
+const SchemaTree: React.FC<SchemaTreeProps> = ({ schema, indent = 0, isLast = true }) => {
+  if (typeof schema !== 'object' || schema === null) {
+    return <Text>{JSON.stringify(schema)}</Text>;
+  }
+
+  const renderField = (key: string, value: JSONSchemaType, isLastField: boolean) => {
+    const prefix = ' '.repeat(indent * 2) + (isLast && isLastField ? '\\-' : '|-');
+    let description = '';
+    let type = value.type || 'object';
+
+    if (value.description) {
+      description = ` - ${value.description}`;
+    }
+
+    if (value.format) {
+      type += `, ${value.format}`;
+    }
+
+    if (value.minimum !== undefined) {
+      type += `, min: ${value.minimum}`;
+    }
+
+    if (value.maximum !== undefined) {
+      type += `, max: ${value.maximum}`;
+    }
+
+    return (
+      <Box key={key} flexDirection="column">
+        <Text>
+          {prefix} {chalk.cyan(key)} ({type}){description}
+        </Text>
+        {value.properties && (
+          <SchemaTree
+            schema={value.properties}
+            indent={indent + 1}
+            isLast={isLastField}
+          />
+        )}
+        {value.items && (
+          <SchemaTree
+            schema={value.items}
+            indent={indent + 1}
+            isLast={isLastField}
+          />
+        )}
+      </Box>
+    );
+  };
+
+  const fields = Object.entries(schema);
+
+  return (
+    <Box flexDirection="column">
+      {fields.map(([key, value], index) =>
+        renderField(key, value as JSONSchemaType, index === fields.length - 1)
+      )}
+    </Box>
+  );
+};
+
+// const JsonSchemaTree: React.FC<JsonSchemaTreeProps> = ({ schema }) => {
+//   if (typeof schema !== 'object' || schema === null) {
+//     return <Text>Invalid schema: {JSON.stringify(schema)}</Text>;
+//   }
+
+//   return (
+//     <Box flexDirection="column">
+//       <Text>{chalk.bold(schema.title || 'Schema')} ({schema.type || 'object'})</Text>
+//       <SchemaTree schema={schema.properties || schema} />
+//       {schema.required && schema.required.length > 0 && (
+//         <Text>
+//           {'\n'}Required: {schema.required.join(', ')}
+//         </Text>
+//       )}
+//     </Box>
+//   );
+// };
+
+
+const renderTemplate = (template: string): React.ReactNode => {
+  return (
+    <Text>
+      {template.split(/(\{\{.*?\}\})/).map((part, index) =>
+        part.startsWith("{{") && part.endsWith("}}")
+          ? chalk.magenta(part)
+          : chalk.white(part)
+      )}
+    </Text>
+  );
+};
+
 interface PromptViewProps {
   prompt: Partial<IPrompt<any, any>>;
   compact?: boolean;
@@ -69,50 +183,54 @@ const PromptView: React.FC<PromptViewProps> = ({ prompt, compact = true }) => {
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor="blue"
-      padding={1}
+      borderColor="#ffedd5"
+      padding={0}
     >
-      <Box flexDirection="column" marginBottom={1}>
-        {renderSection("Name", prompt.name, "green")}
-        {renderSection("Category", prompt.category, "green")}
-        {renderSection("Version", prompt.version, "green")}
-        {renderSection("Description", prompt.description, "yellow")}
-        {renderSection("Template", prompt.template, "magenta")}
-        {/* {renderSection('Parameters', prompt.parameters?.join(', '), 'blue')} */}
-        {renderSection("Output Type", prompt.outputType, "cyan")}
-        {renderSection(
-          "Default Model",
-          prompt.defaultModelName || "Not specified",
-          "cyan",
-        )}
+      {/* <Box>
+        {JSON.stringify(prompt.inputSchema)}
+      </Box> */}
+      <Box flexDirection="row" marginBottom={0}>
+        <Box width="50%">
+          {renderSection("Name", prompt.name, "green")}
+        </Box>
+        <Box width="50%">
+          {renderSection("Category", prompt.category, "green")}
+        </Box>
+      </Box>
+      <Box flexDirection="row" marginBottom={0}>
+        <Box width="50%" flexDirection="row">
+          {renderSection("Version", prompt.version, "green")}
+        </Box>
+        <Box width="50%" flexDirection="row">
+          {renderSection("Output Type", prompt.outputType, "cyan")}
+        </Box>
+      </Box>
+      {renderSection("Description", prompt.description, "yellow")}
+      <Box marginY={1}>
+        {/* <Text bold color="magenta">Template:</Text> */}
+        {prompt.template && renderTemplate(prompt.template)}
+      </Box>
+      <Box flexDirection="row" marginY={1}>
+        <Box width="50%" flexDirection="column" marginRight={1}>
+          <Text bold color="red">Input Schema:</Text>
+          {prompt.inputSchema && <JsonSchemaTree schema={prompt.inputSchema} />}
+        </Box>
+        <Box width="50%" flexDirection="column" marginLeft={1}>
+          <Text bold color="red">Output Schema:</Text>
+          {prompt.outputSchema && <JsonSchemaTree schema={prompt.outputSchema} />}
+        </Box>
       </Box>
       {!compact && (
-        <Box flexDirection="column" marginBottom={1}>
-          <Text bold color="red">
-            Metadata:
-          </Text>
-          {prompt.metadata && renderObject(prompt.metadata)}
-        </Box>
-      )}
-      <Box flexDirection="column" marginBottom={1}>
-        <Text bold color="red">
-          Input Schema:
-        </Text>
-        {prompt.inputSchema && renderSchema(prompt.inputSchema)}
-      </Box>
-      <Box flexDirection="column" marginBottom={1}>
-        <Text bold color="red">
-          Output Schema:
-        </Text>
-        {prompt.outputSchema && renderSchema(prompt.outputSchema)}
-      </Box>
-      {!compact && (
-        <Box flexDirection="column">
-          <Text bold color="red">
-            Configuration:
-          </Text>
-          {prompt.configuration && renderObject(prompt.configuration)}
-        </Box>
+        <>
+          <Box flexDirection="column" marginY={1}>
+            <Text bold color="red">Metadata:</Text>
+            {prompt.metadata && renderObject(prompt.metadata)}
+          </Box>
+          <Box flexDirection="column" marginY={1}>
+            <Text bold color="red">Configuration:</Text>
+            {prompt.configuration && renderObject(prompt.configuration)}
+          </Box>
+        </>
       )}
     </Box>
   );

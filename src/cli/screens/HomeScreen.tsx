@@ -13,6 +13,10 @@ const menuItems = [
   { key: "c", name: "Create New Prompt", screen: "create" },
   { key: "s", name: "Status", screen: "status" },
   { key: "h", name: "Help", screen: "help" },
+  { key: "a", name: "Amend Prompt", screen: "amend" }, // Added
+  { key: "i", name: "Import Prompt", screen: "import" }, // Added
+  { key: "e", name: "Evaluate Prompt", screen: "evaluate" }, // Added
+  { key: "g", name: "Generate Prompt", screen: "generate" }, // Added
   { key: "q", name: "Quit", screen: "quit" },
 ];
 

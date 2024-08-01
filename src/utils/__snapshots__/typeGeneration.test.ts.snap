@@ -26,3 +26,39 @@ export type Person = z.infer<typeof Person>;
 ,
 }
 `;
+
+exports[`Type Generation Utilities generatePromptTypeScript 1`] = `
+"import {z} from "zod";
+export interface ExamplePromptInput 
+
+export const ExamplePromptInput = z.object({ input: z.string().optional() });
+export type ExamplePromptInput = z.infer<typeof ExamplePromptInput>;
+
+
+export interface ExamplePromptOutput 
+
+export const ExamplePromptOutput = z.object({ output: z.string().optional() });
+export type ExamplePromptOutput = z.infer<typeof ExamplePromptOutput>;
+
+"
+`;
+
+exports[`Type Generation Utilities generateTestInputs 1`] = `
+[
+  {
+    "age": 12754564.880375564,
+    "isStudent": false,
+    "name": "quis ea irure proident fugiat",
+  },
+  {
+    "age": -45104176.67741235,
+    "isStudent": false,
+    "name": "voluptate ea proident",
+  },
+  {
+    "age": 86756847.49900374,
+    "isStudent": true,
+    "name": "exercitation dolor irure officia",
+  },
+]
+`;

@@ -35,25 +35,30 @@ import { PromptFileSystem } from './promptFileSystem';
 
 export class PromptManagerClient implements IPromptManagerLibrary {
   private promptFileSystem: PromptFileSystem;
+  private promptManager: PromptManager;
 
   constructor() {
     this.promptFileSystem = new PromptFileSystem();
+    this.promptManager = new PromptManager();
   }
 
   async initialize(): Promise<void> {
-    // Initialization logic here
+    await this.promptFileSystem.initialize();
+    await this.promptManager.initialize();
   }
 
   async getPrompt(props: { category: string; name: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
-    return this.promptFileSystem.loadPrompt(props);
+    return this.promptManager.getPrompt(props);
   }
 
   // Implement other IPromptManagerLibrary methods here
 
   categories: Record<string, Record<string, {
-    raw: () => Promise<string>;
-    version: () => Promise<string>;
     format: (inputs: Record<string, any>) => Promise<string>;
+    execute: (inputs: Record<string, any>) => Promise<Record<string, any>>;
+    stream: (inputs: Record<string, any>) => Promise<IAsyncIterableStream<string>>;
+    description: string;
+    version: string;
   }>> = {
 `;
   }

@@ -15,11 +15,16 @@ import PromptListScreen from "./screens/PromptListScreen";
 import StatusScreen from "./screens/StatusScreen";
 import HelpScreen from "./screens/HelpScreen";
 import PromptAmendScreen from "./screens/PromptAmendScreen";
+import PromptImportScreen from "./screens/PromptImportScreen";
+import PromptEvaluationScreen from "./screens/PromptEvaluationScreen";
+import PromptGenerateScreen from "./screens/PromptGenerateScreen";
+import { useStdout } from 'ink';
 
 const PromptManagerUI: FC = () => {
   const { exit } = useApp();
   const [currentScreen, setCurrentScreen] = useAtom(currentScreenAtom);
   const [selectedPrompt] = useAtom(selectedPromptAtom);
+  const { write } = useStdout();
 
   useEffect(() => {
     const cleanup = () => {
@@ -27,6 +32,11 @@ const PromptManagerUI: FC = () => {
     };
     return cleanup;
   }, []);
+
+  // useEffect(() => {
+  //   // Clear the screen and reset cursor when the current screen changes
+  //   write('\x1b[2J\x1b[0f');
+  // }, [currentScreen, write]);
 
   useInput((input, key) => {
     if (key.escape) {
@@ -53,6 +63,16 @@ const PromptManagerUI: FC = () => {
     status: <StatusScreen />,
     help: <HelpScreen />,
     amend: <PromptAmendScreen />,
+    import: <PromptImportScreen />,
+    evaluate: selectedPrompt ? (
+      <PromptEvaluationScreen
+        prompt={selectedPrompt}
+        onBack={() => setCurrentScreen("detail")}
+      />
+    ) : (
+      <Text>No prompt selected. Please select a prompt from the list.</Text>
+    ),
+    generate: <PromptGenerateScreen />,
   };
 
   const renderScreen = () =>

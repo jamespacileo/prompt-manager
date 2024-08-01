@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Box, Text, Newline, useInput } from "ink";
 import {
   getPromptDetails,
-  amendPrompt,
   deletePrompt,
   listPromptVersions,
   switchPromptVersion,
@@ -15,7 +14,7 @@ import PromptView from "../components/prompt/PromptView";
 import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
 import { useAtom } from "jotai";
 import { IPrompt } from "../../types/interfaces";
-import { currentScreenAtom, alertMessageAtom } from "../atoms";
+import { currentScreenAtom, alertMessageAtom, selectedPromptAtom } from "../atoms";
 
 interface PromptDetailScreenProps {
   prompt: { category: string; name: string };
@@ -36,6 +35,7 @@ const PromptDetailScreen: React.FC<PromptDetailScreenProps> = ({
   const [, setAlertMessage] = useAtom(alertMessageAtom);
   const [generatedTypeScript, setGeneratedTypeScript] = useState<string | null>(null);
   const [showTypeScript, setShowTypeScript] = useState(false);
+  const [, setSelectedPrompt] = useAtom(selectedPromptAtom);
 
   useEffect(() => {
     getPromptDetails({ category: prompt.category, name: prompt.name }).then(setDetails);
@@ -76,6 +76,9 @@ const PromptDetailScreen: React.FC<PromptDetailScreenProps> = ({
       });
     } else if (input === "t") {
       setShowTypeScript(!showTypeScript);
+    } else if (input === "e") {
+      setSelectedPrompt(prompt);
+      setCurrentScreen("evaluate");
     }
   });
 
@@ -99,24 +102,24 @@ const PromptDetailScreen: React.FC<PromptDetailScreenProps> = ({
             </Box>
           </Box>
         ) : (
-            <Box flexDirection="row">
-              <Box width="50%">
-                <PromptView prompt={details} />
-              </Box>
-              {comparisonVersion && (
-                <Box width="50%" marginLeft={2} flexDirection="column">
-                  <Text bold>Comparison Version:</Text>
-                  <PromptView prompt={comparisonVersion} />
-                </Box>
-              )}
+          <Box flexDirection="row">
+            <Box width="50%">
+              <PromptView prompt={details} />
             </Box>
+            {comparisonVersion && (
+              <Box width="50%" marginLeft={2} flexDirection="column">
+                <Text bold>Comparison Version:</Text>
+                <PromptView prompt={comparisonVersion} />
+              </Box>
+            )}
+          </Box>
         )}
       </Box>
       <Newline />
       <Text>
         Press {chalk.bold.yellow("b")} to go back, {chalk.bold.yellow("a")} to amend,{" "}
         {chalk.bold.yellow("d")} to delete, {chalk.bold.yellow("v")} to set current version,{" "}
-        {chalk.bold.yellow("t")} to toggle TypeScript view
+        {chalk.bold.yellow("t")} to toggle TypeScript view, {chalk.bold.yellow("e")} to evaluate
       </Text>
       {isDeleting && (
         <ConfirmationDialog

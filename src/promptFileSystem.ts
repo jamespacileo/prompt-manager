@@ -8,7 +8,7 @@ import { PromptModel } from './promptModel';
 import { z } from 'zod';
 import lockfile from 'proper-lockfile';
 import { logger } from './utils/logger';
-import { generateExportableSchemaAndType, generateTestInputs } from './utils/typeGeneration';
+import { generateExportableSchemaAndType, generatePromptTypeScript, generateTestInputs } from './utils/typeGeneration';
 import { cleanName } from './utils/promptManagerUtils';
 
 export const DEFAULT_PROMPT_FILENAME = "prompt.json";
@@ -72,34 +72,35 @@ export class PromptFileSystem implements IPromptFileSystem {
 
   private getVersionsDir(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
-    return path.join(this.getPromptDir({ category, promptName }), '.versions');
+    return path.join(this.getPromptDir({ category: cleanName(category), promptName: cleanName(promptName) }), '.versions');
   }
 
   private getTypeDefinitionPath(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
-    return path.join(this.getPromptDir({ category, promptName }), DEFAULT_TYPE_DEFINITION_FILENAME);
+    return path.join(this.getPromptDir({ category: cleanName(category), promptName: cleanName(promptName) }), DEFAULT_TYPE_DEFINITION_FILENAME);
   }
 
   private getVersionsFilePath(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
-    return path.join(this.getVersionsDir({ category, promptName }), 'versions.json');
+    return path.join(this.getVersionsDir({ category: cleanName(category), promptName: cleanName(promptName) }), 'versions.json');
   }
 
   private getTsOutputPath(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
-    return path.join(this.getPromptDir({ category, promptName }), DEFAULT_TS_OUTPUT_FILENAME);
+    return path.join(this.getPromptDir({ category: cleanName(category), promptName: cleanName(promptName) }), DEFAULT_TS_OUTPUT_FILENAME);
   }
 
   private getTestInputsPath(props: { category: string; promptName: string }): string {
     const { category, promptName } = props;
-    return path.join(this.getPromptDir({ category, promptName }), DEFAULT_TEST_INPUTS_FILENAME);
+    return path.join(this.getPromptDir({ category: cleanName(category), promptName: cleanName(promptName) }), DEFAULT_TEST_INPUTS_FILENAME);
   }
 
   private async generateTsOutputFile(promptData: IPrompt<IPromptInput, IPromptOutput>, filePath: string): Promise<void> {
-    const { formattedSchemaTs } = await generateExportableSchemaAndType({
-      schema: promptData.inputSchema,
-      name: `${cleanName(promptData.category)}${cleanName(promptData.name)}Input`
-    });
+    // const { formattedSchemaTs } = await generateExportableSchemaAndType({
+    //   schema: promptData.inputSchema,
+    //   name: `${cleanName(promptData.category)}${cleanName(promptData.name)}Input`
+    // });
+    const formattedSchemaTs = await generatePromptTypeScript(promptData);
     await fs.writeFile(filePath, formattedSchemaTs);
   }
 
@@ -135,6 +136,18 @@ export class PromptFileSystem implements IPromptFileSystem {
     }
   }
 
+  private getDetailedErrorMessage(error: Error, filePath: string): string {
+    if (error.message.includes('ENOSPC')) {
+      return `Insufficient disk space to save prompt: ${filePath}`;
+    } else if (error.message.includes('EACCES')) {
+      return `Insufficient permissions to save prompt: ${filePath}`;
+    } else if (error.message.includes('EBUSY')) {
+      return `File is locked or in use: ${filePath}`;
+    } else {
+      return `Failed to save prompt: ${filePath}. Error: ${error.message}`;
+    }
+  }
+
   private async initializePromptsFolderConfig(): Promise<void> {
     const configPath = this.configManager.getProjectConfigPath();
     try {
@@ -152,7 +165,7 @@ export class PromptFileSystem implements IPromptFileSystem {
     }
   }
 
-  async validatePromptsFolderConfig(): Promise<boolean> {
+  private async validatePromptsFolderConfig(): Promise<boolean> {
     const configPath = this.configManager.getProjectConfigPath();
     try {
       await fs.access(configPath);
@@ -240,9 +253,9 @@ export class PromptFileSystem implements IPromptFileSystem {
       logger.debug(`Saving prompt version to ${versionFilePath}`);
       await fs.writeFile(versionFilePath, JSON.stringify(validatedPromptData, null, 2));
 
-      const typeDefinitionPath = this.getTypeDefinitionPath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
-      logger.debug(`Generating type definition file at ${typeDefinitionPath}`);
-      await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
+      // const typeDefinitionPath = this.getTypeDefinitionPath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
+      // logger.debug(`Generating type definition file at ${typeDefinitionPath}`);
+      // await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
 
       const tsOutputPath = this.getTsOutputPath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
       logger.debug(`Generating TS output file at ${tsOutputPath}`);
@@ -266,16 +279,9 @@ export class PromptFileSystem implements IPromptFileSystem {
 
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes('ENOSPC')) {
-          throw new Error(`Insufficient disk space to save prompt: ${filePath}`);
-        } else if (error.message.includes('EACCES')) {
-          throw new Error(`Insufficient permissions to save prompt: ${filePath}`);
-        } else if (error.message.includes('EBUSY')) {
-          throw new Error(`File is locked or in use: ${filePath}`);
-        } else {
-          logger.error(`Failed to save prompt: ${filePath}. Error: ${error.message}`, error);
-          throw new Error(`Failed to save prompt: ${filePath}. Error: ${error.message}`);
-        }
+        const errorMessage = this.getDetailedErrorMessage(error, filePath);
+        logger.error(errorMessage, error);
+        throw new Error(errorMessage);
       }
       throw new Error(`Unknown error while saving prompt: ${filePath}`);
     } finally {

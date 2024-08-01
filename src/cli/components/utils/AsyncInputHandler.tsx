@@ -2,12 +2,14 @@ import { Box, Text } from "ink";
 
 import TextInput from "ink-text-input";
 import { useState } from "react";
+import AutoCompleteInput from "../AutoCompleteInput";
 
 interface AsyncInputHandlerProps<T> {
   onSubmit: (value: string) => Promise<T>;
   onSuccess: (result: T) => void;
   placeholder?: string;
   errorMessage?: string;
+    context: string;
 }
 
 export const AsyncInputHandler = <T,>({
@@ -15,6 +17,7 @@ export const AsyncInputHandler = <T,>({
   onSuccess,
   placeholder,
   errorMessage,
+    context,
 }: AsyncInputHandlerProps<T>) => {
   const [value, setValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -35,11 +38,12 @@ export const AsyncInputHandler = <T,>({
 
   return (
     <Box flexDirection="column">
-      <TextInput
+          <AutoCompleteInput
         value={value}
         onChange={setValue}
         onSubmit={handleSubmit}
         placeholder={placeholder}
+              context={context}
       />
       {isLoading && <Text>Loading...</Text>}
       {error && <Text color="red">{error}</Text>}
