@@ -15,6 +15,7 @@ interface MultiOptionSelectProps {
   label?: string;
   separator?: string;
   maxSelections?: number;
+  isFocused?: boolean;
 }
 
 const MultiOptionSelect: React.FC<MultiOptionSelectProps> = ({
@@ -24,11 +25,13 @@ const MultiOptionSelect: React.FC<MultiOptionSelectProps> = ({
   label = 'Select options:',
   separator = '─',
   maxSelections = Infinity,
+  isFocused = false,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Option[]>([]);
 
   useInput((input, key) => {
+    if (!isFocused) return;
     if (key.upArrow) {
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1));
     } else if (key.downArrow) {

@@ -3,9 +3,10 @@ import { Box, Text } from "ink";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { PaginatedList } from "../components/utils/PaginatedList";
 import { THEME_COLORS } from "../uiConfig";
+import { Screen } from "../../types/interfaces";
 
 interface HomeScreenProps {
-  onNavigate?: (screen: string) => void;
+  onNavigate?: (screen: Screen) => void;
 }
 
 const menuItems = [
@@ -13,10 +14,11 @@ const menuItems = [
   { key: "c", name: "Create New Prompt", screen: "create" },
   { key: "s", name: "Status", screen: "status" },
   { key: "h", name: "Help", screen: "help" },
-  { key: "a", name: "Amend Prompt", screen: "amend" }, // Added
-  { key: "i", name: "Import Prompt", screen: "import" }, // Added
-  { key: "e", name: "Evaluate Prompt", screen: "evaluate" }, // Added
-  { key: "g", name: "Generate Prompt", screen: "generate" }, // Added
+  { key: "a", name: "Amend Prompt", screen: "amend" },
+  { key: "i", name: "Import Prompt", screen: "import" },
+  { key: "e", name: "Evaluate Prompt", screen: "evaluate" },
+  { key: "g", name: "Generate Prompt", screen: "generate" },
+  { key: "t", name: "Test Screen", screen: "test" }, // Added
   { key: "q", name: "Quit", screen: "quit" },
 ];
 
@@ -25,7 +27,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ onNavigate }) => {
     if (item.screen === "quit") {
       process.exit(0);
     } else {
-      void onNavigate?.(item.screen);
+      void onNavigate?.(item.screen as Screen);
     }
   };
 

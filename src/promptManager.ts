@@ -13,7 +13,7 @@ export class PromptManager<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > {
-  generateAmendedPrompt(props: { category: string; name: string; amendQuery?: string; amendedPrompt?: Partial<import("./types/interfaces").IPromptModel>; }): Partial<import("./types/interfaces").IPromptModel<any, any>> | PromiseLike<Partial<import("./types/interfaces").IPromptModel<any, any>>> {
+  async generateAmendedPrompt(props: { category: string; name: string; amendQuery?: string; amendedPrompt?: Partial<IPrompt<TInput, TOutput>>; }): Promise<Partial<IPrompt<TInput, TOutput>>> {
     throw new Error("Method not implemented.");
   }
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
@@ -68,9 +68,9 @@ export class PromptManager<
       await this.loadPrompts();
       this.initialized = true;
       logger.success('PromptManager initialized successfully');
-    } catch (error) {
+    } catch (error: Error | any) {
       logger.error('Failed to initialize PromptManager:', error);
-      throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)} ${error.stack}`);
     }
   }
 
@@ -99,7 +99,7 @@ export class PromptManager<
         }
         try {
           const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
+          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as PromptModel<TInput, TOutput>;
         } catch (error) {
           logger.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
           // Continue loading other prompts even if one fails
@@ -133,7 +133,7 @@ export class PromptManager<
       throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
     }
     const prompt = this.prompts[props.category][props.name];
-    return prompt as PromptModel<TInput, TOutput>;
+    return prompt;
   }
 
   async getPromptVersion({ category, name, version }: { category: string; name: string; version: string }): Promise<PromptModel<TInput, TOutput>> {

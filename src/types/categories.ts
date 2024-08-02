@@ -159,6 +159,46 @@ const promptCategories: PromptCategory[] = [
     {
         label: "Adaptive Learning",
         description: "Learning from interactions and adapting to user preferences over time."
+    },
+    {
+        label: "Retrieval-Augmented Generation (RAG)",
+        description: "Integrating retrieval mechanisms to enhance the generation of responses by fetching relevant information from external sources."
+    },
+    {
+        label: "Self-Reflection & Improvement",
+        description: "Enabling models to reflect on their responses and improve based on feedback or self-assessment."
+    },
+    {
+        label: "Interactive Storytelling",
+        description: "Creating dynamic and interactive narratives that evolve based on user input."
+    },
+    {
+        label: "Ethical & Bias Mitigation",
+        description: "Ensuring responses adhere to ethical guidelines and actively mitigating biases in generated content."
+    },
+    {
+        label: "User Feedback Integration",
+        description: "Incorporating user feedback to refine and improve future responses."
+    },
+    {
+        label: "Contextual Memory Management",
+        description: "Managing and utilizing long-term context across multiple interactions to maintain coherence and relevance."
+    },
+    {
+        label: "Safety & Compliance",
+        description: "Ensuring generated content complies with safety standards and regulatory requirements."
+    },
+    {
+        label: "Multilingual Support",
+        description: "Providing support for multiple languages and ensuring accurate translations and context preservation."
+    },
+    {
+        label: "Scenario Simulation",
+        description: "Simulating various scenarios for training, testing, or entertainment purposes."
+    },
+    {
+        label: "Personal Assistant",
+        description: "Acting as a personal assistant to manage schedules, reminders, and other personal tasks."
     }
 ];
 

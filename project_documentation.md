@@ -18,7 +18,8 @@
 │   │   ├── ui
 │   │   └── utils
 │   ├── screens
-│   └── uiConfig.ts
+│   ├── uiConfig.ts
+│   └── utils
 ├── client.ts
 ├── config
 │   ├── PromptProjectConfigManager.ts
@@ -26,8 +27,7 @@
 ├── config.ts
 ├── generated
 │   ├── index.ts
-│   ├── promptManagerBase.ts
-│   └── prompts.d.ts
+│   └── promptManagerBase.ts
 ├── generated.ts
 ├── index.ts
 ├── initializationManager.ts
@@ -76,7 +76,7 @@
     ├── typeGeneration.ts
     └── versionUtils.ts
 
-17 directories, 55 files
+18 directories, 54 files
 ```
 
 ## src/promptManager.ts
@@ -154,9 +154,9 @@ export class PromptManager<
       await this.loadPrompts();
       this.initialized = true;
       logger.success('PromptManager initialized successfully');
-    } catch (error) {
+    } catch (error: Error | any) {
       logger.error('Failed to initialize PromptManager:', error);
-      throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Failed to initialize PromptManager: ${error instanceof Error ? error.message : String(error)} ${error.stack}`);
     }
   }
 
@@ -1048,7 +1048,7 @@ export class PromptFileSystem implements IPromptFileSystem {
 
     let release;
     try {
-      release = await lockfile.lock(path.dirname(filePath));
+      // release = await lockfile.lock(path.dirname(filePath));
       await fs.access(filePath);
       const data = await fs.readFile(filePath, 'utf-8');
       let parsedData;
@@ -1075,9 +1075,9 @@ export class PromptFileSystem implements IPromptFileSystem {
       }
       throw new Error(`Unknown error while loading prompt: ${filePath}`);
     } finally {
-      if (release) {
-        await release();
-      }
+      // if (release) {
+      //   await release();
+      // }
     }
   }
 
@@ -1366,7 +1366,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       this.prettyPrintConfig();
       this.initialized = true;
     } catch (error: any) {
-      logger.error('Failed to initialize config:', error.message);
+      logger.error('Failed to initialize config:', error.message, error.stack);
       throw new Error('Failed to initialize PromptProjectConfigManager. Please check your configuration and try again.');
     }
   }
@@ -1496,7 +1496,9 @@ import PromptManagerUI from "./PromptManagerUI";
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
 import React from "react";
 import { logger } from "../utils/logger";
-import { render } from "ink";
+import { render, RenderOptions } from "ink";
+import { Command } from "commander";
+import { renderFullScreen } from "./Fullscreen";
 
 //you need this
 process.stdin.resume();
@@ -1511,32 +1513,50 @@ async function ensureInitialized() {
   logger.info("Initialized");
 }
 
+
 async function main() {
+  const program = new Command();
+
+  program
+    .option('-s, --screen <screen>', 'Initial screen to open (e.g., home, list, detail, create, status, help, amend, import, evaluate, generate, test)', 'home')
+    .option('-c, --category <category>', 'Prompt category (required for detail and evaluate screens)')
+    .option('-n, --name <name>', 'Prompt name (required for detail and evaluate screens)')
+    .option('-v, --version <version>', 'Prompt version (optional for detail screen)')
+    .option('-w, --wizard-step <step>', 'Wizard step (for test screen)', '1')
+    .parse(process.argv);
+
+  const options = program.opts();
+
   await ensureInitialized();
-  const { waitUntilExit, clear } = render(<PromptManagerUI />);
+  await renderFullScreen(
+    <PromptManagerUI 
+      initialScreen={options.screen}
+      initialPrompt={options.category && options.name ? { category: options.category, name: options.name } : undefined}
+      initialVersion={options.version}
+      initialWizardStep={parseInt(options.wizardStep, 10)}
+    />
+  );
 
-  const cleanup = () => {
-    clear();
-    logger.info("Exiting gracefully...");
-    process.exit(0);
-  };
+  // const cleanup = () => {
+  //   clear();
+  //   logger.info("Exiting gracefully...");
+  //   process.exit(0);
+  // };
 
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
+  // process.on("SIGINT", cleanup);
+  // process.on("SIGTERM", cleanup);
 
-  try {
-    await waitUntilExit();
-  } finally {
-    cleanup();
-  }
+  // try {
+  //   await waitUntilExit();
+  // } finally {
+  //   cleanup();
+  // }
 }
 
 await main().catch((error) => {
   console.error("An error occurred:", error);
   process.exit(1);
 });
-// await ensureInitialized();
-// render(<PromptManagerUI />);
 
 ```
 
@@ -1808,551 +1828,6 @@ export const importPrompt = async (promptData: any) => {
 
 ```
 
-## src/types/interfaces.ts
-
-**Description:** No description available
-
-```typescript
-import type { JSONSchema7 } from 'json-schema';
-import { ZodObject, ZodType } from 'zod';
-import { Config } from '../schemas/config';
-/**
- * This file contains the core interfaces for the Prompt Manager project.
- * It serves as a single source of truth for the expected behavior of both
- * the CLI tool and the importable library.
- *
- * These interfaces should be used to guide the implementation of the project.
- * Any changes to the project's core functionality should be reflected here first.
- *
- * IMPORTANT: Do not delete the comments in this file. They provide crucial
- * information about the purpose and usage of each interface and type.
- */
-
-/**
- * Represents the input structure for a prompt.
- * This can be extended to include any key-value pairs.
- */
-type IPromptInput<T extends Record<string, any> = Record<string, any>> = T;
-
-/**
- * Represents the output structure for a prompt.
- * This can be extended to include any key-value pairs.
- */
-type IPromptOutput<T extends Record<string, any> = Record<string, any>> = T;
-
-/**
- * Represents the structure of a single prompt.
- */
-interface IPrompt<PromptInput extends IPromptInput<any>, PromptOutput extends IPromptOutput<any>> {
-  /** Unique identifier for the prompt */
-  name: string;
-  /** Category the prompt belongs to */
-  category: string;
-  /** Brief description of the prompt's purpose */
-  description: string;
-  /** Current version of the prompt */
-  version: string;
-  /** The actual content of the prompt */
-  template: string;
-  /** List of parameter names expected by the prompt */
-  parameters?: string[];
-  /** Metadata associated with the prompt */
-  metadata: {
-    /** Timestamp of when the prompt was created */
-    created: string;
-    /** Timestamp of the last modification */
-    lastModified: string;
-  };
-
-  /** Type of output expected from the model (structured or plain text) */
-  outputType: 'structured' | 'plain';
-  /** Default model name to use for this prompt */
-  defaultModelName?: string;
-  /** Optional list of models that can be used with this prompt */
-  compatibleModels?: string[];
-  /** Optional list of tags or keywords associated with this prompt */
-  tags?: string[];
-  /** Type of input expected by the prompt */
-  inputSchema: JSONSchema7;
-  /** Type of output expected by the prompt */
-  outputSchema: JSONSchema7;
-  /** Configuration for the AI model */
-  configuration?: {
-    modelName?: string;
-    temperature?: number;
-    maxTokens?: number;
-    topP?: number;
-    frequencyPenalty?: number;
-    presencePenalty?: number;
-    stopSequences?: string[];
-  };
-}
-
-type IAsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
-
-export interface IPromptModelRequired {
-  name: string;
-  category: string;
-  description: string;
-  template: string;
-  parameters?: string[];
-  inputSchema: JSONSchema7;
-  outputSchema: JSONSchema7;
-  version: string;
-  metadata: {
-    created: string;
-    lastModified: string;
-    author?: string;
-    sourceName?: string;
-    sourceUrl?: string;
-    license?: string;
-  };
-  defaultModelName?: string;
-}
-
-export interface IPromptModel<
-  TInput extends IPromptInput<any> = IPromptInput<any>,
-  TOutput extends IPromptOutput<any> = IPromptOutput<any>
-> extends Omit<IPrompt<TInput, TOutput>, 'inputSchema' | 'outputSchema'>, IPromptModelRequired {
-  version: string;
-  defaultModelName?: string;
-  metadata: {
-    created: string;
-    lastModified: string;
-    author?: string;
-    sourceName?: string;
-    sourceUrl?: string;
-    license?: string;
-  };
-  configuration: {
-    modelName?: string;
-    temperature?: number;
-    maxTokens?: number;
-    topP?: number;
-    frequencyPenalty?: number;
-    presencePenalty?: number;
-    stopSequences?: string[];
-  };
-  outputType: 'structured' | 'plain';
-  // fileSystem: IPromptFileSystem;
-  isLoadedFromStorage: boolean;
-  filePath?: string | undefined | null;
-
-  validateInput(input: TInput): boolean;
-  validateOutput(output: TOutput): boolean;
-  format(inputs: TInput): string;
-  stream(inputs: TInput): Promise<IAsyncIterableStream<string>>;
-  execute(inputs: TInput): Promise<TOutput>;
-  updateMetadata(metadata: Partial<IPromptModel['metadata']>): void;
-  updateConfiguration(config: Partial<IPromptModel['configuration']>): void;
-  getSummary(): string;
-  save(): Promise<void>;
-  load(filePath: string): Promise<void>;
-  versions(): Promise<string[]>;
-  switchVersion(version: string): Promise<void>;
-  get isSaved(): boolean;
-  get inputZodSchema(): ZodType<any>;
-  get outputZodSchema(): ZodType<any>;
-}
-
-export interface IPromptModelStatic {
-  loadPromptByName(name: string, fileSystem: IPromptFileSystem): Promise<IPromptModel>;
-  promptExists(name: string, fileSystem: IPromptFileSystem): Promise<boolean>;
-  listPrompts(category?: string, fileSystem?: IPromptFileSystem): Promise<Array<{ name: string; category: string; filePath: string }>>;
-  deletePrompt(category: string, name: string, fileSystem?: IPromptFileSystem): Promise<void>;
-}
-
-
-
-/**
- * Defines the structure and behavior of the Prompt Manager CLI.
- */
-interface IPromptManagerCLI {
-  /**
-   * Creates a new prompt.
-   * @param props An object containing the name and options for the new prompt
-   */
-  create(props: {
-    name: string;
-    options: {
-      category?: string;
-      content?: string;
-      parameters?: string[];
-      description?: string;
-    }
-  }): Promise<void>;
-
-  /**
-   * Lists all available prompts.
-   * @param props An object containing filtering and display options
-   */
-  list(props?: {
-    options?: {
-      category?: string;
-      format?: 'json' | 'table';
-    }
-  }): Promise<void>;
-
-  /**
-   * Updates an existing prompt.
-   * @param props An object containing the name of the prompt to update and update options
-   */
-  update(props: {
-    name: string;
-    options: {
-      content?: string;
-      parameters?: string[];
-      description?: string;
-    }
-  }): Promise<void>;
-
-  /**
-   * Deletes a prompt.
-   * @param props An object containing the name of the prompt to delete
-   */
-  delete(props: { name: string }): Promise<void>;
-
-  /**
-   * Manages versions of a prompt.
-   * @param props An object containing the version management action, prompt name, and optional version
-   */
-  version(props: {
-    action: 'list' | 'create' | 'switch';
-    name: string;
-    version?: string;
-  }): Promise<void>;
-
-  /**
-   * Generates TypeScript types for all prompts.
-   */
-  generateTypes(): Promise<void>;
-
-  /**
-   * Performs a consistency check on all prompts.
-   */
-  check(): Promise<void>;
-}
-
-/**
- * Represents a category of prompts in the importable library.
- * NOTE: DO NOT DELETE THESE COMMENTS. THEY ARE USED BY THE DOCUMENTATION GENERATOR.
- */
-interface IPromptCategory<T extends Record<string, IPrompt<IPromptInput, IPromptOutput>>> {
-  [K: string]: {
-    /** Returns the raw content of the prompt */
-    raw: string;
-    /** Returns the current version of the prompt */
-    version: string;
-    /**
-     * Formats the prompt with given inputs
-     * @param inputs Object containing the required parameters
-     */
-    format(inputs: IPromptInput): string;
-  };
-}
-
-/**
- * Defines the structure and behavior of the importable Prompt Manager library.
- */
-interface IPromptManagerLibrary<TInput extends IPromptInput<any> = IPromptInput<any>, TOutput extends IPromptOutput<any> = IPromptOutput<any>> {
-  /**
-   * Asynchronously initializes the Prompt Manager.
-   * This must be called before using any other methods.
-   */
-  initialize(props: {}): Promise<void>;
-
-  /**
-   * Load all prompts from the file system.
-   */
-  loadPrompts(): Promise<void>;
-
-  /**
-   * Retrieves a specific prompt.
-   * @param props An object containing the category and name of the prompt
-   */
-  getPrompt(props: { category: string; name: string }): IPrompt<IPromptInput, IPromptOutput>;
-
-  /**
-   * Creates a new prompt.
-   * @param props An object containing the prompt to create
-   */
-  createPrompt(props: { prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, 'versions'> }): Promise<void>;
-
-  /**
-   * Updates an existing prompt.
-   * @param props An object containing the category, name of the prompt to update and the updates
-   */
-  updatePrompt(props: {
-    category: string;
-    name: string;
-    updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
-  }): Promise<void>;
-
-  /**
-   * Deletes a prompt.
-   * @param props An object containing the category and name of the prompt to delete
-   */
-  deletePrompt(props: { category: string; name: string }): Promise<void>;
-
-  /**
-   * Lists all available prompts.
-   * @param props An object containing an optional category to filter prompts
-   */
-  listPrompts(props: { category?: string }): Promise<IPromptModel<IPromptInput, IPromptOutput>[]>;
-
-  /**
-   * Manages versions of a prompt.
-   * @param props An object containing the version management action, category, prompt name, and optional version
-   */
-  versionPrompt(props: {
-    action: 'list' | 'create' | 'switch';
-    category: string;
-    name: string;
-    version?: string;
-  }): Promise<void>;
-
-  /**
-   * Formats a prompt with given parameters.
-   * @param props An object containing the category, prompt name, and parameters
-   */
-  formatPrompt(props: {
-    category: string;
-    name: string;
-    params: Record<string, any>;
-  }): string;
-
-  /**
-   * Access to prompt categories.
-   * This allows for dynamic access to categories and prompts.
-   */
-  categories: {
-    [category: string]: IPromptCategory<Record<string, IPrompt<IPromptInput, IPromptOutput>>>;
-  };
-
-  /**
-   * Checks if a prompt exists.
-   * @param props An object containing the category and name of the prompt
-   */
-  promptExists(props: { category: string; name: string }): Promise<boolean>;
-
-  /**
-   * Creates a new category.
-   * @param categoryName The name of the category to create
-   */
-  createCategory(categoryName: string): Promise<void>;
-
-  /**
-   * Deletes a category.
-   * @param categoryName The name of the category to delete
-   */
-  deleteCategory(categoryName: string): Promise<void>;
-
-  /**
-   * Lists all categories.
-   */
-  listCategories(): Promise<string[]>;
-
-  /**
-   * Executes a prompt with given parameters.
-   * @param props An object containing the category, prompt name, and parameters
-   */
-  executePrompt(props: { category: string; name: string; params: TInput }): Promise<TOutput>;
-}
-
-// Export the interfaces so they can be imported and used in other parts of the project
-interface IPromptFileSystem {
-
-  /**
-   * Checks if the PromptFileSystem has been initialized.
-   * @returns A boolean indicating whether the PromptFileSystem is initialized.
-   */
-  isInitialized(): boolean;
-
-  /**
-   * Gets the file path for a prompt.
-   * @param props An object containing the category and name of the prompt.
-   * @returns The file path for the prompt.
-   */
-  getFilePath(props: { category: string; promptName: string }): string;
-
-  /**
-   * Gets the file path for a specific version of a prompt.
-   * @param props An object containing the category, name, and version of the prompt.
-   * @returns The file path for the specific version of the prompt.
-   */
-  getVersionFilePath(props: { category: string; promptName: string; version: string }): string;
-
-  /**
-   * Saves a prompt to the file system.
-   * @param props An object containing the prompt data to be saved.
-   * @returns A promise that resolves when the prompt is saved.
-   */
-  savePrompt(props: { promptData: IPrompt<IPromptInput, IPromptOutput> }): Promise<void>;
-
-  /**
-   * Loads a prompt from the file system.
-   * @param props An object containing the category and name of the prompt to load.
-   * @returns A promise that resolves with the loaded prompt data.
-   */
-  loadPrompt(props: { category: string; promptName: string }): Promise<IPrompt<IPromptInput, IPromptOutput>>;
-
-  /**
-   * Deletes a prompt from the file system.
-   * @param props An object containing the category and name of the prompt to delete.
-   * @returns A promise that resolves when the prompt is deleted.
-   */
-  deletePrompt(props: { category: string; promptName: string }): Promise<void>;
-
-  /**
-   * Checks if a prompt exists in the file system.
-   * @param props An object containing the category and name of the prompt to check.
-   * @returns A promise that resolves with a boolean indicating if the prompt exists.
-   */
-  promptExists(props: { category: string; promptName: string }): Promise<boolean>;
-
-  /**
-   * Lists all prompts, optionally filtered by category.
-   * @param props An object containing an optional category to filter prompts.
-   * @returns A promise that resolves with an array of prompt names.
-   */
-  listPrompts(props?: { category?: string }): Promise<Array<IPromptModel>>;
-
-  /**
-   * Lists all categories in the file system.
-   * @returns A promise that resolves with an array of category names.
-   */
-  listCategories(): Promise<string[]>;
-
-  /**
-   * Searches for prompts based on a query string.
-   * @param props An object containing the search query.
-   * @returns A promise that resolves with an array of objects containing category and name of matching prompts.
-   */
-  searchPrompts(props: { query: string }): Promise<Array<IPromptModel>>;
-
-  /**
-   * Searches for categories based on a query string.
-   * @param props An object containing the search query.
-   * @returns A promise that resolves with an array of matching category names.
-   */
-  searchCategories(props: { query: string }): Promise<string[]>;
-
-  /**
-   * Retrieves all versions of a specific prompt.
-   * @param props An object containing the category and name of the prompt.
-   * @returns A promise that resolves with an array of version strings.
-   */
-  getPromptVersions(props: { category: string; promptName: string }): Promise<string[]>;
-
-  /**
-   * Renames a prompt in the file system.
-   * @param props An object containing the current category and name, and the new category and name.
-   * @returns A promise that resolves when the prompt is renamed.
-   */
-  renamePrompt(props: {
-    currentCategory: string;
-    currentName: string;
-    newCategory: string;
-    newName: string
-  }): Promise<void>;
-
-  /**
-   * Creates a new category in the file system.
-   * @param props An object containing the name of the new category.
-   * @returns A promise that resolves when the category is created.
-   */
-  createCategory(props: { categoryName: string }): Promise<void>;
-
-  /**
-   * Deletes a category and all its prompts from the file system.
-   * @param props An object containing the name of the category to delete.
-   * @returns A promise that resolves when the category and its prompts are deleted.
-   */
-  deleteCategory(props: { categoryName: string }): Promise<void>;
-
-  /**
-   * Loads a specific version of a prompt from the file system.
-   * @param props An object containing the category, name, and version of the prompt to load.
-   * @returns A promise that resolves with the loaded prompt data for the specified version.
-   */
-  loadPromptVersion(props: { category: string; promptName: string; version: string }): Promise<IPrompt<IPromptInput, IPromptOutput>>;
-  getCurrentVersion(prompt: IPrompt<IPromptInput, IPromptOutput>): Promise<string>;
-}
-
-/**
- * Interface for managing the project configuration for the Prompt Manager.
- */
-interface IPromptProjectConfigManager {
-
-  /**
-   * Checks if the configuration manager has been initialized.
-   * @returns A boolean indicating whether the configuration manager is initialized.
-   */
-  isInitialized(): Promise<boolean>;
-
-  /**
-   * Retrieves the entire configuration object.
-   * @returns The complete configuration object.
-   */
-  getAllConfig(): Config;
-
-  /**
-   * Retrieves a specific configuration value.
-   * @param key The configuration key to retrieve.
-   * @returns The value of the specified configuration key.
-   */
-  getConfig<K extends keyof Config>(key: K): Config[K];
-
-  /**
-   * Updates the configuration with new values.
-   * @param newConfig Partial configuration object with updated values.
-   */
-  updateConfig(newConfig: Partial<Config>): Promise<void>;
-
-  /**
-   * Retrieves the base path for the project.
-   * @returns The base path string.
-   */
-  getBasePath(): string;
-
-  /**
-   * Sets the verbosity level for the configuration manager.
-   * @param level The verbosity level to set.
-   */
-  setVerbosity(level: number): void;
-
-  /**
-   * Gets the current verbosity level.
-   * @returns The current verbosity level.
-   */
-  getVerbosity(): number;
-}
-
-export type {
-  IAsyncIterableStream,
-  IPromptInput,
-  IPromptOutput,
-  IPrompt,
-  IPromptManagerCLI,
-  IPromptCategory,
-  IPromptManagerLibrary,
-  IPromptFileSystem,
-  IPromptProjectConfigManager
-};
-
-export interface IPromptManagerClientGenerator {
-  generateClient(): Promise<void>;
-  detectChanges(): Promise<boolean>;
-}
-
-export interface IPromptsFolderConfig {
-  version: string;
-  lastUpdated: string;
-  promptCount: number;
-}
-
-```
-
 ## src/cli/PromptManagerUI.tsx
 
 **Description:** No description available
@@ -2362,9 +1837,10 @@ import React, { FC, useEffect } from "react";
 import chalk from "chalk";
 import { Box, Text, useApp, useInput } from "ink";
 import { useAtom } from "jotai";
+import { Screen } from "../types/interfaces";
 import Layout from "./components/ui/Layout";
 import { logger } from "../utils/logger";
-import { currentScreenAtom, selectedPromptAtom } from "./atoms";
+import { currentScreenAtom, currentWizardStepAtom, selectedPromptAtom } from "./atoms";
 import Footer from "./components/ui/Footer";
 import Header from "./components/ui/Header";
 import AlertMessage from "./components/ui/AlertMessage";
@@ -2375,15 +1851,36 @@ import PromptListScreen from "./screens/PromptListScreen";
 import StatusScreen from "./screens/StatusScreen";
 import HelpScreen from "./screens/HelpScreen";
 import PromptAmendScreen from "./screens/PromptAmendScreen";
-import { clear } from "console";
 import PromptImportScreen from "./screens/PromptImportScreen";
 import PromptEvaluationScreen from "./screens/PromptEvaluationScreen";
 import PromptGenerateScreen from "./screens/PromptGenerateScreen";
+import TestScreen from "./screens/TestScreen";
+import DebugPanel from "./components/DebugPanel";
+import { useStdout } from 'ink';
 
-const PromptManagerUI: FC = () => {
+interface PromptManagerUIProps {
+  initialScreen?: string;
+  initialPrompt?: { category: string; name: string };
+  initialVersion?: string;
+  initialWizardStep?: number;
+}
+
+const PromptManagerUI: FC<PromptManagerUIProps> = ({ initialScreen = "home", initialPrompt, initialVersion, initialWizardStep = 1 }) => {
   const { exit } = useApp();
   const [currentScreen, setCurrentScreen] = useAtom(currentScreenAtom);
-  const [selectedPrompt] = useAtom(selectedPromptAtom);
+  const [selectedPrompt, setSelectedPrompt] = useAtom(selectedPromptAtom);
+  const { write } = useStdout();
+  const [currentWizardStep, setCurrentWizardStep] = useAtom(currentWizardStepAtom);
+
+  useEffect(() => {
+    setCurrentScreen(initialScreen as any);
+    if (initialPrompt) {
+      setSelectedPrompt(initialPrompt);
+    }
+    if (initialScreen === 'test') {
+      setCurrentWizardStep(initialWizardStep);
+    }
+  }, []);
 
   useEffect(() => {
     const cleanup = () => {
@@ -2391,11 +1888,6 @@ const PromptManagerUI: FC = () => {
     };
     return cleanup;
   }, []);
-
-  useEffect(() => {
-    // Clear the screen when the current screen changes
-    clear();
-  }, [currentScreen]);
 
   useInput((input, key) => {
     if (key.escape) {
@@ -2407,13 +1899,14 @@ const PromptManagerUI: FC = () => {
     }
   });
 
-  const screenComponents = {
-    home: <HomeScreen onNavigate={setCurrentScreen} />,
+  const screenComponents: Record<Screen, React.ReactNode> = {
+    home: <HomeScreen onNavigate={(screen: Screen) => setCurrentScreen(screen)} />,
     list: <PromptListScreen />,
     detail: selectedPrompt ? (
       <PromptDetailScreen
         prompt={selectedPrompt}
         onBack={() => setCurrentScreen("list")}
+        initialVersion={initialVersion}
       />
     ) : (
       <Text>No prompt selected. Please select a prompt from the list.</Text>
@@ -2432,12 +1925,11 @@ const PromptManagerUI: FC = () => {
       <Text>No prompt selected. Please select a prompt from the list.</Text>
     ),
     generate: <PromptGenerateScreen />,
+    test: <TestScreen />,
   };
 
   const renderScreen = () =>
-    screenComponents[currentScreen as keyof typeof screenComponents] ?? (
-      <Text>Screen not found</Text>
-    );
+    screenComponents[currentScreen as Screen] ?? <Text>Screen not found</Text>;
 
   return (
     <Layout>
@@ -2445,6 +1937,7 @@ const PromptManagerUI: FC = () => {
       <Box flexGrow={1} flexDirection="column">
         {renderScreen()}
       </Box>
+      <DebugPanel />
       <Footer>
         <Text>Press 'Esc' to go back, 'q' to quit</Text>
       </Footer>
@@ -2466,9 +1959,10 @@ import { Box, Text } from "ink";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { PaginatedList } from "../components/utils/PaginatedList";
 import { THEME_COLORS } from "../uiConfig";
+import { Screen } from "../../types/interfaces";
 
 interface HomeScreenProps {
-  onNavigate?: (screen: string) => void;
+  onNavigate?: (screen: Screen) => void;
 }
 
 const menuItems = [
@@ -2476,10 +1970,11 @@ const menuItems = [
   { key: "c", name: "Create New Prompt", screen: "create" },
   { key: "s", name: "Status", screen: "status" },
   { key: "h", name: "Help", screen: "help" },
-  { key: "a", name: "Amend Prompt", screen: "amend" }, // Added
-  { key: "i", name: "Import Prompt", screen: "import" }, // Added
-  { key: "e", name: "Evaluate Prompt", screen: "evaluate" }, // Added
-  { key: "g", name: "Generate Prompt", screen: "generate" }, // Added
+  { key: "a", name: "Amend Prompt", screen: "amend" },
+  { key: "i", name: "Import Prompt", screen: "import" },
+  { key: "e", name: "Evaluate Prompt", screen: "evaluate" },
+  { key: "g", name: "Generate Prompt", screen: "generate" },
+  { key: "t", name: "Test Screen", screen: "test" }, // Added
   { key: "q", name: "Quit", screen: "quit" },
 ];
 
@@ -2488,7 +1983,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ onNavigate }) => {
     if (item.screen === "quit") {
       process.exit(0);
     } else {
-      void onNavigate?.(item.screen);
+      void onNavigate?.(item.screen as Screen);
     }
   };
 
@@ -2517,487 +2012,6 @@ const HomeScreen: FC<HomeScreenProps> = ({ onNavigate }) => {
 };
 
 export default HomeScreen;
-
-```
-
-## src/PromptManagerClientGenerator.ts
-
-**Description:** No description available
-
-```typescript
-import fs from 'fs/promises';
-import path from 'path';
-import { PromptFileSystem } from './promptFileSystem';
-import { PromptProjectConfigManager } from './config/PromptProjectConfigManager';
-import { Container } from 'typedi';
-import { logger } from './utils/logger';
-
-const fileSystem = Container.get(PromptFileSystem);
-const configManager = Container.get(PromptProjectConfigManager);
-
-export class PromptManagerClientGenerator {
-  private outputPath: string;
-
-  constructor() {
-    this.outputPath = path.join(configManager.getConfig('promptsDir'), '..', 'client.ts');
-  }
-
-  async generateClient(): Promise<void> {
-    const categories = await fileSystem.listCategories();
-    let clientCode = this.generateClientHeader();
-
-    for (const category of categories) {
-      const prompts = await fileSystem.listPrompts({ category });
-      clientCode += this.generateCategoryCode(category, prompts.map(p => p.name));
-    }
-
-    clientCode += this.generateClientFooter();
-    await this.writeClientFile(clientCode);
-  }
-
-  private generateClientHeader(): string {
-    return `
-import { IPromptManagerLibrary, IPrompt, IPromptInput, IPromptOutput } from './types/interfaces';
-import { PromptFileSystem } from './promptFileSystem';
-
-export class PromptManagerClient implements IPromptManagerLibrary {
-  private promptFileSystem: PromptFileSystem;
-  private promptManager: PromptManager;
-
-  constructor() {
-    this.promptFileSystem = new PromptFileSystem();
-    this.promptManager = new PromptManager();
-  }
-
-  async initialize(): Promise<void> {
-    await this.promptFileSystem.initialize();
-    await this.promptManager.initialize();
-  }
-
-  async getPrompt(props: { category: string; name: string }): Promise<IPrompt<IPromptInput, IPromptOutput>> {
-    return this.promptManager.getPrompt(props);
-  }
-
-  // Implement other IPromptManagerLibrary methods here
-
-  categories: Record<string, Record<string, {
-    format: (inputs: Record<string, any>) => Promise<string>;
-    execute: (inputs: Record<string, any>) => Promise<Record<string, any>>;
-    stream: (inputs: Record<string, any>) => Promise<IAsyncIterableStream<string>>;
-    description: string;
-    version: string;
-  }>> = {
-`;
-  }
-
-  private generateCategoryCode(category: string, prompts: string[]): string {
-    let categoryCode = `    ${category}: {\n`;
-    for (const prompt of prompts) {
-      categoryCode += `      ${prompt}: {\n`;
-      categoryCode += `        raw: async () => (await promptManager.getPrompt({ category: '${category}', name: '${prompt}' })).template,\n`;
-      categoryCode += `        version: async () => (await promptManager.getPrompt({ category: '${category}', name: '${prompt}' })).version,\n`;
-      categoryCode += `        format: async (inputs: Record<string, any>) => {\n`;
-      categoryCode += `          const prompt = await promptManager.getPrompt({ category: '${category}', name: '${prompt}' });\n`;
-      categoryCode += `          return prompt.template.replace(/\\{(\\w+)\\}/g, (_, key) => inputs[key] ?? '');\n`;
-      categoryCode += `        },\n`;
-      categoryCode += `      },\n`;
-    }
-    categoryCode += `    },\n`;
-    return categoryCode;
-  }
-
-  private generateClientFooter(): string {
-    return `  };
-}
-
-export const promptManager = new PromptManagerClient();
-`;
-  }
-
-  private async writeClientFile(content: string): Promise<void> {
-    await fs.writeFile(this.outputPath, content, 'utf8');
-    logger.success(`Client file generated at ${this.outputPath}`);
-  }
-
-  async detectChanges(): Promise<boolean> {
-    try {
-      const currentContent = await fs.readFile(this.outputPath, 'utf8');
-      const newContent = await this.generateClientContent();
-      return currentContent !== newContent;
-    } catch (error) {
-      // If file doesn't exist, changes are needed
-      return true;
-    }
-  }
-
-  private async generateClientContent(): Promise<string> {
-    const categories = await fileSystem.listCategories();
-    let clientCode = this.generateClientHeader();
-
-    for (const category of categories) {
-      const prompts = await fileSystem.listPrompts({ category });
-      clientCode += this.generateCategoryCode(category, prompts.map(p => p.name));
-    }
-
-    clientCode += this.generateClientFooter();
-    return clientCode;
-  }
-}
-
-```
-
-## src/cli/aiHelpers.ts
-
-**Description:** No description available
-
-```typescript
-import { generateObject, generateText, streamText } from "ai";
-
-import { PromptSchema } from "../schemas/prompts";
-import chalk from "chalk";
-import { logger } from "../utils/logger";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
-
-/**
- * Pretty prints the given prompt to the console with color-coded output.
- *
- * @param prompt The prompt object to be printed
- */
-export function prettyPrintPrompt(prompt: any): string {
-  let output = '';
-  output += chalk.bold.underline("\nGenerated Prompt:\n");
-  output += chalk.cyan("Name: ") + prompt.name.toUpperCase().replace(/ /g, "_") + "\n";
-  output += chalk.magenta("Category: ") + prompt.category.replace(/ /g, "") + "\n";
-  output += chalk.yellow("Description: ") + prompt.description + "\n";
-  output += chalk.green("Template:\n") + prompt.template + "\n";
-  output += chalk.blue("Output Type: ") + prompt.outputType + "\n";
-  if (prompt.tags && prompt.tags.length > 0) {
-    output += chalk.red("Tags: ") + prompt.tags.join(", ") + "\n";
-  }
-  output += chalk.gray("\nInput Schema:\n");
-  output += JSON.stringify(prompt.inputSchema, null, 2) + "\n";
-  output += chalk.gray("\nOutput Schema:\n");
-  output += JSON.stringify(prompt.outputSchema, null, 2) + "\n";
-  return output;
-}
-
-/**
- * Generates a prompt using AI based on the given description.
- *
- * @param description A string describing the desired prompt
- * @returns A Promise that resolves to the generated prompt object
- */
-export async function generatePromptWithAI(description: string): Promise<any> {
-  const { object } = await generateObject({
-    model: openai("gpt-4o-mini"),
-    schema: PromptSchema,
-    prompt: `Generate a prompt based on the following description: ${description}`,
-  });
-
-  return object;
-}
-
-export async function updatePromptWithAI({
-  currentPrompt,
-  instruction,
-  updateTemplate = true,
-  updateInputSchema = true,
-  updateOutputSchema = true,
-}: {
-  currentPrompt: any;
-  instruction: string;
-  updateTemplate?: boolean;
-  updateInputSchema?: boolean;
-  updateOutputSchema?: boolean;
-}): Promise<any> {
-  const { object } = await generateObject({
-    model: openai("gpt-4o-mini"),
-    schema: PromptSchema,
-    prompt: `Update the following prompt based on this instruction: ${instruction}
-    ${updateTemplate ? 'Update the template.' : 'Do not change the template.'}
-    ${updateInputSchema ? 'Update the input schema.' : 'Do not change the input schema.'}
-    ${updateOutputSchema ? 'Update the output schema.' : 'Do not change the output schema.'}
-    \n\nCurrent prompt:\n${JSON.stringify(currentPrompt, null, 2)}`,
-  });
-
-  if (!updateTemplate) {
-    object.template = currentPrompt.template;
-  }
-  if (!updateInputSchema) {
-    object.inputSchema = currentPrompt.inputSchema;
-  }
-  if (!updateOutputSchema) {
-    object.outputSchema = currentPrompt.outputSchema;
-  }
-
-  return object;
-}
-
-/**
- * Generates auto-completion suggestions based on the given input and context.
- *
- * @param input The current user input
- * @param context Additional context to guide the AI
- * @returns A Promise that resolves to a string with auto-completion suggestions
- */
-export async function generateAutoComplete({ input, context }: { input: string, context: string }): Promise<string> {
-  const { text } = await generateText({
-    model: openai("gpt-4o-mini"),
-    prompt: `Given the following user input and context, provide a short auto-completion suggestion (max 50 tokens):
-    
-    Context: ${context}
-    
-    User input: ${input}
-    
-    Auto-completion (include the input text in the suggestion):
-
-    Examples:
-    Context: Writing a greeting email
-    User input: Hi John,
-    Auto-completion: Hi John, I hope this email finds you well. I wanted to discuss...
-
-    Context: Coding a function
-    User input: function add(a, b) {
-    Auto-completion: function add(a, b) { return a + b; }
-
-    Context: ${context}
-    User input: ${input}
-    Auto-completion:`,
-    maxTokens: 50,
-  });
-
-  return text;
-}
-
-/**
- * Generates and validates test input data for a given prompt.
- *
- * @param prompt The prompt object containing input schema
- * @returns A Promise that resolves to the generated and validated test input data
- */
-export async function generateTestInputData(prompt: any): Promise<any> {
-  const { object } = await generateObject({
-    model: openai("gpt-4o-mini"),
-    schema: prompt.inputSchema,
-    prompt: `Generate test input data for the following prompt:
-    
-    ${JSON.stringify(prompt, null, 2)}
-    
-    Ensure that the generated data adheres to the input schema.`,
-  });
-
-  // Validate the generated test input data
-  try {
-    const validationResult = PromptSchema.parse(object);
-    return validationResult;
-  } catch (error) {
-    console.error("Generated test input data failed validation:", error);
-    throw new Error("Failed to generate valid test input data");
-  }
-}
-
-/**
- * Evaluates a prompt using AI and provides actionable advice.
- *
- * @param prompt The prompt object to evaluate
- * @returns A Promise that resolves to an evaluation object with scores and advice
- */
-export async function evaluatePrompt(prompt: any): Promise<any> {
-  const evaluationSchema = z.object({
-    clarity: z.number().min(1).max(10),
-    specificity: z.number().min(1).max(10),
-    relevance: z.number().min(1).max(10),
-    completeness: z.number().min(1).max(10),
-    actionableAdvice: z.array(z.string()).min(3).max(5),
-  });
-
-
-  const { object } = await generateObject({
-    model: openai("gpt-4o-mini"),
-    schema: evaluationSchema,
-    prompt: `Evaluate the following prompt and provide scores (1-10) for clarity, specificity, relevance, and completeness. Also, provide 3-5 actionable pieces of advice for improvement:
-    
-    ${JSON.stringify(prompt, null, 2)}`,
-  });
-
-  return object;
-}
-
-
-export async function generateUpdatedPrompt(currentPrompt: any, selectedAdvice: string): Promise<any> {
-  const { object } = await generateObject({
-    model: openai("gpt-4o-mini"),
-    schema: PromptSchema,
-    prompt: `Update the following prompt based on this advice: ${selectedAdvice}
-    
-    Current prompt:
-    ${JSON.stringify(currentPrompt, null, 2)}
-    
-    Please provide an updated version of the prompt, focusing on improving the template and any relevant schemas.`,
-  });
-
-  return object;
-}
-
-```
-
-## src/schemas/prompts.ts
-
-**Description:** No description available
-
-```typescript
-import { z } from 'zod';
-import type { JSONSchema7 } from 'json-schema';
-
-export const PromptSchema = z.object({
-    name: z.string().describe('Unique identifier for the prompt'),
-    category: z.string().describe('Category the prompt belongs to'),
-    description: z.string().describe('Brief description of the prompt\'s purpose'),
-    version: z.string().describe('Version of the prompt'),
-    template: z.string().describe('The actual content of the prompt'),
-    parameters: z.array(z.string()).describe('List of parameter names expected by the prompt'),
-    metadata: z.object({
-        created: z.string(),
-        lastModified: z.string()
-    }).describe('Metadata associated with the prompt'),
-    outputType: z.enum(['structured', 'plain']).describe('Type of output expected from the model'),
-    defaultModelName: z.string().optional().describe('Default model name to use for this prompt'),
-    compatibleModels: z.array(z.string()).optional().describe('Optional list of models that can be used with this prompt'),
-    tags: z.array(z.string()).optional().describe('Optional list of tags or keywords associated with this prompt'),
-    inputSchema: z.any().describe('JSON Schema defining the structure of the input expected by the prompt'),
-    outputSchema: z.any().describe('JSON Schema defining the structure of the output produced by the prompt'),
-    configuration: z.object({
-        modelName: z.string(),
-        temperature: z.number(),
-        maxTokens: z.number(),
-        topP: z.number(),
-        frequencyPenalty: z.number(),
-        presencePenalty: z.number(),
-        stopSequences: z.array(z.string())
-    }).describe('Configuration for the AI model'),
-});
-
-export type IPrompt<TInput = any, TOutput = any> = z.infer<typeof PromptSchema>;
-
-```
-
-## src/utils/typeGeneration.ts
-
-**Description:** No description available
-
-```typescript
-import { JSONSchema7 } from 'json-schema';
-import { jsonSchemaToZod } from "json-schema-to-zod";
-import { format } from 'prettier';
-import jsf from 'json-schema-faker';
-import { IPrompt } from '../types/interfaces';
-import { cleanName } from './promptManagerUtils';
-import { zodToTs } from 'zod-to-ts';
-
-export interface SchemaAndType {
-    formattedSchemaTs: string;
-    formattedSchemaTsNoImports: string;
-}
-
-/**
- * Generates TypeScript types from a JSON schema and formats them.
- * 
- * @param {Object} params - The parameters.
- * @param {JSONSchema7} params.schema - The JSON schema.
- * @param {string} params.name - The name for the generated type.
- * @returns {Promise<SchemaAndType>} The formatted TypeScript types.
- * 
- * @example
- * const schema = { type: "object", properties: { name: { type: "string" } } };
- * const result = await generateExportableSchemaAndType({ schema, name: "MyType" });
- * console.log(result.formattedSchemaTs);
- * // Output: "export const MyType = z.object({ name: z.string() });"
- */
-export async function generateExportableSchemaAndType({ schema, name }: { schema: JSONSchema7, name: string }): Promise<SchemaAndType> {
-    const zodSchemaString = jsonSchemaToZod(schema, { module: "esm", name: name, type: true });
-    const formatted = await format(zodSchemaString, { parser: "typescript" });
-    const zodSchemaNoImports = formatted.replace(/import { z } from "zod";/g, "");
-    return {
-        formattedSchemaTs: zodSchemaNoImports,
-        formattedSchemaTsNoImports: zodSchemaNoImports
-    };
-}
-
-/**
- * Generates TypeScript interfaces for a given prompt.
- * 
- * @param {IPrompt<any, any>} prompt - The prompt object containing input and output schemas.
- * @returns {Promise<string>} The generated TypeScript content.
- * 
- * @example
- * const prompt = { name: "ExamplePrompt", inputSchema: { type: "object", properties: { input: { type: "string" } } }, outputSchema: { type: "object", properties: { output: { type: "string" } } } };
- * const result = await generatePromptTypeScript(prompt);
- * console.log(result);
- * // Output:
- * // import {z} from "zod";
- * // export interface ExamplePromptInput { input: string; }
- * // export interface ExamplePromptOutput { output: string; }
- */
-export async function generatePromptTypeScript(prompt: IPrompt<any, any>): Promise<string> {
-    const inputTypes = await generateExportableSchemaAndType({
-        schema: prompt.inputSchema, name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Input`
-    });
-    const outputTypes = await generateExportableSchemaAndType({
-        schema: prompt.outputSchema, name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Output`
-    });
-    const content = `import { z } from "zod";
-import { IAsyncIterableStream } from "../types/interfaces";
-
-${inputTypes.formattedSchemaTsNoImports}
-
-${outputTypes.formattedSchemaTsNoImports}
-
-export interface ${cleanName(prompt.category)}${cleanName(prompt.name)}Prompt {
-  format: (inputs: ${cleanName(prompt.category)}${cleanName(prompt.name)}Input) => Promise<string>;
-  execute: (inputs: ${cleanName(prompt.category)}${cleanName(prompt.name)}Input) => Promise<${cleanName(prompt.category)}${cleanName(prompt.name)}Output>;
-  stream: (inputs: ${cleanName(prompt.category)}${cleanName(prompt.name)}Input) => Promise<IAsyncIterableStream<string>>;
-  description: string;
-  version: string;
-}
-`;
-
-    return content;
-}
-
-export async function generatePromptTypescriptDefinition(prompt: IPrompt<any, any>): Promise<string> {
-    const zodInputSchema = eval(jsonSchemaToZod(prompt.inputSchema, { module: "esm" }));
-    const inputDef = zodToTs(zodInputSchema, `${cleanName(prompt.name)}Input`)
-    const zodOutputSchema = eval(jsonSchemaToZod(prompt.outputSchema, { module: "esm" }));
-    const outputDef = zodToTs(zodOutputSchema, `${cleanName(prompt.name)}Output`)
-    return `${inputDef}\n\n${outputDef}`
-}
-
-/**
- * Generates test inputs based on a JSON schema.
- * 
- * @param {JSONSchema7} schema - The JSON schema.
- * @param {number} [count=5] - The number of test inputs to generate.
- * @returns {any[]} The generated test inputs.
- * 
- * @example
- * const schema = { type: "object", properties: { name: { type: "string" } } };
- * const testInputs = generateTestInputs(schema, 3);
- * console.log(testInputs);
- * // Output: [{ name: "John Doe" }, { name: "Jane Doe" }, { name: "Jim Doe" }]
- */
-export function generateTestInputs(schema: JSONSchema7, count: number = 5): any[] {
-    jsf.option({
-        alwaysFakeOptionals: true,
-        useDefaultValue: true,
-    });
-    
-    const testInputs = [];
-    for (let i = 0; i < count; i++) {
-        testInputs.push(jsf.generate(schema));
-    }
-    return testInputs;
-}
 
 ```
 

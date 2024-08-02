@@ -77,8 +77,8 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       this.prettyPrintConfig();
       this.initialized = true;
     } catch (error: any) {
-      logger.error('Failed to initialize config:', error.message);
-      throw new Error('Failed to initialize PromptProjectConfigManager. Please check your configuration and try again.');
+      logger.error('Failed to initialize config:', error.message, error.stack);
+      throw new Error('Failed to initialize PromptProjectConfigManager. Please check your configuration and try again.', error.stack);
     }
   }
 

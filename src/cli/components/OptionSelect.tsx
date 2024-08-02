@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { THEME_COLORS } from '../uiConfig';
 
@@ -14,6 +14,7 @@ interface OptionSelectProps {
   onCancel?: () => void;
   label?: string;
   separator?: string;
+  isFocused?: boolean;
 }
 
 const OptionSelect: React.FC<OptionSelectProps> = ({
@@ -22,10 +23,12 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
   onCancel,
   label = 'Select an option:',
   separator = '─',
+  isFocused = false,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useInput((input, key) => {
+    if (!isFocused) return;
     if (key.upArrow) {
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1));
     } else if (key.downArrow) {
@@ -35,6 +38,8 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
     } else if (input === 'c' && onCancel) {
       onCancel();
     }
+  }, {
+    isActive: isFocused
   });
 
   return (

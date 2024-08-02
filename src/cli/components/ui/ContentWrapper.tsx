@@ -14,10 +14,10 @@ const ContentWrapper: React.FC<ContentWrapperProps> = ({
 }) => {
   return (
     <Box
-      borderStyle="round"
-      borderTop={true}
+      // borderStyle="round"
+      // borderTop={true}
       flexDirection="column"
-      borderColor={borderColor}
+      // borderColor={borderColor}
       padding={1}
       {...props}
     >

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Text, useInput } from 'ink';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import { generateAutoComplete } from '../aiHelpers';
 
@@ -9,6 +9,7 @@ interface AutoCompleteInputProps {
   onSubmit: (value: string) => void;
   placeholder?: string;
   context: string;
+  isFocused?: boolean;
 }
 
 const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
@@ -17,6 +18,7 @@ const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
   onSubmit,
   placeholder,
   context,
+  isFocused = false,
 }) => {
   const [suggestion, setSuggestion] = useState('');
   const [isTabPressed, setIsTabPressed] = useState(false);
@@ -24,7 +26,7 @@ const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
 
   useEffect(() => {
     const fetchSuggestion = async () => {
-      if (value.length > 0) {
+      if (value.length > 0 && isFocused) {
         setIsLoading(true);
         const newSuggestion = await generateAutoComplete({ input: value, context: context });
         setSuggestion(newSuggestion);
@@ -35,10 +37,10 @@ const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
     };
 
     fetchSuggestion();
-  }, [value]);
+  }, [value, isFocused, context]);
 
   useInput((input, key) => {
-    if (key.tab && suggestion) {
+    if (isFocused && key.tab && suggestion) {
       onChange(value + suggestion);
       setIsTabPressed(true);
     } else {
@@ -46,19 +48,27 @@ const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
     }
   });
 
+  if (!isFocused) {
+    return null;
+  }
+
+  const memoizedTextInput = useMemo(() => (
+    <TextInput
+      value={value}
+      onChange={onChange}
+      onSubmit={onSubmit}
+      placeholder={placeholder}
+    />
+  ), [value, onChange, onSubmit, placeholder]);
+
   return (
-    <>
-      <TextInput
-        value={value}
-        onChange={onChange}
-        onSubmit={onSubmit}
-        placeholder={placeholder}
-      />
+    <Box flexDirection="column">
+      {memoizedTextInput}
       {isLoading && <Text color="gray">Loading...</Text>}
       {!isTabPressed && suggestion && (
         <Text color="gray"> {suggestion}</Text>
       )}
-    </>
+    </Box>
   );
 };
 

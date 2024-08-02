@@ -16,7 +16,7 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   const [currentScreen] = useAtom(currentScreenAtom);
 
   return (
-    <Box flexDirection="row" alignItems="center" paddingLeft={1}>
+    <Box flexDirection="row" alignItems="center" paddingLeft={1} paddingTop={1}>
       <Text bold color="cyan">
         {title}
       </Text>

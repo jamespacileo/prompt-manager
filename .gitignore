@@ -9,6 +9,7 @@ test-project
 test-output
 test-prompts
 .my-prompts
+.fury
 
 .env 
 .env.test

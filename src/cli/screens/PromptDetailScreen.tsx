@@ -19,11 +19,13 @@ import { currentScreenAtom, alertMessageAtom, selectedPromptAtom } from "../atom
 interface PromptDetailScreenProps {
   prompt: { category: string; name: string };
   onBack: () => void;
+  initialVersion?: string;
 }
 
 const PromptDetailScreen: React.FC<PromptDetailScreenProps> = ({
   prompt,
   onBack,
+  initialVersion,
 }) => {
   const [details, setDetails] = useState<Partial<IPrompt<any, any>> | null>(null);
   const [comparisonVersion, setComparisonVersion] = useState<Partial<IPrompt<any, any>> | null>(null);
@@ -88,10 +90,6 @@ const PromptDetailScreen: React.FC<PromptDetailScreenProps> = ({
 
   return (
     <ScreenWrapper title="Prompt Details">
-      <Text bold color="cyan">
-        {showTypeScript ? "Generated TypeScript" : "Prompt Details"}
-      </Text>
-      <Newline />
       <Box flexDirection="column">
         <Text bold>Current Version: {currentVersion}</Text>
         {showTypeScript ? (

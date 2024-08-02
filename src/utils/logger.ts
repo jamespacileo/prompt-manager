@@ -1,29 +1,61 @@
-import { consola, createConsola, LogLevel } from "consola";
+import { createLogger, format, Logger, transports } from 'winston';
+import 'winston-daily-rotate-file';
 import chalk from 'chalk';
 import { JSONSchema7 } from 'json-schema';
+import path from 'path';
+import fs from 'fs';
 
-const getLogLevel = (level: string | undefined): LogLevel => {
+// Ensure log directory exists
+const logDirectory = path.join(process.cwd(), '.fury');
+if (!fs.existsSync(logDirectory)) {
+  fs.mkdirSync(logDirectory, { recursive: true });
+}
+
+// Define log level mapping
+const getLogLevel = (level: string | undefined): string => {
   switch (level) {
-    case 'fatal': return 0;
-    case 'error': return 0;
-    case 'warn': return 1;
-    case 'log': return 2;
-    case 'info': return 3;
-    case 'success': return 3;
-    case 'debug': return 4;
-    case 'trace': return 5;
-    default: return 3; // default to 'info'
+    case 'fatal': return 'error';
+    case 'error': return 'error';
+    case 'warn': return 'warn';
+    case 'log': return 'info';
+    case 'info': return 'info';
+    case 'success': return 'info';
+    case 'debug': return 'debug';
+    case 'trace': return 'silly';
+    default: return 'info'; // default to 'info'
   }
 };
 
-export const logger = createConsola({
+// Create logger with daily rotate file transport
+export const logger: Logger & { success: (message: string) => void } = createLogger({
   level: getLogLevel(process.env.LOG_LEVEL),
-  formatOptions: {
-    date: false,
-    colors: true,
-    compact: true,
-  }
-});
+  format: format.combine(
+    format.timestamp(),
+    format.printf(({ timestamp, level, message }) => {
+      return `${timestamp} ${level}: ${message}`;
+    })
+  ),
+  transports: [
+    new transports.DailyRotateFile({
+      filename: path.join(logDirectory, 'log-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '14d', // keep logs for 14 days
+    }),
+    new transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.printf(({ level, message }) => {
+          return `${level}: ${message}`;
+        })
+      )
+    })
+  ]
+}) as Logger & { success: (message: string) => void };
+
+// Extend logger to add a success method
+logger.success = (message: string) => {
+  logger.log({ level: 'info', message: chalk.green(message) });
+};
 
 export function prettyPrintJsonSchema(schema: JSONSchema7, indent: number = 0): string {
   const spaces = ' '.repeat(indent);

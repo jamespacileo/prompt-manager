@@ -10,6 +10,7 @@ import lockfile from 'proper-lockfile';
 import { logger } from './utils/logger';
 import { generateExportableSchemaAndType, generatePromptTypeScript, generateTestInputs } from './utils/typeGeneration';
 import { cleanName } from './utils/promptManagerUtils';
+import { checkDiskSpace } from './utils/fileSystemUtils';
 
 export const DEFAULT_PROMPT_FILENAME = "prompt.json";
 export const DEFAULT_TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -235,6 +236,7 @@ export class PromptFileSystem implements IPromptFileSystem {
     const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
     let release;
     try {
+      await checkDiskSpace(path.dirname(filePath));
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       release = await lockfile.lock(path.dirname(filePath));
 

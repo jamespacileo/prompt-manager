@@ -1,0 +1,10 @@
+{
+  "watch": [
+    "src"
+  ],
+  "ext": "ts,tsx,json",
+  "ignore": [
+    "src/**/*.spec.ts"
+  ],
+  "exec": "bun run src/cli/cli.tsx --screen status"
+}

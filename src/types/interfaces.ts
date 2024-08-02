@@ -535,3 +535,4 @@ export interface IPromptsFolderConfig {
   lastUpdated: string;
   promptCount: number;
 }
+export type Screen = 'home' | 'list' | 'detail' | 'create' | 'status' | 'help' | 'amend' | 'import' | 'evaluate' | 'generate' | 'test';
