@@ -7,15 +7,15 @@ async function cleanup() {
 
   for (const dir of dirsToRemove) {
     await fs.rm(dir, { recursive: true, force: true })
-      .then(() => console.log(`Removed ${dir}`))
-      .catch(console.error);
+      .then(() => logger.info(`Removed ${dir}`))
+      .catch(logger.error);
   }
 
   for (const file of filesToRemove) {
     await fs.unlink(file)
-      .then(() => console.log(`Removed ${file}`))
-      .catch(console.error);
+      .then(() => logger.info(`Removed ${file}`))
+      .catch(logger.error);
   }
 }
 
-// cleanup().then(() => console.log('Cleanup complete'));
+// cleanup().then(() => logger.info('Cleanup complete'));

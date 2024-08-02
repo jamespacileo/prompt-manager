@@ -202,4 +202,16 @@ const promptCategories: PromptCategory[] = [
     }
 ];
 
+function toCamelCase(str: string): string {
+    return str
+        .replace(/[^a-zA-Z0-9]+(.)/g, (match, chr) => chr.toUpperCase())
+        .replace(/^(.)/, (match) => match.toUpperCase());
+}
+
+const promptCategoryKeys = promptCategories.map(category => ({
+    ...category,
+    value: toCamelCase(category.label)
+}));
+
 export default promptCategories;
+export { promptCategoryKeys };

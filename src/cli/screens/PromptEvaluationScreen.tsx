@@ -39,7 +39,7 @@ const PromptEvaluationScreen: React.FC<PromptEvaluationScreenProps> = ({ prompt,
       setEvaluation(result);
       setStage('selecting');
     } catch (error) {
-      console.error("Error evaluating prompt:", error);
+      logger.error("Error evaluating prompt:", error);
       setAlertMessage("Failed to evaluate prompt. Please try again.");
     } finally {
       setIsLoading(false);
@@ -55,7 +55,7 @@ const PromptEvaluationScreen: React.FC<PromptEvaluationScreenProps> = ({ prompt,
         setUpdatedPrompt(generatedPrompt);
         setStage('confirming');
       } catch (error) {
-        console.error("Error generating updated prompt:", error);
+        logger.error("Error generating updated prompt:", error);
         setAlertMessage("Failed to generate updated prompt. Please try again.");
         setStage('selecting');
       } finally {
@@ -77,7 +77,7 @@ const PromptEvaluationScreen: React.FC<PromptEvaluationScreenProps> = ({ prompt,
         setTimeout(() => setAlertMessage(null), 3000);
         setCurrentScreen("detail");
       } catch (error) {
-        console.error("Error updating prompt:", error);
+        logger.error("Error updating prompt:", error);
         setAlertMessage("Failed to update prompt. Please try again.");
       } finally {
         setIsLoading(false);

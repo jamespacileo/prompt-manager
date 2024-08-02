@@ -7,6 +7,7 @@ import MultiOptionSelect from '../components/MultiOptionSelect';
 import AutoCompleteInput from '../components/AutoCompleteInput';
 import { categoryAtom, currentWizardStepAtom, promptNameAtom, tagsAtom } from '../atoms';
 import { THEME_COLORS } from '../uiConfig';
+import { promptCategoryKeys } from '@/fixtures/categories';
 
 const categories = [
   { label: 'Creative Writing', value: 'creative-writing', description: 'For generating stories, poems, and other creative content' },
@@ -68,7 +69,7 @@ const TestScreen: React.FC = () => {
       case 1:
         return (
           <OptionSelect
-            options={categories}
+            options={promptCategoryKeys}
             onSelect={handleCategorySelect}
             label="Select a category for your prompt:"
             isFocused={step === 1}

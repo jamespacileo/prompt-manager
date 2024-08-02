@@ -22,7 +22,7 @@ export interface SchemaAndType {
  * @example
  * const schema = { type: "object", properties: { name: { type: "string" } } };
  * const result = await generateExportableSchemaAndType({ schema, name: "MyType" });
- * console.log(result.formattedSchemaTs);
+ * logger.info(result.formattedSchemaTs);
  * // Output: "export const MyType = z.object({ name: z.string() });"
  */
 export async function generateExportableSchemaAndType({ schema, name }: { schema: JSONSchema7, name: string }): Promise<SchemaAndType> {
@@ -44,7 +44,7 @@ export async function generateExportableSchemaAndType({ schema, name }: { schema
  * @example
  * const prompt = { name: "ExamplePrompt", inputSchema: { type: "object", properties: { input: { type: "string" } } }, outputSchema: { type: "object", properties: { output: { type: "string" } } } };
  * const result = await generatePromptTypeScript(prompt);
- * console.log(result);
+ * logger.info(result);
  * // Output:
  * // import {z} from "zod";
  * // export interface ExamplePromptInput { input: string; }
@@ -94,7 +94,7 @@ export async function generatePromptTypescriptDefinition(prompt: IPrompt<any, an
  * @example
  * const schema = { type: "object", properties: { name: { type: "string" } } };
  * const testInputs = generateTestInputs(schema, 3);
- * console.log(testInputs);
+ * logger.info(testInputs);
  * // Output: [{ name: "John Doe" }, { name: "Jane Doe" }, { name: "Jim Doe" }]
  */
 export function generateTestInputs(schema: JSONSchema7, count: number = 5): any[] {

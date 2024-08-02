@@ -15,11 +15,12 @@ const filesToInclude = [
   'src/cli/cli.tsx',
   'src/cli/commands.ts',
   'src/cli/PromptManagerUI.tsx',
-  'src/cli/screens/HomeScreen.tsx',
+  // 'src/cli/screens/HomeScreen.tsx',
   // 'src/cli/screens/PromptCreateScreen.tsx',
   // 'src/cli/screens/PromptDetailScreen.tsx',
   // 'src/cli/screens/PromptListScreen.tsx',
   // 'src/cli/screens/StatusScreen.tsx',
+  'src/cli/screens/TestScreen.tsx',
   // 'src/cli/components/prompt/PromptCreate.tsx',
   // 'src/cli/components/prompt/PromptDelete.tsx',
   // 'src/cli/components/prompt/PromptEdit.tsx',
@@ -43,10 +44,10 @@ const filesToInclude = [
   // 'src/cli/components/utils/ScreenWrapper.tsx',
 
   // CLI components
-  // 'src/cli/components/AutoCompleteInput.tsx',
-  // 'src/cli/components/JSONSchemaTree.tsx',
-  // 'src/cli/components/MultiOptionSelect.tsx',
-  // 'src/cli/components/OptionSelect.tsx',
+  'src/cli/components/AutoCompleteInput.tsx',
+  'src/cli/components/JSONSchemaTree.tsx',
+  'src/cli/components/MultiOptionSelect.tsx',
+  'src/cli/components/OptionSelect.tsx',
 
   // Types and schemas
   // 'src/types/interfaces.ts',
@@ -133,13 +134,13 @@ async function generateMarkdownDoc() {
   }
 
   await fs.writeFile('project_documentation.md', markdownContent);
-  console.log('Documentation generated: project_documentation.md');
+  console.info('Documentation generated: project_documentation.md');
 
   const filesList = filesToInclude.join(' ');
-  console.log(chalk.green('Useful Commands:'));
-  console.log(chalk.blue(`aider --sonnet --no-auto-commit --gui ${filesList}`));
-  console.log(chalk.blue(`aider --4o --no-auto-commit --gui ${filesList}`));
-  console.log(chalk.blue(`aider --model deepseek/deepseek-coder --no-auto-commit --gui ${filesList}`));
+  console.info(chalk.green('Useful Commands:'));
+  console.info(chalk.blue(`aider --sonnet --no-auto-commit --gui ${filesList}`));
+  console.info(chalk.blue(`aider --4o --no-auto-commit --gui ${filesList}`));
+  console.info(chalk.blue(`aider --model deepseek/deepseek-coder --no-auto-commit --gui ${filesList}`));
 
 }
 

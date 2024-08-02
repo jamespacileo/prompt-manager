@@ -50,7 +50,7 @@ const PromptCreateScreen: FC = () => {
       setStatus("confirm");
       return promptData;
     } catch (error) {
-      console.error("Error generating prompt:", error);
+      logger.error("Error generating prompt:", error);
       setError("Failed to generate prompt. Please try again.");
     } finally {
       setIsLoading(false);
@@ -65,7 +65,7 @@ const PromptCreateScreen: FC = () => {
         await createPrompt(generatedPrompt);
         setCurrentScreen("list");
       } catch (error) {
-        console.error("Error saving prompt:", error);
+        logger.error("Error saving prompt:", error);
         setError("Failed to save prompt. Please try again.");
       } finally {
         setIsLoading(false);

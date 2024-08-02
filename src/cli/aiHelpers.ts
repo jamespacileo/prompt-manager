@@ -139,7 +139,7 @@ export async function generateTestInputData(prompt: any): Promise<any> {
     const validationResult = PromptSchema.parse(object);
     return validationResult;
   } catch (error) {
-    console.error("Generated test input data failed validation:", error);
+    logger.error("Generated test input data failed validation:", error);
     throw new Error("Failed to generate valid test input data");
   }
 }

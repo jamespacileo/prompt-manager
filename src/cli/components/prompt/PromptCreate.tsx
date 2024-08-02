@@ -20,11 +20,11 @@ const PromptCreate: React.FC<PromptCreateProps> = ({ onComplete }) => {
   const { isFocused } = useFocus({ isActive: true });
   const isHome = currentScreen === "home";
 
-  console.log(`isFocused: ${isFocused}`, isHome, currentScreen);
+  logger.info(`isFocused: ${isFocused}`, isHome, currentScreen);
 
   useInput((input, key) => {
     if (!isFocused) {
-      console.log(`PromptCreate isFocused: ${isFocused}`);
+      logger.info(`PromptCreate isFocused: ${isFocused}`);
       return;
     }
     if (input === "q") {

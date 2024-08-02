@@ -68,6 +68,6 @@ async function main() {
 }
 
 await main().catch((error) => {
-  console.error("An error occurred:", error);
+  logger.error("An error occurred:", error);
   process.exit(1);
 });

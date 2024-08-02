@@ -20,7 +20,7 @@ const PromptImportScreen: React.FC = () => {
       setTimeout(() => setAlertMessage(null), 3000);
       setCurrentScreen("list");
     } catch (error) {
-      console.error("Error importing prompt:", error);
+      logger.error("Error importing prompt:", error);
       throw new Error("Failed to import prompt. Please check the file path and try again.");
     } finally {
       setIsLoading(false);

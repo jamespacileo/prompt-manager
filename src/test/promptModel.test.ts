@@ -72,12 +72,12 @@ describe("PromptModel", () => {
     fileSystem = Container.get(PromptFileSystem);
     await fileSystem.initialize();
 
-    console.log(`Config manager initialized`);
+    logger.info(`Config manager initialized`);
 
     promptManager = Container.get(PromptManager);
     await promptManager.initialize();
 
-    console.log(`Prompt manager initialized`);
+    logger.info(`Prompt manager initialized`);
   });
 
   afterAll(async () => {
@@ -86,9 +86,9 @@ describe("PromptModel", () => {
 
   test("create and retrieve prompt", async () => {
     const dummyPrompt = createUniqueDummyPrompt("createAndRetrieve");
-    console.log(`Creating prompt ${dummyPrompt.name} in category ${dummyPrompt.category}`);
+    logger.info(`Creating prompt ${dummyPrompt.name} in category ${dummyPrompt.category}`);
     await promptManager.createPrompt({ prompt: dummyPrompt });
-    console.log(`Prompt created`);
+    logger.info(`Prompt created`);
     const retrievedPrompt = promptManager.getPrompt({ category: dummyPrompt.category, name: dummyPrompt.name });
     expect(retrievedPrompt.name).toBe(dummyPrompt.name);
     expect(retrievedPrompt.template).toBe(dummyPrompt.template);

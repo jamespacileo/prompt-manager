@@ -27,11 +27,11 @@ await promptManager.initialize();
 ```typescript
 // Get a specific prompt
 const greeting = promptManager.getPrompt('general', 'greeting');
-console.log(greeting.content);
+logger.info(greeting.content);
 
 // Format a prompt with parameters
 const formattedGreeting = promptManager.formatPrompt('general', 'greeting', { name: 'Alice' });
-console.log(formattedGreeting);
+logger.info(formattedGreeting);
 ```
 
 ### Managing Prompts

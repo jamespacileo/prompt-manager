@@ -49,7 +49,7 @@ const PromptAmendScreen: FC = () => {
       });
       return promptData;
     } catch (error) {
-      console.error("Error updating prompt:", error);
+      logger.error("Error updating prompt:", error);
       setError("Failed to update prompt. Please try again.");
     }
   }, [selectedPrompt, selectedOption]);
@@ -66,7 +66,7 @@ const PromptAmendScreen: FC = () => {
         });
         setCurrentScreen("detail");
       } catch (error) {
-        console.error("Error saving prompt:", error);
+        logger.error("Error saving prompt:", error);
         setError("Failed to save prompt. Please try again.");
       } finally {
         setIsLoading(false);

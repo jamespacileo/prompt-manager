@@ -37,4 +37,4 @@ async function setupTestEnvironment() {
   process.env.FURY_VERBOSITY = "1"; // Add this line to set verbosity
 }
 
-setupTestEnvironment().catch(console.error);
+setupTestEnvironment().catch(logger.error);

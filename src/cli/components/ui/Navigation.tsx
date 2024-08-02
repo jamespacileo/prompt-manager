@@ -18,8 +18,8 @@ const Navigation: FC<NavigationProps> = ({ onNavigate }) => {
   const isStatus = currentScreen === "status";
 
   useInput((input, key) => {
-    console.log("Navigation useInput:", input, key);
-    console.log(`isHome: ${isHome}`);
+    logger.info("Navigation useInput:", input, key);
+    logger.info(`isHome: ${isHome}`);
     if (!isHome) {
       return;
     }

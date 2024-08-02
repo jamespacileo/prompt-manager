@@ -21,7 +21,7 @@ const PromptGenerateScreen: React.FC = () => {
       setAlertMessage("Types generated successfully");
       setTimeout(() => setAlertMessage(null), 3000);
     } catch (error) {
-      console.error("Error generating types:", error);
+      logger.error("Error generating types:", error);
       setAlertMessage("Failed to generate types. Please try again.");
     } finally {
       setIsGenerating(false);

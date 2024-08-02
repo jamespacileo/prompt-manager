@@ -11,11 +11,11 @@ async function cleanupTests() {
   for (const dir of testDirs) {
     try {
       await fs.rm(dir, { recursive: true, force: true });
-      console.log(`Cleaned up test directory: ${dir}`);
+      logger.info(`Cleaned up test directory: ${dir}`);
     } catch (error) {
-      console.error(`Error cleaning up ${dir}:`, error);
+      logger.error(`Error cleaning up ${dir}:`, error);
     }
   }
 }
 
-cleanupTests().then(() => console.log('Test cleanup completed.'));
+cleanupTests().then(() => logger.info('Test cleanup completed.'));

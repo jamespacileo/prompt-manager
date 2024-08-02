@@ -68,6 +68,7 @@
 └── utils
     ├── __snapshots__
     ├── cache.ts
+    ├── fileSystemUtils.ts
     ├── fileUtils.ts
     ├── jsonSchemaToZod.ts
     ├── logger.ts
@@ -76,7 +77,7 @@
     ├── typeGeneration.ts
     └── versionUtils.ts
 
-18 directories, 54 files
+18 directories, 55 files
 ```
 
 ## src/promptManager.ts
@@ -99,7 +100,7 @@ export class PromptManager<
   TInput extends IPromptInput<Record<string, any>> = IPromptInput<Record<string, any>>,
   TOutput extends IPromptOutput<Record<string, any> & string> = IPromptOutput<Record<string, any> & string>
 > {
-  generateAmendedPrompt(props: { category: string; name: string; amendQuery?: string; amendedPrompt?: Partial<import("./types/interfaces").IPromptModel>; }): Partial<import("./types/interfaces").IPromptModel<any, any>> | PromiseLike<Partial<import("./types/interfaces").IPromptModel<any, any>>> {
+  async generateAmendedPrompt(props: { category: string; name: string; amendQuery?: string; amendedPrompt?: Partial<IPrompt<TInput, TOutput>>; }): Promise<Partial<IPrompt<TInput, TOutput>>> {
     throw new Error("Method not implemented.");
   }
   // Store prompts in a nested structure: category -> prompt name -> PromptModel
@@ -185,7 +186,7 @@ export class PromptManager<
         }
         try {
           const promptData = await this.fileSystem.loadPrompt({ category: prompt.category, promptName: prompt.name });
-          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as unknown as PromptModel<TInput, TOutput>;
+          this.prompts[prompt.category][prompt.name] = new PromptModel(promptData) as PromptModel<TInput, TOutput>;
         } catch (error) {
           logger.error(`Failed to load prompt ${prompt.category}/${prompt.name}:`, error);
           // Continue loading other prompts even if one fails
@@ -219,7 +220,7 @@ export class PromptManager<
       throw new Error(`Prompt "${props.name}" in category "${props.category}" does not exist`);
     }
     const prompt = this.prompts[props.category][props.name];
-    return prompt as PromptModel<TInput, TOutput>;
+    return prompt;
   }
 
   async getPromptVersion({ category, name, version }: { category: string; name: string; version: string }): Promise<PromptModel<TInput, TOutput>> {
@@ -757,6 +758,7 @@ import lockfile from 'proper-lockfile';
 import { logger } from './utils/logger';
 import { generateExportableSchemaAndType, generatePromptTypeScript, generateTestInputs } from './utils/typeGeneration';
 import { cleanName } from './utils/promptManagerUtils';
+import { checkDiskSpace } from './utils/fileSystemUtils';
 
 export const DEFAULT_PROMPT_FILENAME = "prompt.json";
 export const DEFAULT_TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -982,6 +984,7 @@ export class PromptFileSystem implements IPromptFileSystem {
     const filePath = this.getFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
     let release;
     try {
+      await checkDiskSpace(path.dirname(filePath));
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       release = await lockfile.lock(path.dirname(filePath));
 
@@ -1048,7 +1051,7 @@ export class PromptFileSystem implements IPromptFileSystem {
 
     let release;
     try {
-      // release = await lockfile.lock(path.dirname(filePath));
+      release = await lockfile.lock(path.dirname(filePath));
       await fs.access(filePath);
       const data = await fs.readFile(filePath, 'utf-8');
       let parsedData;
@@ -1075,9 +1078,9 @@ export class PromptFileSystem implements IPromptFileSystem {
       }
       throw new Error(`Unknown error while loading prompt: ${filePath}`);
     } finally {
-      // if (release) {
-      //   await release();
-      // }
+      if (release) {
+        await release();
+      }
     }
   }
 
@@ -1367,7 +1370,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
       this.initialized = true;
     } catch (error: any) {
       logger.error('Failed to initialize config:', error.message, error.stack);
-      throw new Error('Failed to initialize PromptProjectConfigManager. Please check your configuration and try again.');
+      throw new Error('Failed to initialize PromptProjectConfigManager. Please check your configuration and try again.', error.stack);
     }
   }
 
@@ -1949,69 +1952,491 @@ export default PromptManagerUI;
 
 ```
 
-## src/cli/screens/HomeScreen.tsx
+## src/cli/screens/TestScreen.tsx
 
 **Description:** No description available
 
 ```typescript
-import React, { FC } from "react";
-import { Box, Text } from "ink";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import { PaginatedList } from "../components/utils/PaginatedList";
-import { THEME_COLORS } from "../uiConfig";
-import { Screen } from "../../types/interfaces";
+import React, { useCallback, useState, useEffect } from 'react';
+import { Box, Text, useFocusManager, useInput } from 'ink';
+import { useAtom } from 'jotai';
+import { ScreenWrapper } from '../components/utils/ScreenWrapper';
+import OptionSelect from '../components/OptionSelect';
+import MultiOptionSelect from '../components/MultiOptionSelect';
+import AutoCompleteInput from '../components/AutoCompleteInput';
+import { categoryAtom, currentWizardStepAtom, promptNameAtom, tagsAtom } from '../atoms';
+import { THEME_COLORS } from '../uiConfig';
 
-interface HomeScreenProps {
-  onNavigate?: (screen: Screen) => void;
-}
-
-const menuItems = [
-  { key: "l", name: "List Prompts", screen: "list" },
-  { key: "c", name: "Create New Prompt", screen: "create" },
-  { key: "s", name: "Status", screen: "status" },
-  { key: "h", name: "Help", screen: "help" },
-  { key: "a", name: "Amend Prompt", screen: "amend" },
-  { key: "i", name: "Import Prompt", screen: "import" },
-  { key: "e", name: "Evaluate Prompt", screen: "evaluate" },
-  { key: "g", name: "Generate Prompt", screen: "generate" },
-  { key: "t", name: "Test Screen", screen: "test" }, // Added
-  { key: "q", name: "Quit", screen: "quit" },
+const categories = [
+  { label: 'Creative Writing', value: 'creative-writing', description: 'For generating stories, poems, and other creative content' },
+  { label: 'Code Generation', value: 'code-generation', description: 'For generating code snippets and algorithms' },
+  { label: 'Data Analysis', value: 'data-analysis', description: 'For analyzing and interpreting data' },
+  { label: 'Chat Bot', value: 'chat-bot', description: 'For creating conversational AI responses' },
 ];
 
-const HomeScreen: FC<HomeScreenProps> = ({ onNavigate }) => {
-  const handleSelectItem = (item: typeof menuItems[0]) => {
-    if (item.screen === "quit") {
-      process.exit(0);
-    } else {
-      void onNavigate?.(item.screen as Screen);
-    }
-  };
+const tagOptions = [
+  { label: 'AI', value: 'ai' },
+  { label: 'Machine Learning', value: 'ml' },
+  { label: 'Natural Language Processing', value: 'nlp' },
+  { label: 'Data Science', value: 'data-science' },
+  { label: 'Programming', value: 'programming' },
+];
 
-  const renderMenuItem = (item: typeof menuItems[0], index: number, isSelected: boolean) => (
-    <Box>
-      <Text color={isSelected ? THEME_COLORS.primary : THEME_COLORS.text}>
-        {item.key}: {item.name}
-      </Text>
-    </Box>
-  );
+const TestScreen: React.FC = () => {
+  const [step, setStep] = useAtom(currentWizardStepAtom);
+  const [category, setCategory] = useAtom(categoryAtom);
+  const [tags, setTags] = useAtom(tagsAtom);
+  const [promptName, setPromptName] = useAtom(promptNameAtom);
+  const [isFocused, setIsFocused] = useState(true);
+
+  const { focusNext } = useFocusManager();
+
+  useEffect(() => {
+    setIsFocused(true);
+  }, [step]);
+
+  useInput((input, key) => {
+    if (key.ctrl) {
+      if (key.leftArrow) {
+        setStep((prevStep) => Math.max(1, prevStep - 1));
+      } else if (key.rightArrow) {
+        setStep((prevStep) => Math.min(4, prevStep + 1));
+      }
+    }
+  });
+
+  const handleCategorySelect = useCallback((option: { value: string }) => {
+    setCategory(option.value);
+    setStep(2);
+    focusNext();
+  }, [setCategory, setStep, focusNext]);
+
+  const handleTagsSelect = useCallback((selectedOptions: { value: string }[]) => {
+    setTags(selectedOptions.map(o => o.value));
+    setStep(3);
+    focusNext();
+  }, [setTags, setStep, focusNext]);
+
+  const handlePromptNameSubmit = useCallback(() => {
+    setStep(4);
+    focusNext();
+  }, [setStep, focusNext]);
+
+  const renderStep = useCallback(() => {
+    switch (step) {
+      case 1:
+        return (
+          <OptionSelect
+            options={categories}
+            onSelect={handleCategorySelect}
+            label="Select a category for your prompt:"
+            isFocused={step === 1}
+          />
+        );
+      case 2:
+        return (
+          <MultiOptionSelect
+            options={tagOptions}
+            onSelect={handleTagsSelect}
+            label="Select tags for your prompt (max 3):"
+            maxSelections={3}
+            isFocused={step === 2}
+          />
+        );
+      case 3:
+        return (
+          <Box flexDirection="column">
+            <Text>Enter a name for your prompt:</Text>
+            <AutoCompleteInput
+              value={promptName}
+              onChange={setPromptName}
+              onSubmit={handlePromptNameSubmit}
+              placeholder="Enter prompt name"
+              context={`A prompt name for the category: ${category}`}
+              isFocused={step === 3}
+            />
+          </Box>
+        );
+      case 4:
+        return (
+          <Box flexDirection="column">
+            <Text bold>Summary:</Text>
+            <Text>Category: <Text color={THEME_COLORS.primary}>{category}</Text></Text>
+            <Text>Tags: <Text color={THEME_COLORS.primary}>{tags.join(', ')}</Text></Text>
+            <Text>Name: <Text color={THEME_COLORS.primary}>{promptName}</Text></Text>
+            <Text>Press any key to return to the main menu.</Text>
+          </Box>
+        );
+      default:
+        return null;
+    }
+  }, [step, category, tags, promptName, isFocused]);
 
   return (
-    <ScreenWrapper title="Welcome to Prompt Manager">
+    <ScreenWrapper title="Test Screen">
       <Box flexDirection="column">
-        <Text bold>Welcome to Prompt Manager</Text>
-        <Text>Use arrow keys to navigate, Enter to select</Text>
-        <PaginatedList
-          items={menuItems}
-          itemsPerPage={menuItems.length}
-          renderItem={renderMenuItem}
-          onSelectItem={handleSelectItem}
-        />
+        <Text bold>Welcome to the Test Screen</Text>
+        <Text>Step {step} of 4</Text>
+        {renderStep()}
       </Box>
     </ScreenWrapper>
   );
 };
 
-export default HomeScreen;
+export default TestScreen;
 
+```
+
+## src/cli/components/AutoCompleteInput.tsx
+
+**Description:** No description available
+
+```typescript
+import React, { useState, useEffect, useMemo } from 'react';
+import { Box, Text, useInput } from 'ink';
+import TextInput from 'ink-text-input';
+import { generateAutoComplete } from '../aiHelpers';
+
+interface AutoCompleteInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (value: string) => void;
+  placeholder?: string;
+  context: string;
+  isFocused?: boolean;
+}
+
+const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
+  value,
+  onChange,
+  onSubmit,
+  placeholder,
+  context,
+  isFocused = false,
+}) => {
+  const [suggestion, setSuggestion] = useState('');
+  const [isTabPressed, setIsTabPressed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchSuggestion = async () => {
+      if (value.length > 0 && isFocused) {
+        setIsLoading(true);
+        const newSuggestion = await generateAutoComplete({ input: value, context: context });
+        setSuggestion(newSuggestion);
+      } else {
+        setSuggestion('');
+      }
+      setIsLoading(false);
+    };
+
+    fetchSuggestion();
+  }, [value, isFocused, context]);
+
+  useInput((input, key) => {
+    if (isFocused && key.tab && suggestion) {
+      onChange(value + suggestion);
+      setIsTabPressed(true);
+    } else {
+      setIsTabPressed(false);
+    }
+  });
+
+  if (!isFocused) {
+    return null;
+  }
+
+  const memoizedTextInput = useMemo(() => (
+    <TextInput
+      value={value}
+      onChange={onChange}
+      onSubmit={onSubmit}
+      placeholder={placeholder}
+    />
+  ), [value, onChange, onSubmit, placeholder]);
+
+  return (
+    <Box flexDirection="column">
+      {memoizedTextInput}
+      {isLoading && <Text color="gray">Loading...</Text>}
+      {!isTabPressed && suggestion && (
+        <Text color="gray"> {suggestion}</Text>
+      )}
+    </Box>
+  );
+};
+
+export default AutoCompleteInput;
+
+```
+
+## src/cli/components/JSONSchemaTree.tsx
+
+**Description:** No description available
+
+```typescript
+import React from 'react';
+import { Box, Text } from 'ink';
+import chalk from 'chalk';
+import { JSONSchema7, JSONSchema7TypeName } from 'json-schema';
+
+// interface JSONSchema7 {
+//     type?: string | string[];
+//     properties?: { [key: string]: JSONSchema7 };
+//     items?: JSONSchema7 | boolean;
+//     required?: string[];
+//     description?: string;
+//     enum?: any[];
+//     oneOf?: JSONSchema7[];
+//     anyOf?: JSONSchema7[];
+//     allOf?: JSONSchema7[];
+//     [key: string]: any;
+// }
+
+interface SchemaTreeProps {
+    schema: JSONSchema7;
+    name?: string;
+    indent?: number;
+}
+
+const SchemaTree: React.FC<SchemaTreeProps> = ({ schema, name = 'Schema', indent = 0 }) => {
+    const renderField = (key: string, value: JSONSchema7 | boolean) => {
+        const type = typeof value === 'boolean' ? (value ? 'any' : 'never') :
+            Array.isArray(value.type) ? value.type.join(' | ') :
+                value.type || 'any';
+
+        return (
+            <Box key={key} flexDirection="column" marginLeft={indent * 2}>
+                <Text>
+                    {chalk.cyan(key)}: {chalk.yellow(type)}
+                    {value && typeof value === 'object' && value.description &&
+                        <Text color="gray"> - {value.description}</Text>}
+                    {value && typeof value === 'object' && value.enum &&
+                        <Text color="gray"> (enum: {value.enum.join(', ')})</Text>}
+                </Text>
+                {value && typeof value === 'object' && value.properties &&
+                    Object.entries(value.properties).map(([propKey, propValue]) =>
+                        renderField(propKey, propValue as JSONSchema7)
+                    )}
+                {value && typeof value === 'object' && value.items &&
+                    <SchemaTree schema={value.items as JSONSchema7} name="items" indent={indent + 1} />}
+                {/* {value && typeof value === 'object' && (value.oneOf || value.anyOf || value.allOf) &&
+                    renderCombiningSchemas(value)} */}
+            </Box>
+        );
+    };
+
+    // const renderCombiningSchemas = (schema: JSONSchema7) => {
+    //     const renderSchemas = (schemas: JSONSchema7[], keyword: string) => (
+    //         <Box flexDirection="column" marginLeft={2}>
+    //             <Text>{keyword}:</Text>
+    //             {schemas.map((s, index) => (
+    //                 <SchemaTree key={index} schema={s} name={`Option ${index + 1}`} indent={indent + 2} />
+    //             ))}
+    //         </Box>
+    //     );
+
+    //     return (
+    //         <Box flexDirection="column">
+    //             {schema.oneOf && renderSchemas(schema.oneOf, 'oneOf')}
+    //             {schema.anyOf && renderSchemas(schema.anyOf, 'anyOf')}
+    //             {schema.allOf && renderSchemas(schema.allOf, 'allOf')}
+    //         </Box>
+    //     );
+    // };
+
+    return (
+        <Box flexDirection="column" marginLeft={indent * 2}>
+            <Text bold>
+                {name} ({schema.type || 'object'})
+            </Text>
+            {schema.properties &&
+                Object.entries(schema.properties).map(([key, value]) =>
+                    renderField(key, value as JSONSchema7)
+                )}
+            {schema.required && schema.required.length > 0 && (
+                <Text color="red">
+                    Required: {schema.required.join(', ')}
+                </Text>
+            )}
+        </Box>
+    );
+};
+
+const JsonSchemaTree: React.FC<{ schema: JSONSchema7 }> = ({ schema }) => {
+    return (
+        <Box flexDirection="column" borderStyle="round" borderColor="green" padding={1}>
+            <SchemaTree schema={schema} />
+        </Box>
+    );
+};
+export default JsonSchemaTree;
+```
+
+## src/cli/components/MultiOptionSelect.tsx
+
+**Description:** No description available
+
+```typescript
+import React, { useState, useEffect } from 'react';
+import { Box, Text, useInput } from 'ink';
+import { THEME_COLORS } from '../uiConfig';
+
+interface Option {
+  label: string;
+  value: string;
+  description?: string;
+}
+
+interface MultiOptionSelectProps {
+  options: Option[];
+  onSelect: (selectedOptions: Option[]) => void;
+  onCancel?: () => void;
+  label?: string;
+  separator?: string;
+  maxSelections?: number;
+  isFocused?: boolean;
+}
+
+const MultiOptionSelect: React.FC<MultiOptionSelectProps> = ({
+  options,
+  onSelect,
+  onCancel,
+  label = 'Select options:',
+  separator = '─',
+  maxSelections = Infinity,
+  isFocused = false,
+}) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedOptions, setSelectedOptions] = useState<Option[]>([]);
+
+  useInput((input, key) => {
+    if (!isFocused) return;
+    if (key.upArrow) {
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1));
+    } else if (key.downArrow) {
+      setSelectedIndex((prev) => (prev < options.length - 1 ? prev + 1 : 0));
+    } else if (input === ' ') {
+      const option = options[selectedIndex];
+      setSelectedOptions((prev) => {
+        if (prev.includes(option)) {
+          return prev.filter((o) => o !== option);
+        } else if (prev.length < maxSelections) {
+          return [...prev, option];
+        }
+        return prev;
+      });
+    } else if (key.return) {
+      onSelect(selectedOptions);
+    } else if (input === 'c' && onCancel) {
+      onCancel();
+    }
+  });
+
+  return (
+    <Box flexDirection="column">
+      <Text bold>{label}</Text>
+      <Text color={THEME_COLORS.secondary}>
+        Use ↑↓ arrows to move, Space to select, Enter to confirm, C to cancel
+      </Text>
+      <Text>{separator.repeat(20)}</Text>
+      {options.map((option, index) => (
+        <Box key={option.value} flexDirection="column">
+          <Text color={index === selectedIndex ? THEME_COLORS.primary : undefined}>
+            {index === selectedIndex ? '> ' : '  '}
+            {selectedOptions.includes(option) ? '🔥 ' : '○ '}
+            {option.label}
+          </Text>
+          {option.description && (
+            <Text color={THEME_COLORS.secondary} dimColor>
+              {'    '}
+              {option.description}
+            </Text>
+          )}
+        </Box>
+      ))}
+      <Text color={THEME_COLORS.secondary}>
+        Selected: {selectedOptions.length} / {maxSelections === Infinity ? 'Unlimited' : maxSelections}
+      </Text>
+    </Box>
+  );
+};
+
+export default MultiOptionSelect;
+```
+
+## src/cli/components/OptionSelect.tsx
+
+**Description:** No description available
+
+```typescript
+import React, { useState } from 'react';
+import { Box, Text, useInput } from 'ink';
+import { THEME_COLORS } from '../uiConfig';
+
+interface Option {
+  label: string;
+  value: string;
+  description?: string;
+}
+
+interface OptionSelectProps {
+  options: Option[];
+  onSelect: (option: Option) => void;
+  onCancel?: () => void;
+  label?: string;
+  separator?: string;
+  isFocused?: boolean;
+}
+
+const OptionSelect: React.FC<OptionSelectProps> = ({
+  options,
+  onSelect,
+  onCancel,
+  label = 'Select an option:',
+  separator = '─',
+  isFocused = false,
+}) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useInput((input, key) => {
+    if (!isFocused) return;
+    if (key.upArrow) {
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1));
+    } else if (key.downArrow) {
+      setSelectedIndex((prev) => (prev < options.length - 1 ? prev + 1 : 0));
+    } else if (key.return) {
+      onSelect(options[selectedIndex]);
+    } else if (input === 'c' && onCancel) {
+      onCancel();
+    }
+  }, {
+    isActive: isFocused
+  });
+
+  return (
+    <Box flexDirection="column">
+      <Text bold>{label}</Text>
+      <Text color={THEME_COLORS.secondary}>Use ↑↓ arrows to move, Enter to select, C to cancel</Text>
+      <Text>{separator.repeat(20)}</Text>
+      {options.map((option, index) => (
+        <Box key={option.value} flexDirection="column">
+          <Text color={index === selectedIndex ? THEME_COLORS.primary : undefined}>
+            {index === selectedIndex ? '> ' : '  '}
+            {option.label}
+          </Text>
+          {option.description && (
+            <Text color={THEME_COLORS.secondary} dimColor>
+              {'  '}
+              {option.description}
+            </Text>
+          )}
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
+export default OptionSelect;
 ```
 
