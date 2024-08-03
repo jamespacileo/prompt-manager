@@ -1,3 +1,3 @@
-import SelectComponent from './SelectComponent';
+import SelectComponent from "./SelectComponent";
 
 export default SelectComponent;

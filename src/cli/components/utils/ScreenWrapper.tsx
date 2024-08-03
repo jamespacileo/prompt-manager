@@ -3,16 +3,16 @@ import ContentWrapper from "../ui/ContentWrapper";
 import ScreenHeader from "../ui/ScreenHeader";
 
 interface ScreenWrapperProps {
-  title: string;
-  children: React.ReactNode;
+	title: string;
+	children: React.ReactNode;
 }
 
 export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
-  title,
-  children,
+	title,
+	children,
 }) => (
-  <Box flexDirection="column">
-    <ScreenHeader title={title} />
-    <ContentWrapper>{children}</ContentWrapper>
-  </Box>
+	<Box flexDirection="column">
+		<ScreenHeader title={title} />
+		<ContentWrapper>{children}</ContentWrapper>
+	</Box>
 );

@@ -1,29 +1,29 @@
-import { Box, BoxProps } from "ink";
+import { Box, type BoxProps } from "ink";
 
-import React from "react";
+import type React from "react";
 
 interface ContentWrapperProps extends BoxProps {
-  borderColor?: string;
-  children: React.ReactNode;
+	borderColor?: string;
+	children: React.ReactNode;
 }
 
 const ContentWrapper: React.FC<ContentWrapperProps> = ({
-  children,
-  borderColor = "blue",
-  ...props
+	children,
+	borderColor = "blue",
+	...props
 }) => {
-  return (
-    <Box
-      // borderStyle="round"
-      // borderTop={true}
-      flexDirection="column"
-      // borderColor={borderColor}
-      padding={1}
-      {...props}
-    >
-      {children}
-    </Box>
-  );
+	return (
+		<Box
+			// borderStyle="round"
+			// borderTop={true}
+			flexDirection="column"
+			// borderColor={borderColor}
+			padding={1}
+			{...props}
+		>
+			{children}
+		</Box>
+	);
 };
 
 export default ContentWrapper;

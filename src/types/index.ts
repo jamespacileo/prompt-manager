@@ -1,13 +1,13 @@
-import {
-  IPrompt,
-  IPromptManagerCLI,
-  IPromptCategory,
-  IPromptManagerLibrary
-} from './interfaces';
+import type {
+	IPrompt,
+	IPromptManagerCLI,
+	IPromptCategory,
+	IPromptManagerLibrary,
+} from "./interfaces";
 
 export type {
-  IPrompt as Prompt,
-  IPromptManagerCLI as PromptManagerCLI,
-  IPromptCategory as PromptCategory,
-  IPromptManagerLibrary as PromptManagerLibrary
+	IPrompt as Prompt,
+	IPromptManagerCLI as PromptManagerCLI,
+	IPromptCategory as PromptCategory,
+	IPromptManagerLibrary as PromptManagerLibrary,
 };
