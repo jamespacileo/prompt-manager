@@ -24,8 +24,8 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
 
 	return (
 		<Box flexDirection="column">
-			{shortcuts.map((shortcut, index) => (
-				<Text key={index}>
+			{shortcuts.map((shortcut) => (
+				<Text key={shortcut.key}>
 					Press {chalk.bold(shortcut.key)} to {shortcut.description}
 				</Text>
 			))}

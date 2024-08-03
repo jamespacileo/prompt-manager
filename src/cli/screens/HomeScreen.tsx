@@ -49,7 +49,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ onNavigate }) => {
 				<Text bold>Welcome to Prompt Manager</Text>
 				<Text>Use arrow keys to navigate, Enter to select</Text>
 				<PaginatedList
-					items={menuItems}
+					items={menuItems.map((item) => ({ ...item, id: item.key }))}
 					itemsPerPage={menuItems.length}
 					renderItem={renderMenuItem}
 					onSelectItem={handleSelectItem}

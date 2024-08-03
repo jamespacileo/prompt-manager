@@ -35,7 +35,11 @@ export class FileTransaction {
 			for (const op of this.operations) {
 				switch (op.type) {
 					case "write":
-						await fs.writeFile(op.path, op.data!);
+						if (op.data !== undefined) {
+							await fs.writeFile(op.path, op.data);
+						} else {
+							console.error("Write operation missing data");
+						}
 						break;
 					case "delete":
 						await fs.remove(op.path);

@@ -9,7 +9,9 @@ interface PromptListProps {
 }
 
 const PromptList: React.FC<PromptListProps> = ({ onSelectPrompt }) => {
-	const [prompts, setPrompts] = useState<any[]>([]);
+	const [prompts, setPrompts] = useState<
+		Array<{ category: string; name: string; version: string }>
+	>([]);
 	const [selectedIndex, setSelectedIndex] = useState(0);
 
 	useEffect(() => {
@@ -28,8 +30,11 @@ const PromptList: React.FC<PromptListProps> = ({ onSelectPrompt }) => {
 
 	return (
 		<Box flexDirection="column">
-			{prompts.map((prompt, index) => (
-				<Text key={index} color={index === selectedIndex ? "green" : undefined}>
+			{prompts.map((prompt) => (
+				<Text
+					key={`${prompt.category}-${prompt.name}`}
+					color={prompt === prompts[selectedIndex] ? "green" : undefined}
+				>
 					{prompt.category}/{prompt.name} (v{prompt.version})
 				</Text>
 			))}

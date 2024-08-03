@@ -1,5 +1,5 @@
-import React from "react";
 import { Text } from "ink";
+import React from "react";
 
 class ErrorBoundary extends React.Component<
 	{ children: React.ReactNode },

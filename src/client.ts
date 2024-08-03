@@ -1,16 +1,16 @@
 import { Container, Service } from "typedi";
 import { Inject } from "typedi";
+import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
 import type { PromptFileSystem } from "./promptFileSystem";
 import type { PromptManager } from "./promptManager";
-import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
 import type {
 	IAsyncIterableStream,
 	IPrompt,
+	IPromptCategory,
 	IPromptInput,
 	IPromptManagerLibrary,
-	IPromptOutput,
-	IPromptCategory,
 	IPromptModel,
+	IPromptOutput,
 } from "./types/interfaces";
 
 @Service()

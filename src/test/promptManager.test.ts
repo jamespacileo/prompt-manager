@@ -216,7 +216,6 @@ describe("PromptManager", () => {
 		expect(retrievedPrompt.template).toBe(
 			updatedPrompt.template ?? testPrompt.template,
 		);
-		
 	});
 
 	test("Delete prompt", async () => {

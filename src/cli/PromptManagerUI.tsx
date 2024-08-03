@@ -57,7 +57,14 @@ const PromptManagerUI: FC<PromptManagerUIProps> = ({
 		if (initialScreen === "test") {
 			setCurrentWizardStep(initialWizardStep);
 		}
-	}, []);
+	}, [
+		initialScreen,
+		initialPrompt,
+		initialWizardStep,
+		setCurrentScreen,
+		setSelectedPrompt,
+		setCurrentWizardStep,
+	]);
 
 	useEffect(() => {
 		const cleanup = () => {
@@ -76,39 +83,47 @@ const PromptManagerUI: FC<PromptManagerUIProps> = ({
 		}
 	});
 
-	const screenComponents: Record<Screen, React.ReactNode> = {
-		home: (
+	const screenComponents: Record<Screen, () => JSX.Element> = {
+		home: () => (
 			<HomeScreen onNavigate={(screen: Screen) => setCurrentScreen(screen)} />
 		),
-		list: <PromptListScreen />,
-		detail: selectedPrompt ? (
-			<PromptDetailScreen
-				prompt={selectedPrompt}
-				onBack={() => setCurrentScreen("list")}
-				initialVersion={initialVersion}
-			/>
-		) : (
-			<Text>No prompt selected. Please select a prompt from the list.</Text>
-		),
-		create: <PromptCreateScreen />,
-		status: <StatusScreen />,
-		help: <HelpScreen />,
-		amend: <PromptAmendScreen />,
-		import: <PromptImportScreen />,
-		evaluate: selectedPrompt ? (
-			<PromptEvaluationScreen
-				prompt={selectedPrompt}
-				onBack={() => setCurrentScreen("detail")}
-			/>
-		) : (
-			<Text>No prompt selected. Please select a prompt from the list.</Text>
-		),
-		generate: <PromptGenerateScreen />,
-		test: <TestScreen />,
+		list: () => <PromptListScreen />,
+		detail: () =>
+			selectedPrompt ? (
+				<PromptDetailScreen
+					prompt={selectedPrompt}
+					onBack={() => setCurrentScreen("list")}
+					initialVersion={initialVersion}
+				/>
+			) : (
+				<Text>No prompt selected. Please select a prompt from the list.</Text>
+			),
+		create: () => <PromptCreateScreen />,
+		status: () => <StatusScreen />,
+		help: () => <HelpScreen />,
+		amend: () => <PromptAmendScreen />,
+		import: () => <PromptImportScreen />,
+		evaluate: () =>
+			selectedPrompt ? (
+				<PromptEvaluationScreen
+					prompt={selectedPrompt}
+					onBack={() => setCurrentScreen("detail")}
+				/>
+			) : (
+				<Text>No prompt selected. Please select a prompt from the list.</Text>
+			),
+		generate: () => <PromptGenerateScreen />,
+		test: () => <TestScreen />,
 	};
 
-	const renderScreen = () =>
-		screenComponents[currentScreen as Screen] ?? <Text>Screen not found</Text>;
+	const renderScreen = () => {
+		const ScreenComponent = screenComponents[currentScreen as Screen];
+		return ScreenComponent ? (
+			<ScreenComponent />
+		) : (
+			<Text>Screen not found</Text>
+		);
+	};
 
 	return (
 		<Layout>

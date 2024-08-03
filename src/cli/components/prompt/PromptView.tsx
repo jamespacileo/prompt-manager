@@ -29,7 +29,7 @@ const RenderSection: React.FC<RenderSectionProps> = ({
 		<Box paddingLeft={showTitle ? 1 : 0}>
 			{Array.isArray(content) ? (
 				content.map((item, index) => (
-					<Text key={index}>{chalk.white(item)}</Text>
+					<Text key={item}>{chalk.white(item)}</Text>
 				))
 			) : content ? (
 				<Text>{chalk.white(content)}</Text>
@@ -41,7 +41,7 @@ const RenderSection: React.FC<RenderSectionProps> = ({
 );
 
 interface RenderObjectProps extends BoxProps {
-	obj: Record<string, any>;
+	obj: Record<string, unknown>;
 	indent?: number;
 }
 
@@ -51,8 +51,8 @@ const RenderObject: React.FC<RenderObjectProps> = ({
 	...boxProps
 }) => (
 	<Box flexDirection="column" paddingLeft={indent} {...boxProps}>
-		{Object.entries(obj).map(([key, value], index) => (
-			<Text key={index}>
+		{Object.entries(obj).map(([key, value]) => (
+			<Text key={key}>
 				{chalk.yellow(key)}:{" "}
 				{typeof value === "object"
 					? JSON.stringify(value, null, 2)
@@ -68,15 +68,15 @@ const RenderObject: React.FC<RenderObjectProps> = ({
 );
 
 interface RenderSchemaProps extends BoxProps {
-	schema: Record<string, any>;
+	schema: Record<string, unknown>;
 }
 
 const RenderSchema: React.FC<RenderSchemaProps> = ({ schema, ...boxProps }) => {
 	const yamlString = yaml.dump(schema, { indent: 2 });
 	return (
 		<Box flexDirection="column" {...boxProps}>
-			{yamlString.split("\n").map((line, index) => (
-				<Text key={index}>
+			{yamlString.split("\n").map((line) => (
+				<Text key={line}>
 					{line.startsWith(" ") ? chalk.cyan(line) : chalk.yellow(line)}
 				</Text>
 			))}
@@ -106,7 +106,7 @@ const RenderTemplate: React.FC<RenderTemplateProps> = ({
 );
 
 interface PromptViewProps {
-	prompt: Partial<IPrompt<any, any>>;
+	prompt: Partial<IPrompt<Record<string, unknown>, Record<string, unknown>>>;
 	compact?: boolean;
 }
 

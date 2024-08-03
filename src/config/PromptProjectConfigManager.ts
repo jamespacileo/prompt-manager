@@ -169,13 +169,17 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 			logger.info(
 				`preferredModels:  ${chalk.cyan(this.config.preferredModels.join(", "))}`,
 			);
-			logger.info("modelParams:");
-			Object.entries(this.config.modelParams).forEach(([model, params]) => {
-				logger.info(`  ${model}:`);
-				Object.entries(params).forEach(([key, value]) => {
-					logger.info(`    ${key}: ${chalk.cyan(value)}`);
-				});
-			});
+			const modelParamsEntries = Object.entries(this.config.modelParams);
+			const formattedModelParams = modelParamsEntries
+				.map(([model, params]) => {
+					const paramEntries = Object.entries(params);
+					const formattedParams = paramEntries
+						.map(([key, value]) => `    ${key}: ${chalk.cyan(value)}`)
+						.join("\n");
+					return `  ${model}:\n${formattedParams}`;
+				})
+				.join("\n");
+			logger.info(`modelParams:\n${formattedModelParams}`);
 			logger.info(`verbosity:        ${chalk.cyan(this.config.verbosity)}`);
 			logger.info("\n");
 		}

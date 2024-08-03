@@ -27,9 +27,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 		(input, key) => {
 			if (key.return) {
 				onSelect(
-					Array.from(selectedOptions).map(
-						(value) => options.find((option) => option.value === value)!,
-					),
+					Array.from(selectedOptions)
+						.map((value) => options.find((option) => option.value === value))
+						.filter((option): option is Option => option !== undefined),
 				);
 			} else if (key.upArrow) {
 				setFocusedIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -41,10 +41,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 				setSelectedOptions((prev) => {
 					const newSet = new Set(prev);
 					const focusedOption = options[focusedIndex];
-					if (newSet.has(focusedOption.value)) {
-						newSet.delete(focusedOption.value);
-					} else {
-						newSet.add(focusedOption.value);
+					if (focusedOption) {
+						if (newSet.has(focusedOption.value)) {
+							newSet.delete(focusedOption.value);
+						} else {
+							newSet.add(focusedOption.value);
+						}
 					}
 					return newSet;
 				});

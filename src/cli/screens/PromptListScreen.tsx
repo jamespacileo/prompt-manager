@@ -1,3 +1,4 @@
+import type { PromptModel } from "@/promptModel";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import { useAtom } from "jotai";
@@ -143,7 +144,7 @@ const PromptListScreen: React.FC = () => {
 						</Box>
 					</Box>
 					<PaginatedList
-						items={filteredPrompts as IPromptModel[]}
+						items={filteredPrompts as PromptModel[]}
 						itemsPerPage={ITEMS_PER_PAGE}
 						renderItem={renderPrompt}
 						onSelectItem={handleSelectPrompt}

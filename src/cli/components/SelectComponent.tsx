@@ -11,7 +11,6 @@ export interface Option {
 	description?: string;
 }
 
-
 interface SelectComponentProps<T extends boolean> {
 	options: Option[];
 	onSelect: T extends true

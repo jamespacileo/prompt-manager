@@ -1,3 +1,4 @@
+import { logger } from "@/utils/logger";
 import { Box, Text, useInput } from "ink";
 import { useAtom } from "jotai";
 import type React from "react";
@@ -6,7 +7,6 @@ import { alertMessageAtom, currentScreenAtom } from "../atoms";
 import { generateTypes } from "../commands";
 import FireSpinner from "../components/ui/FireSpinner";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import { logger } from "@/utils/logger";
 
 const PromptGenerateScreen: React.FC = () => {
 	const [, setCurrentScreen] = useAtom(currentScreenAtom);

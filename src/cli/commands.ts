@@ -75,12 +75,6 @@ export async function listPrompts(): Promise<
 	const promptManager = Container.get(PromptManager);
 	const prompts = await promptManager.listPrompts({});
 	return prompts;
-	return prompts.map((prompt) => ({
-		name: prompt.name,
-		category: prompt.category,
-		version: prompt.version || "1.0.0",
-		filePath: prompt.filePath || "",
-	}));
 }
 
 export async function getPromptDetails(props: {

@@ -100,6 +100,15 @@ export class PromptModel<
 		this.configuration = this.initializeConfiguration();
 	}
 
+	get id(): string {
+		// slug with category and name
+		return `${this.category}/${this.name}`;
+	}
+
+	get key(): string {
+		return this.id;
+	}
+
 	async getFilePath(): Promise<string> {
 		const promptsDir = this.configManager.getConfig("promptsDir");
 		const filePath = path.join(

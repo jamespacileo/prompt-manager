@@ -1,3 +1,4 @@
+import { logger } from "@/utils/logger";
 import { Box, Text, useInput } from "ink";
 import { useAtom } from "jotai";
 import type React from "react";
@@ -11,7 +12,6 @@ import FireSpinner from "../components/ui/FireSpinner";
 import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { THEME_COLORS } from "../uiConfig";
-import { logger } from "@/utils/logger";
 
 interface PromptEvaluationScreenProps {
 	prompt: { category: string; name: string };
@@ -39,7 +39,6 @@ const PromptEvaluationScreen: React.FC<PromptEvaluationScreenProps> = ({
 			setCurrentPrompt,
 		);
 	}, [prompt.category, prompt.name]);
-
 
 	const handleEvaluate = async () => {
 		setEvaluation(null);

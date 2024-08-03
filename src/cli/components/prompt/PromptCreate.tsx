@@ -3,10 +3,10 @@ import type React from "react";
 import { useState } from "react";
 import { currentScreenAtom, selectedPromptAtom } from "../../atoms";
 
+import { logger } from "@/utils/logger";
 import TextInput from "ink-text-input";
 import { useAtom } from "jotai";
 import { createPrompt } from "../../commands";
-import { logger } from "@/utils/logger";
 
 interface PromptCreateProps {
 	onComplete: () => void;

@@ -2,6 +2,8 @@
 bun.lockb
 
 project_documentation.md
+biome_errors.md
+biome_errors.txt
 testCategory
 test-prompts-manager
 *.js

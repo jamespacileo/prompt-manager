@@ -105,11 +105,11 @@ describe("Type Generation Utilities", () => {
 	test("generateTestInputs", () => {
 		const result = generateTestInputs(sampleSchema, 3);
 		expect(result).toHaveLength(3);
-		result.forEach((input) => {
+		for (const input of result) {
 			expect(input).toHaveProperty("name");
 			expect(input).toHaveProperty("age");
 			expect(input).toHaveProperty("isStudent");
-		});
+		}
 		expect(result).toMatchSnapshot();
 	});
 });

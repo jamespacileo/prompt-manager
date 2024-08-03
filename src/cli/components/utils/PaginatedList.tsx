@@ -2,14 +2,14 @@ import chalk from "chalk";
 import { Box, Text, useInput } from "ink";
 import { useState } from "react";
 
-interface PaginatedListProps<T> {
+interface PaginatedListProps<T extends { id: string } | { key: string }> {
 	items: T[];
 	itemsPerPage: number;
-	renderItem: (item: T, index: number, isSelected: boolean) => React.ReactNode;
+	renderItem: (item: T, index: number, isSelected: boolean) => JSX.Element;
 	onSelectItem: (item: T) => void;
 }
 
-export const PaginatedList = <T,>({
+export const PaginatedList = <T extends { id: string } | { key: string }>({
 	items,
 	itemsPerPage,
 	renderItem,
@@ -45,7 +45,9 @@ export const PaginatedList = <T,>({
 	return (
 		<Box flexDirection="column">
 			{paginatedItems.map((item, index) => (
-				<Box key={index}>
+				<Box
+					key={typeof item === "object" && "id" in item ? item.id : item.key}
+				>
 					{renderItem(item, index, index === selectedIndex)}
 				</Box>
 			))}

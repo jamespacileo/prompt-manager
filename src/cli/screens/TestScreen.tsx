@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { promptCategoryKeys } from "@/fixtures/categories";
 import { Box, Text, useFocusManager, useInput } from "ink";
 import { useAtom } from "jotai";
+import { useCallback, useEffect, useState } from "react";
 import {
 	categoryAtom,
 	currentWizardStepAtom,
 	promptNameAtom,
 	tagsAtom,
 } from "../atoms";
-import { promptCategoryKeys } from "@/fixtures/categories";
 import AutoCompleteInput from "../components/AutoCompleteInput";
 import MultiOptionSelect from "../components/MultiOptionSelect";
 import OptionSelect from "../components/OptionSelect";
 import OptionCardGrid from "../components/_atoms/OptionCardGrid";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import { THEME_COLORS } from "../uiConfig";
 import type { Option } from "../components/_atoms/types";
 import ErrorBoundary from "../components/utils/ErrorBoundary";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
+import { THEME_COLORS } from "../uiConfig";
 
 const tagOptions = [
 	{ label: "AI", value: "ai" },
