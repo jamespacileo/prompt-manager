@@ -26,7 +26,13 @@ const OptionCard: React.FC<OptionCardProps> = ({
 			flexDirection="column"
 			justifyContent="space-between"
 			borderStyle="round"
-			borderColor={borderColor}
+			borderColor={
+				isSelected
+					? THEME_COLORS.selected
+					: isActive
+						? borderColor
+						: THEME_COLORS.deselected
+			}
 			paddingX={1}
 			paddingY={0}
 			marginX={0}
@@ -34,8 +40,14 @@ const OptionCard: React.FC<OptionCardProps> = ({
 		>
 			<Box width="100%">
 				<Text
-					color={isActive ? THEME_COLORS.primary : undefined}
-					bold={isActive}
+					color={
+						isSelected
+							? THEME_COLORS.selected
+							: isActive
+								? THEME_COLORS.primary
+								: undefined
+					}
+					bold={isActive || isSelected}
 				>
 					{isSelected ? "✓ " : "  "}
 					{label}
@@ -43,7 +55,11 @@ const OptionCard: React.FC<OptionCardProps> = ({
 			</Box>
 			{description && (
 				<Box width="100%">
-					<Text color={THEME_COLORS.secondary} dimColor>
+					<Text
+						color={isActive ? "#ffffff" : THEME_COLORS.secondary}
+						dimColor={!isActive}
+					>
+						{"  "}
 						{description.length > 50
 							? `${description.slice(0, 47)}...`
 							: description}

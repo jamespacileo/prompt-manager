@@ -46,6 +46,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.33",
     "@ai-sdk/openai": "^0.0.40",
+    "@inkjs/ui": "^2.0.0",
     "@inquirer/prompts": "^5.3.2",
     "@types/inquirer": "^9.0.7",
     "@types/inquirer-autocomplete-prompt": "^3.0.3",

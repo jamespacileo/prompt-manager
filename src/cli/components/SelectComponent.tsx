@@ -26,7 +26,7 @@ interface SelectComponentProps<T extends boolean> {
 	maxSelections?: number;
 	isFocused?: boolean;
 	isMultiSelect: T;
-	maxVisibleOptions?: number;
+	itemsPerPage?: number;
 }
 
 const SelectComponent = <T extends boolean>({
@@ -37,10 +37,10 @@ const SelectComponent = <T extends boolean>({
 	label = "Select option(s):",
 	helpText,
 	separator = "─",
+	itemsPerPage = 10,
 	maxSelections = Number.POSITIVE_INFINITY,
 	isFocused = false,
 	isMultiSelect,
-	maxVisibleOptions = 9,
 }: SelectComponentProps<T>) => {
 	return (
 		<Box flexDirection="column">
@@ -58,6 +58,7 @@ const SelectComponent = <T extends boolean>({
 				onSubmit={onSubmit}
 				onCancel={onCancel}
 				isMultiSelect={isMultiSelect}
+				itemsPerPage={itemsPerPage}
 				// maxSelections={maxSelections}
 				isFocused={isFocused}
 				// maxVisibleOptions={maxVisibleOptions}
@@ -82,11 +83,11 @@ if (import.meta.main) {
 	const testOptions: Option[] = generateRandomOptions(20);
 
 	const TestComponent: React.FC = () => {
-		const handleSelect = (option: Option) => {
+		const handleSelect = (option: Option | Option[]) => {
 			console.log("Selected:", option);
 		};
 
-		const handleSubmit = (option: Option) => {
+		const handleSubmit = (option: Option | Option[]) => {
 			console.log("Submitted:", option);
 		};
 
@@ -95,8 +96,9 @@ if (import.meta.main) {
 				options={testOptions}
 				onSelect={handleSelect}
 				onSubmit={handleSubmit}
-				isMultiSelect={false}
+				isMultiSelect={true}
 				isFocused={true}
+				itemsPerPage={10}
 			/>
 		);
 	};

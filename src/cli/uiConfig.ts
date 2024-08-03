@@ -7,4 +7,6 @@ export const THEME_COLORS = {
 	heading: "#f1f5f9",
 	error: "#ef4444",
 	highlight: "#3b82f6",
+	deselected: "#1e293b",
+	selected: "#d97706",
 };
