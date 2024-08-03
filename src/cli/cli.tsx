@@ -27,6 +27,8 @@ async function ensureInitialized() {
 	logger.info("Initialized");
 }
 
+await ensureInitialized();
+
 async function main() {
 	const program = new Command();
 

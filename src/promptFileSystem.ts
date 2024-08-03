@@ -1,9 +1,11 @@
+import "reflect-metadata";
 import path from "node:path";
 import fs from "fs-extra";
 import lockfile from "proper-lockfile";
 import { Inject, Service } from "typedi";
 import { z } from "zod";
-import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
+// biome-ignore lint/style/useImportType: <explanation>
+import { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
 import { PromptModel } from "./promptModel";
 import { PromptSchema } from "./schemas/prompts";
 import type {
@@ -44,7 +46,10 @@ export const DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
 export class PromptFileSystem implements IPromptFileSystem {
 	private initialized = false;
 
-	constructor(@Inject() private configManager: PromptProjectConfigManager) {
+	constructor(
+		@Inject()
+		private configManager: PromptProjectConfigManager,
+	) {
 		const basePath = this.configManager.getBasePath();
 		const promptsDir = this.configManager.getPromptsDir();
 		logger.debug(
@@ -543,7 +548,9 @@ export class PromptFileSystem implements IPromptFileSystem {
 
 			logger.debug(`Processing category: ${cat}`);
 			const categoryDir = this.getCategoryDir({ category: cat });
-			const promptDirs = await fs.readdir(categoryDir, { withFileTypes: true });
+			const promptDirs = await fs.readdir(categoryDir, {
+				withFileTypes: true,
+			});
 
 			logger.debug(`Prompts in category ${cat}: ${promptDirs.length}`);
 			for (const prompt of promptDirs) {

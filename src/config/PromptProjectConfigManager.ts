@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import path from "node:path";
 import chalk from "chalk";
 import { type OptionsSync, cosmiconfig } from "cosmiconfig";
