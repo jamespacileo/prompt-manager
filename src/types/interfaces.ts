@@ -17,16 +17,13 @@ import type { Config } from "../schemas/config";
  * Represents the input structure for a prompt.
  * This can be extended to include any key-value pairs.
  */
-type IPromptInput<T extends Record<string, unknown> = Record<string, unknown>> =
-	T;
+type IPromptInput<T extends Record<string, any> = Record<string, any>> = T;
 
 /**
  * Represents the output structure for a prompt.
  * This can be extended to include any key-value pairs.
  */
-type IPromptOutput<
-	T extends Record<string, unknown> = Record<string, unknown>,
-> = T;
+type IPromptOutput<T extends Record<string, any> = Record<string, any>> = T;
 
 /**
  * Represents the structure of a single prompt.
@@ -264,7 +261,7 @@ interface IPromptManagerLibrary<
 	 * Asynchronously initializes the Prompt Manager.
 	 * This must be called before using any other methods.
 	 */
-	initialize(props: {}): Promise<void>;
+	initialize(props: any): Promise<void>;
 
 	/**
 	 * Load all prompts from the file system.
@@ -275,9 +272,8 @@ interface IPromptManagerLibrary<
 	 * Retrieves a specific prompt.
 	 * @param props An object containing the category and name of the prompt
 	 */
-	getPrompt(props: { category: string; name: string }): IPrompt<
-		IPromptInput,
-		IPromptOutput
+	getPrompt(props: { category: string; name: string }): Promise<
+		IPrompt<IPromptInput, IPromptOutput>
 	>;
 
 	/**
@@ -309,7 +305,7 @@ interface IPromptManagerLibrary<
 	 * @param props An object containing an optional category to filter prompts
 	 */
 	listPrompts(props: { category?: string }): Promise<
-		IPromptModel<IPromptInput, IPromptOutput>[]
+		(IPrompt<Record<string, any>, Record<string, any>> & { filePath: string })[]
 	>;
 
 	/**
@@ -321,7 +317,12 @@ interface IPromptManagerLibrary<
 		category: string;
 		name: string;
 		version?: string;
-	}): Promise<void>;
+	}): Promise<{
+		action: "list" | "create" | "switch";
+		category: string;
+		name: string;
+		result: string[] | string;
+	}>;
 
 	/**
 	 * Formats a prompt with given parameters.
@@ -331,7 +332,7 @@ interface IPromptManagerLibrary<
 		category: string;
 		name: string;
 		params: Record<string, any>;
-	}): string;
+	}): Promise<string>;
 
 	/**
 	 * Access to prompt categories.
@@ -353,13 +354,13 @@ interface IPromptManagerLibrary<
 	 * Creates a new category.
 	 * @param categoryName The name of the category to create
 	 */
-	createCategory(categoryName: string): Promise<void>;
+	createCategory(props: { categoryName: string }): Promise<void>;
 
 	/**
 	 * Deletes a category.
 	 * @param categoryName The name of the category to delete
 	 */
-	deleteCategory(categoryName: string): Promise<void>;
+	deleteCategory(props: { categoryName: string }): Promise<void>;
 
 	/**
 	 * Lists all categories.
@@ -375,6 +376,16 @@ interface IPromptManagerLibrary<
 		name: string;
 		params: TInput;
 	}): Promise<TOutput>;
+
+	/**
+	 * Streams the execution of a prompt with given parameters.
+	 * @param props An object containing the category, prompt name, and parameters
+	 */
+	streamPrompt(props: {
+		category: string;
+		name: string;
+		params: TInput;
+	}): Promise<IAsyncIterableStream<string>>;
 }
 
 // Export the interfaces so they can be imported and used in other parts of the project

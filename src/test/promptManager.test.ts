@@ -209,10 +209,14 @@ describe("PromptManager", () => {
 			category: testPrompt.category,
 			name: testPrompt.name,
 		});
-
-		expect(retrievedPrompt.description).toBe(updatedPrompt.description!);
+		expect(retrievedPrompt.description).toBe(
+			updatedPrompt.description ?? testPrompt.description,
+		);
 		expect(retrievedPrompt.version).toBe("1.1.1");
-		expect(retrievedPrompt.template).toBe(updatedPrompt.template!);
+		expect(retrievedPrompt.template).toBe(
+			updatedPrompt.template ?? testPrompt.template,
+		);
+		
 	});
 
 	test("Delete prompt", async () => {

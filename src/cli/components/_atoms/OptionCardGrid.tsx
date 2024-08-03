@@ -5,25 +5,27 @@ import OptionCard from "./OptionCard";
 import type { Option } from "./types";
 import { useOptionCardGrid } from "./useOptionCardGrid";
 
-interface OptionCardGridProps {
+interface OptionCardGridProps<T extends boolean> {
 	options: Option[];
 	columns?: 1 | 2 | 3;
 	itemsPerPage?: number;
 	isFocused: boolean;
-	onSelect: (selectedOptions: Option[]) => void;
+	onSelect: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
 	onCancel?: () => void;
-	multiSelect?: boolean;
+	multiSelect: T;
 }
 
-const OptionCardGrid: React.FC<OptionCardGridProps> = ({
+const OptionCardGrid = <T extends boolean>({
 	options,
 	columns = 2,
 	itemsPerPage = 6,
 	isFocused,
 	onSelect,
 	onCancel,
-	multiSelect = false,
-}) => {
+	multiSelect,
+}: OptionCardGridProps<T>) => {
 	const {
 		visibleOptions,
 		selectedIndex,

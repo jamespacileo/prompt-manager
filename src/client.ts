@@ -1,39 +1,76 @@
-import path from "node:path";
-import fs from "fs-extra";
-import { PromptFileSystem } from "./promptFileSystem";
-import { PromptManager } from "./promptManager";
+import { Container, Service } from "typedi";
+import { Inject } from "typedi";
+import type { PromptFileSystem } from "./promptFileSystem";
+import type { PromptManager } from "./promptManager";
+import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
 import type {
 	IAsyncIterableStream,
 	IPrompt,
 	IPromptInput,
 	IPromptManagerLibrary,
 	IPromptOutput,
+	IPromptCategory,
+	IPromptModel,
 } from "./types/interfaces";
 
+@Service()
 export class PromptManagerClient implements IPromptManagerLibrary {
-	private promptFileSystem: PromptFileSystem;
-	private promptManager: PromptManager;
+	private initialized = false;
 
-	constructor() {
-		this.promptFileSystem = new PromptFileSystem();
-		this.promptManager = new PromptManager();
+	constructor(
+		@Inject() private promptFileSystem: PromptFileSystem,
+		@Inject() private promptManager: PromptManager,
+		@Inject() private configManager: PromptProjectConfigManager,
+	) {}
+
+	private handleError(error: unknown, context: string): never {
+		if (error instanceof Error) {
+			throw new Error(`${context}: ${error.message}`);
+		}
+		throw new Error(`${context}: ${String(error)}`);
 	}
 
 	async initialize(): Promise<void> {
-		await this.promptFileSystem.initialize();
-		await this.promptManager.initialize();
+		if (this.initialized) return;
+
+		try {
+			await this.configManager.initialize();
+			await this.promptFileSystem.initialize();
+			await this.promptManager.initialize();
+			this.initialized = true;
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to initialize PromptManagerClient");
+		}
+	}
+
+	private ensureInitialized(): void {
+		if (!this.initialized) {
+			throw new Error(
+				"PromptManagerClient is not initialized. Call initialize() first.",
+			);
+		}
 	}
 
 	async getPrompt(props: { category: string; name: string }): Promise<
 		IPrompt<IPromptInput, IPromptOutput>
 	> {
-		return this.promptManager.getPrompt(props);
+		this.ensureInitialized();
+		try {
+			return await this.promptManager.getPrompt(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to get prompt");
+		}
 	}
 
 	async createPrompt(props: {
 		prompt: Omit<IPrompt<IPromptInput, IPromptOutput>, "versions">;
 	}): Promise<void> {
-		await this.promptManager.createPrompt(props);
+		this.ensureInitialized();
+		try {
+			await this.promptManager.createPrompt(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to create prompt");
+		}
 	}
 
 	async updatePrompt(props: {
@@ -41,17 +78,36 @@ export class PromptManagerClient implements IPromptManagerLibrary {
 		name: string;
 		updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
 	}): Promise<void> {
-		await this.promptManager.updatePrompt(props);
+		this.ensureInitialized();
+		try {
+			await this.promptManager.updatePrompt(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to update prompt");
+		}
 	}
 
 	async deletePrompt(props: { category: string; name: string }): Promise<void> {
-		await this.promptManager.deletePrompt(props);
+		this.ensureInitialized();
+		try {
+			await this.promptManager.deletePrompt(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to delete prompt");
+		}
 	}
 
-	async listPrompts(props: { category?: string }): Promise<
-		IPrompt<IPromptInput, IPromptOutput>[]
+	async listPrompts(
+		props: { category?: string } = {},
+	): Promise<
+		Array<
+			IPrompt<Record<string, any>, Record<string, any>> & { filePath: string }
+		>
 	> {
-		return this.promptManager.listPrompts(props);
+		this.ensureInitialized();
+		try {
+			return await this.promptManager.listPrompts(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to list prompts");
+		}
 	}
 
 	async versionPrompt(props: {
@@ -59,8 +115,18 @@ export class PromptManagerClient implements IPromptManagerLibrary {
 		category: string;
 		name: string;
 		version?: string;
-	}): Promise<void> {
-		await this.promptManager.versionPrompt(props);
+	}): Promise<{
+		action: "list" | "create" | "switch";
+		category: string;
+		name: string;
+		result: string[] | string;
+	}> {
+		this.ensureInitialized();
+		try {
+			return await this.promptManager.versionPrompt(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to version prompt");
+		}
 	}
 
 	async formatPrompt(props: {
@@ -68,7 +134,12 @@ export class PromptManagerClient implements IPromptManagerLibrary {
 		name: string;
 		params: Record<string, any>;
 	}): Promise<string> {
-		return this.promptManager.formatPrompt(props);
+		this.ensureInitialized();
+		try {
+			return await this.promptManager.formatPrompt(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to format prompt");
+		}
 	}
 
 	async executePrompt(props: {
@@ -76,8 +147,12 @@ export class PromptManagerClient implements IPromptManagerLibrary {
 		name: string;
 		params: Record<string, any>;
 	}): Promise<any> {
-		const prompt = await this.getPrompt(props);
-		return prompt.execute(props.params);
+		this.ensureInitialized();
+		try {
+			return await this.promptManager.executePrompt(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to execute prompt");
+		}
 	}
 
 	async streamPrompt(props: {
@@ -85,64 +160,71 @@ export class PromptManagerClient implements IPromptManagerLibrary {
 		name: string;
 		params: Record<string, any>;
 	}): Promise<IAsyncIterableStream<string>> {
-		const prompt = await this.getPrompt(props);
-		return prompt.stream(props.params);
+		this.ensureInitialized();
+		try {
+			return await this.promptManager.streamPrompt(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to stream prompt");
+		}
+	}
+
+	async loadPrompts(): Promise<void> {
+		this.ensureInitialized();
+		try {
+			await this.promptManager.loadPrompts();
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to load prompts");
+		}
+	}
+
+	async promptExists(props: {
+		category: string;
+		name: string;
+	}): Promise<boolean> {
+		this.ensureInitialized();
+		try {
+			return await this.promptManager.promptExists(props);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to check if prompt exists");
+		}
+	}
+
+	async createCategory(props: { categoryName: string }): Promise<void> {
+		this.ensureInitialized();
+		try {
+			await this.promptManager.createCategory(props.categoryName);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to create category");
+		}
+	}
+
+	async deleteCategory({
+		categoryName,
+	}: { categoryName: string }): Promise<void> {
+		this.ensureInitialized();
+		try {
+			await this.promptManager.deleteCategory(categoryName);
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to delete category");
+		}
+	}
+
+	async listCategories(): Promise<string[]> {
+		this.ensureInitialized();
+		try {
+			return await this.promptManager.listCategories();
+		} catch (error: unknown) {
+			this.handleError(error, "Failed to list categories");
+		}
 	}
 
 	get categories(): {
-		[category: string]: {
-			[prompt: string]: IPrompt<IPromptInput, IPromptOutput>;
-		};
+		[category: string]: IPromptCategory<Record<string, any>>;
 	} {
-		return new Proxy(
-			{},
-			{
-				get: (target, category: string) => {
-					return new Proxy(
-						{},
-						{
-							get: (innerTarget, promptName: string) => {
-								return {
-									format: async (inputs: Record<string, any>) =>
-										this.formatPrompt({
-											category,
-											name: promptName,
-											params: inputs,
-										}),
-									execute: async (inputs: Record<string, any>) =>
-										this.executePrompt({
-											category,
-											name: promptName,
-											params: inputs,
-										}),
-									stream: async (inputs: Record<string, any>) =>
-										this.streamPrompt({
-											category,
-											name: promptName,
-											params: inputs,
-										}),
-									description: async () => {
-										const prompt = await this.getPrompt({
-											category,
-											name: promptName,
-										});
-										return prompt.description;
-									},
-									version: async () => {
-										const prompt = await this.getPrompt({
-											category,
-											name: promptName,
-										});
-										return prompt.version;
-									},
-								};
-							},
-						},
-					);
-				},
-			},
-		);
+		this.ensureInitialized();
+		return this.promptManager.categories;
 	}
 }
 
-export const promptManager = new PromptManagerClient();
+// Export a singleton instance
+export const promptManager = Container.get(PromptManagerClient);

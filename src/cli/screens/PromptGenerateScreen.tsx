@@ -1,11 +1,12 @@
 import { Box, Text, useInput } from "ink";
 import { useAtom } from "jotai";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { alertMessageAtom, currentScreenAtom } from "../atoms";
 import { generateTypes } from "../commands";
 import FireSpinner from "../components/ui/FireSpinner";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
+import { logger } from "@/utils/logger";
 
 const PromptGenerateScreen: React.FC = () => {
 	const [, setCurrentScreen] = useAtom(currentScreenAtom);
@@ -13,7 +14,7 @@ const PromptGenerateScreen: React.FC = () => {
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [logs, setLogs] = useState<string[]>([]);
 
-	const handleGenerate = async () => {
+	const handleGenerate = useCallback(async () => {
 		setIsGenerating(true);
 		setLogs([]);
 		try {
@@ -29,11 +30,11 @@ const PromptGenerateScreen: React.FC = () => {
 		} finally {
 			setIsGenerating(false);
 		}
-	};
+	}, [setAlertMessage]);
 
 	useEffect(() => {
 		handleGenerate();
-	}, []);
+	}, [handleGenerate]);
 
 	useInput((input, key) => {
 		if (input === "b" || key.escape) {
@@ -52,7 +53,7 @@ const PromptGenerateScreen: React.FC = () => {
 						<Text>Generation complete. Logs:</Text>
 						<Box flexDirection="column" marginY={1}>
 							{logs.map((log, index) => (
-								<Text key={index}>{log}</Text>
+								<Text key={`${index}-${log.slice(0, 10)}`}>{log}</Text>
 							))}
 						</Box>
 					</>

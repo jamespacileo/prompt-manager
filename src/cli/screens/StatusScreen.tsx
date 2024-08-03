@@ -31,7 +31,7 @@ const StatusScreen: React.FC = () => {
 			<Text>Categories: {status.categories.join(", ")}</Text>
 			<Text>Last Generated: {status.lastGenerated ?? "Never"}</Text>
 			{status.warnings.map((warning: string, index: number) => (
-				<Text key={index} color="yellow">
+				<Text key={warning} color="yellow">
 					{warning}
 				</Text>
 			))}

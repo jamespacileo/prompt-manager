@@ -12,6 +12,7 @@ import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
 import { PaginatedList } from "../components/utils/PaginatedList";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { THEME_COLORS } from "../uiConfig";
+import { logger } from "@/utils/logger";
 
 const amendOptions = [
 	{ key: "all", name: "All" },

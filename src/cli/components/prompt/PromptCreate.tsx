@@ -6,6 +6,7 @@ import { currentScreenAtom, selectedPromptAtom } from "../../atoms";
 import TextInput from "ink-text-input";
 import { useAtom } from "jotai";
 import { createPrompt } from "../../commands";
+import { logger } from "@/utils/logger";
 
 interface PromptCreateProps {
 	onComplete: () => void;

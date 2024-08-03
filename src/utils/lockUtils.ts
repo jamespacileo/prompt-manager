@@ -4,11 +4,13 @@ import { logger } from "./logger";
 const MAX_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 100; // ms
 
+type LockRelease = () => Promise<void>;
+
 export async function retryLock(
 	path: string,
 	maxRetries: number,
 	delay: number,
-): Promise<lockfile.Lock> {
+): Promise<LockRelease> {
 	for (let i = 0; i < maxRetries; i++) {
 		try {
 			return await lockfile.lock(path);
@@ -28,7 +30,7 @@ export async function withLock<T>(
 	operation: () => Promise<T>,
 	retries = MAX_RETRIES,
 ): Promise<T> {
-	let release;
+	let release: LockRelease = async () => {};
 	try {
 		release = await retryLock(path, retries, INITIAL_RETRY_DELAY);
 		return await operation();

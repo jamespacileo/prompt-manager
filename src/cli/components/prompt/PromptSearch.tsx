@@ -46,7 +46,10 @@ const PromptSearch: React.FC<PromptSearchProps> = ({ onSelectPrompt }) => {
 				placeholder="Search prompts..."
 			/>
 			{results.map((prompt, index) => (
-				<Text key={index} color={index === selectedIndex ? "green" : undefined}>
+				<Text
+					key={prompt.name}
+					color={index === selectedIndex ? "green" : undefined}
+				>
 					{prompt.category}/{prompt.name} (v{prompt.version})
 				</Text>
 			))}

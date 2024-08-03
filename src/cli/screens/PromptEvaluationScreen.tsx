@@ -11,6 +11,7 @@ import FireSpinner from "../components/ui/FireSpinner";
 import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { THEME_COLORS } from "../uiConfig";
+import { logger } from "@/utils/logger";
 
 interface PromptEvaluationScreenProps {
 	prompt: { category: string; name: string };
@@ -37,7 +38,8 @@ const PromptEvaluationScreen: React.FC<PromptEvaluationScreenProps> = ({
 		getPromptDetails({ category: prompt.category, name: prompt.name }).then(
 			setCurrentPrompt,
 		);
-	}, []);
+	}, [prompt.category, prompt.name]);
+
 
 	const handleEvaluate = async () => {
 		setEvaluation(null);
@@ -196,6 +198,7 @@ const PromptEvaluationScreen: React.FC<PromptEvaluationScreenProps> = ({
 								{stage === "selecting" && (
 									<>
 										<MultiOptionSelect
+											isMultiSelect={true}
 											options={evaluation.actionableAdvice.map(
 												(advice: string) => ({ label: advice, value: advice }),
 											)}

@@ -1,80 +1,82 @@
 import * as fs from 'fs-extra';
-import * as path from 'path';
-import { execSync } from 'child_process';
+import * as path from "node:path";
+import { execSync } from "node:child_process";
 import chalk from 'chalk';
 
 // List of relative file paths to include in the documentation
 const filesToInclude = [
-  // Core files
-  'src/promptManager.ts',
-  'src/promptModel.ts',
-  'src/promptFileSystem.ts',
-  'src/config/PromptProjectConfigManager.ts',
+	// Core files
+	"src/promptManager.ts",
+	"src/promptModel.ts",
+	"src/promptFileSystem.ts",
+	"src/config/PromptProjectConfigManager.ts",
 
-  // CLI files
-  'src/cli/cli.tsx',
-  'src/cli/commands.ts',
-  'src/cli/PromptManagerUI.tsx',
-  // 'src/cli/screens/HomeScreen.tsx',
-  // 'src/cli/screens/PromptCreateScreen.tsx',
-  // 'src/cli/screens/PromptDetailScreen.tsx',
-  // 'src/cli/screens/PromptListScreen.tsx',
-  // 'src/cli/screens/StatusScreen.tsx',
-  'src/cli/screens/TestScreen.tsx',
-  // 'src/cli/components/prompt/PromptCreate.tsx',
-  // 'src/cli/components/prompt/PromptDelete.tsx',
-  // 'src/cli/components/prompt/PromptEdit.tsx',
-  // 'src/cli/components/prompt/PromptList.tsx',
-  // 'src/cli/components/prompt/PromptSearch.tsx',
-  // 'src/cli/components/prompt/PromptView.tsx',
-  // 'src/cli/components/ui/ContentWrapper.tsx',
-  // 'src/cli/components/ui/FireSpinner.tsx',
-  // 'src/cli/components/ui/Footer.tsx',
-  // 'src/cli/components/ui/Header.tsx',
-  // 'src/cli/components/ui/InteractiveElement.tsx',
-  // 'src/cli/components/ui/Layout.tsx',
-  // 'src/cli/components/ui/Navigation.tsx',
-  // 'src/cli/components/ui/ScreenHeader.tsx',
-  // 'src/cli/components/ui/Spinner.tsx',
-  // 'src/cli/components/ui/StatusIndicator.tsx',
-  // 'src/cli/components/utils/AsyncInputHandler.tsx',
-  // 'src/cli/components/utils/ConfirmationDialog.tsx',
-  // 'src/cli/components/utils/KeyboardShortcuts.tsx',
-  // 'src/cli/components/utils/PaginatedList.tsx',
-  // 'src/cli/components/utils/ScreenWrapper.tsx',
+	// CLI files
+	// "src/cli/cli.tsx",
+	// "src/cli/commands.ts",
+	// "src/cli/PromptManagerUI.tsx",
+	"src/client.ts",
 
-  // CLI components
-  'src/cli/components/AutoCompleteInput.tsx',
-  'src/cli/components/JSONSchemaTree.tsx',
-  'src/cli/components/MultiOptionSelect.tsx',
-  'src/cli/components/OptionSelect.tsx',
+	// 'src/cli/screens/HomeScreen.tsx',
+	// 'src/cli/screens/PromptCreateScreen.tsx',
+	// 'src/cli/screens/PromptDetailScreen.tsx',
+	// 'src/cli/screens/PromptListScreen.tsx',
+	// 'src/cli/screens/StatusScreen.tsx',
+	// "src/cli/screens/TestScreen.tsx",
+	// 'src/cli/components/prompt/PromptCreate.tsx',
+	// 'src/cli/components/prompt/PromptDelete.tsx',
+	// 'src/cli/components/prompt/PromptEdit.tsx',
+	// 'src/cli/components/prompt/PromptList.tsx',
+	// 'src/cli/components/prompt/PromptSearch.tsx',
+	// 'src/cli/components/prompt/PromptView.tsx',
+	// 'src/cli/components/ui/ContentWrapper.tsx',
+	// 'src/cli/components/ui/FireSpinner.tsx',
+	// 'src/cli/components/ui/Footer.tsx',
+	// 'src/cli/components/ui/Header.tsx',
+	// 'src/cli/components/ui/InteractiveElement.tsx',
+	// 'src/cli/components/ui/Layout.tsx',
+	// 'src/cli/components/ui/Navigation.tsx',
+	// 'src/cli/components/ui/ScreenHeader.tsx',
+	// 'src/cli/components/ui/Spinner.tsx',
+	// 'src/cli/components/ui/StatusIndicator.tsx',
+	// 'src/cli/components/utils/AsyncInputHandler.tsx',
+	// 'src/cli/components/utils/ConfirmationDialog.tsx',
+	// 'src/cli/components/utils/KeyboardShortcuts.tsx',
+	// 'src/cli/components/utils/PaginatedList.tsx',
+	// 'src/cli/components/utils/ScreenWrapper.tsx',
 
-  // Types and schemas
-  // 'src/types/interfaces.ts',
-  // 'src/schemas/prompts.ts',
+	// CLI components
+	// 'src/cli/components/AutoCompleteInput.tsx',
+	// 'src/cli/components/JSONSchemaTree.tsx',
+	// 'src/cli/components/MultiOptionSelect.tsx',
+	// 'src/cli/components/OptionSelect.tsx',
 
-  // Utilities
-  // 'src/PromptManagerClientGenerator.ts',
-  // 'src/cli/aiHelpers.ts',
-  // 'src/utils/typeGeneration.ts',
-  // 'src/utils/cache.ts',
-  // 'src/utils/fileUtils.ts',
-  // 'src/utils/jsonSchemaToZod.ts',
-  // 'src/utils/logger.ts',
-  // 'src/utils/promptManagerUtils.ts',
-  // 'src/utils/versionUtils.ts',
+	// Types and schemas
+	// 'src/types/interfaces.ts',
+	// 'src/schemas/prompts.ts',
 
-  // Tests
-  // 'test/commands.test.ts',
-  // 'test/index.test.ts',
-  // 'test/promptFileSystem.test.ts',
-  // 'test/promptManager.test.ts',
-  // 'test/promptModel.test.ts',
-  // 'test/PromptProjectConfigManager.test.ts',
-  // 'test/setupEnvs.ts',
-  // 'test/setup.ts',
-  // 'test/testsUnload.ts'
-  // Add more file paths as needed
+	// Utilities
+	// 'src/PromptManagerClientGenerator.ts',
+	// 'src/cli/aiHelpers.ts',
+	// 'src/utils/typeGeneration.ts',
+	// 'src/utils/cache.ts',
+	// 'src/utils/fileUtils.ts',
+	// 'src/utils/jsonSchemaToZod.ts',
+	// 'src/utils/logger.ts',
+	// 'src/utils/promptManagerUtils.ts',
+	// 'src/utils/versionUtils.ts',
+
+	// Tests
+	// 'test/commands.test.ts',
+	// 'test/index.test.ts',
+	// 'test/promptFileSystem.test.ts',
+	// 'test/promptManager.test.ts',
+	// 'test/promptModel.test.ts',
+	// 'test/PromptProjectConfigManager.test.ts',
+	// 'test/setupEnvs.ts',
+	// 'test/setup.ts',
+	// 'test/testsUnload.ts'
+	// Add more file paths as needed
 ];
 
 // Function to get a brief description of each file (you may want to customize these)

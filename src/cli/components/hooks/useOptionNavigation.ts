@@ -2,32 +2,35 @@ import { useInput } from "ink";
 import { useEffect, useState } from "react";
 import type { Option } from "../types";
 
-interface UseOptionNavigationProps {
+interface UseOptionNavigationProps<T extends boolean> {
 	options: Option[];
-	isMultiSelect: boolean;
+	isMultiSelect: T;
 	maxSelections: number;
 	maxVisibleOptions: number;
 	isFocused: boolean;
-	onSelect: (selectedOptions: Option[]) => void;
+	onSelect: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
+	onSubmit?: (selectedOptions: T extends true ? Option[] : Option) => void;
 	onCancel?: () => void;
 }
 
-export const useOptionNavigation = ({
+export const useOptionNavigation = <T extends boolean>({
 	options,
 	isMultiSelect,
 	maxSelections,
 	maxVisibleOptions,
 	isFocused,
 	onSelect,
+	onSubmit,
 	onCancel,
-}: UseOptionNavigationProps) => {
+}: UseOptionNavigationProps<T>) => {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [selectedOptions, setSelectedOptions] = useState<Option[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
 		null,
 	);
-
 	const [pageIndex, setPageIndex] = useState(0);
 
 	const optionsPerPage = maxVisibleOptions;
@@ -51,6 +54,24 @@ export const useOptionNavigation = ({
 		});
 	};
 
+	const handleSelect = () => {
+		if (isMultiSelect) {
+			(onSelect as (selectedOptions: Option[]) => void)(selectedOptions);
+		} else {
+			(onSelect as (selectedOption: Option) => void)(options[selectedIndex]);
+		}
+	};
+
+	const handleSubmit = () => {
+		if (onSubmit) {
+			if (isMultiSelect) {
+				(onSubmit as (selectedOptions: Option[]) => void)(selectedOptions);
+			} else {
+				(onSubmit as (selectedOption: Option) => void)(options[selectedIndex]);
+			}
+		}
+	};
+
 	useInput(
 		(input, key) => {
 			if (!isFocused) return;
@@ -62,11 +83,8 @@ export const useOptionNavigation = ({
 			} else if (input === " " && isMultiSelect) {
 				toggleOption(options[selectedIndex]);
 			} else if (key.return) {
-				if (isMultiSelect) {
-					onSelect(selectedOptions);
-				} else {
-					onSelect([options[selectedIndex]]);
-				}
+				handleSelect();
+				handleSubmit();
 			} else if (input === "c" && onCancel) {
 				onCancel();
 			} else if (key.leftArrow) {
@@ -106,5 +124,7 @@ export const useOptionNavigation = ({
 		totalPages,
 		visibleOptions,
 		toggleOption,
+		handleSelect,
+		handleSubmit,
 	};
 };

@@ -1,41 +1,43 @@
 import { useInput } from "ink";
 import { useEffect, useState } from "react";
-import type { Option } from "../types";
 
-interface UseOptionCardGridProps {
-	options: Option[];
+interface UseOptionCardGridProps<T, M extends boolean = false> {
+	options: T[];
 	columns?: 1 | 2 | 3;
 	itemsPerPage?: number;
 	isFocused: boolean;
-	onSelect: (selectedOptions: Option[]) => void;
+	onSelect: M extends true
+		? (selectedOptions: T[]) => void
+		: (selectedOption: T) => void;
 	onCancel?: () => void;
-	multiSelect?: boolean;
+	multiSelect: M;
 }
 
-export const useOptionCardGrid = ({
+export const useOptionCardGrid = <
+	T extends { value: string },
+	M extends boolean = false,
+>({
 	options,
 	columns = 2,
 	itemsPerPage = 6,
 	isFocused,
 	onSelect,
 	onCancel,
-	multiSelect = false,
-}: UseOptionCardGridProps) => {
+	multiSelect,
+}: UseOptionCardGridProps<T, M>) => {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [currentPage, setCurrentPage] = useState(0);
-	const [selectedOptions, setSelectedOptions] = useState<Option[]>([]);
+	const [selectedOptions, setSelectedOptions] = useState<T[]>([]);
 
 	const totalPages = Math.ceil(options.length / itemsPerPage);
 	const rowsPerPage = Math.ceil(itemsPerPage / columns);
-
-	// Adjust itemsPerPage to avoid showing less than column count on any page before the last
 	const adjustedItemsPerPage = columns * rowsPerPage;
 
 	useEffect(() => {
 		setSelectedIndex(0);
 		setCurrentPage(0);
 		setSelectedOptions([]);
-	}, [options]);
+	}, []);
 
 	const getVisibleOptions = () => {
 		const startIndex = currentPage * adjustedItemsPerPage;
@@ -75,7 +77,7 @@ export const useOptionCardGrid = ({
 		setSelectedIndex(0);
 	};
 
-	const toggleSelection = (option: Option) => {
+	const toggleSelection = (option: T) => {
 		if (multiSelect) {
 			setSelectedOptions((prev) => {
 				const isSelected = prev.some((o) => o.value === option.value);
@@ -85,7 +87,7 @@ export const useOptionCardGrid = ({
 				return [...prev, option];
 			});
 		} else {
-			onSelect([option]);
+			(onSelect as (selectedOption: T) => void)(option);
 		}
 	};
 
@@ -109,9 +111,11 @@ export const useOptionCardGrid = ({
 				toggleSelection(visibleOptions[selectedIndex]);
 			} else if (key.return) {
 				if (multiSelect) {
-					onSelect(selectedOptions);
+					(onSelect as (selectedOptions: T[]) => void)(selectedOptions);
 				} else {
-					onSelect([visibleOptions[selectedIndex]]);
+					(onSelect as (selectedOption: T) => void)(
+						visibleOptions[selectedIndex],
+					);
 				}
 			} else if (input === "c" && onCancel) {
 				onCancel();

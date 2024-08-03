@@ -15,6 +15,7 @@ import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
 import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { THEME_COLORS } from "../uiConfig";
+import { logger } from "@/utils/logger";
 
 const promptTypeOptions = [
 	{
@@ -120,6 +121,7 @@ const PromptCreateScreen: FC = () => {
 						}}
 						label="Select prompt type:"
 						onCancel={() => setCurrentScreen("list")}
+						isMultiSelect={false}
 					/>
 				);
 			case "tags":
@@ -133,6 +135,7 @@ const PromptCreateScreen: FC = () => {
 						label="Select prompt tags:"
 						maxSelections={3}
 						onCancel={() => setStatus("type")}
+						isMultiSelect={true}
 					/>
 				);
 			case "input":

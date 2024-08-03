@@ -11,31 +11,36 @@ export interface Option {
 	description?: string;
 }
 
-interface SelectComponentProps {
+
+interface SelectComponentProps<T extends boolean> {
 	options: Option[];
-	onSelect: (selectedOptions: Option[]) => void;
+	onSelect: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
+	onSubmit?: (selectedOptions: T extends true ? Option[] : Option) => void;
 	onCancel?: () => void;
 	label?: string;
 	helpText?: string;
 	separator?: string;
 	maxSelections?: number;
 	isFocused?: boolean;
-	isMultiSelect?: boolean;
+	isMultiSelect: T;
 	maxVisibleOptions?: number;
 }
 
-const SelectComponent: React.FC<SelectComponentProps> = ({
+const SelectComponent = <T extends boolean>({
 	options,
 	onSelect,
+	onSubmit,
 	onCancel,
 	label = "Select option(s):",
 	helpText,
 	separator = "─",
 	maxSelections = Number.POSITIVE_INFINITY,
 	isFocused = false,
-	isMultiSelect = false,
+	isMultiSelect,
 	maxVisibleOptions = 9,
-}) => {
+}: SelectComponentProps<T>) => {
 	const {
 		selectedIndex,
 		selectedOptions,
@@ -51,6 +56,7 @@ const SelectComponent: React.FC<SelectComponentProps> = ({
 		maxVisibleOptions,
 		isFocused,
 		onSelect,
+		onSubmit,
 		onCancel,
 	});
 
