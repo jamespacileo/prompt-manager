@@ -13,8 +13,11 @@ interface OptionCardGridProps<T extends boolean> {
 	onSelect: T extends true
 		? (selectedOptions: Option[]) => void
 		: (selectedOption: Option) => void;
+	onSubmit: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
 	onCancel?: () => void;
-	multiSelect: T;
+	isMultiSelect: T;
 }
 
 const OptionCardGrid = <T extends boolean>({
@@ -23,8 +26,9 @@ const OptionCardGrid = <T extends boolean>({
 	itemsPerPage = 6,
 	isFocused,
 	onSelect,
+	onSubmit,
 	onCancel,
-	multiSelect,
+	isMultiSelect,
 }: OptionCardGridProps<T>) => {
 	const {
 		visibleOptions,
@@ -32,15 +36,25 @@ const OptionCardGrid = <T extends boolean>({
 		currentPage,
 		totalPages,
 		selectedOptions,
+		error,
 	} = useOptionCardGrid({
 		options,
 		columns,
 		itemsPerPage,
 		isFocused,
 		onSelect,
+		onSubmit,
 		onCancel,
-		multiSelect,
+		isMultiSelect: isMultiSelect,
 	});
+
+	if (error) {
+		return (
+			<Box>
+				<Text color="red">Error: {error}</Text>
+			</Box>
+		);
+	}
 
 	return (
 		<Box flexDirection="column">
@@ -66,20 +80,23 @@ const OptionCardGrid = <T extends boolean>({
 			<Box flexDirection="column">
 				<Text>
 					Use <Text color={THEME_COLORS.primary}>arrow keys</Text> to navigate,
-					{multiSelect ? (
+					{isMultiSelect ? (
 						<>
 							<Text color={THEME_COLORS.primary}> Space</Text> to
 							select/deselect, <Text color={THEME_COLORS.primary}>Enter</Text>{" "}
-							to confirm,{" "}
+							to submit
 						</>
 					) : (
-						<Text color={THEME_COLORS.primary}> Enter</Text>
-					)}{" "}
-					to choose
+						<>
+							<Text color={THEME_COLORS.primary}> Space</Text> to select,{" "}
+							<Text color={THEME_COLORS.primary}>Enter</Text> to submit
+						</>
+					)}
 				</Text>
 				<Text>
 					<Text color={THEME_COLORS.primary}>Ctrl+Left/Right</Text> to change
-					pages
+					pages, <Text color={THEME_COLORS.primary}>Home/End</Text> to jump to
+					start/end
 				</Text>
 			</Box>
 		</Box>

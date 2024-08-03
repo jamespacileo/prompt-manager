@@ -41,6 +41,7 @@ const stepComponents: Record<number, React.FC<StepProps>> = {
 		<OptionSelect
 			options={promptCategoryKeys}
 			onSelect={handleCategorySelect}
+			onSubmit={handleCategorySelect}
 			label="Select a category for your prompt:"
 			isFocused={step === 1}
 			isMultiSelect={false}
@@ -50,6 +51,7 @@ const stepComponents: Record<number, React.FC<StepProps>> = {
 		<MultiOptionSelect
 			options={tagOptions}
 			onSelect={handleTagsSelect}
+			onSubmit={handleTagsSelect}
 			label="Select tags for your prompt (max 3):"
 			maxSelections={3}
 			isFocused={step === 2}
@@ -175,14 +177,15 @@ const TestScreen: React.FC = () => {
 					<Text>
 						Step {step} of {Object.keys(stepComponents).length}
 					</Text>
-					{renderStep()}
+					{/* {renderStep()} */}
 					<OptionCardGrid
 						options={promptCategoryKeys}
 						onSelect={handleCategorySelect}
+						onSubmit={handleCategorySelect}
 						columns={2}
 						itemsPerPage={10}
 						isFocused={true}
-						multiSelect={false}
+						isMultiSelect={false}
 					/>
 				</Box>
 			</ErrorBoundary>

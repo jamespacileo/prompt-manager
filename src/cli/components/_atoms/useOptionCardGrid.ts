@@ -1,5 +1,5 @@
 import { useInput } from "ink";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface UseOptionCardGridProps<T, M extends boolean = false> {
 	options: T[];
@@ -9,8 +9,11 @@ interface UseOptionCardGridProps<T, M extends boolean = false> {
 	onSelect: M extends true
 		? (selectedOptions: T[]) => void
 		: (selectedOption: T) => void;
+	onSubmit: M extends true
+		? (selectedOptions: T[]) => void
+		: (selectedOption: T) => void;
 	onCancel?: () => void;
-	multiSelect: M;
+	isMultiSelect: M;
 }
 
 export const useOptionCardGrid = <
@@ -22,12 +25,14 @@ export const useOptionCardGrid = <
 	itemsPerPage = 6,
 	isFocused,
 	onSelect,
+	onSubmit,
 	onCancel,
-	multiSelect,
+	isMultiSelect,
 }: UseOptionCardGridProps<T, M>) => {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [currentPage, setCurrentPage] = useState(0);
 	const [selectedOptions, setSelectedOptions] = useState<T[]>([]);
+	const [error, setError] = useState<string | null>(null);
 
 	const totalPages = Math.ceil(options.length / itemsPerPage);
 	const rowsPerPage = Math.ceil(itemsPerPage / columns);
@@ -37,16 +42,21 @@ export const useOptionCardGrid = <
 		setSelectedIndex(0);
 		setCurrentPage(0);
 		setSelectedOptions([]);
-	}, []);
+		if (!Array.isArray(options) || options.length === 0) {
+			setError("Invalid or empty options array");
+		} else {
+			setError(null);
+		}
+	}, [options]);
 
-	const getVisibleOptions = () => {
+	const visibleOptions = useMemo(() => {
 		const startIndex = currentPage * adjustedItemsPerPage;
 		return options.slice(startIndex, startIndex + adjustedItemsPerPage);
-	};
+	}, [options, currentPage, adjustedItemsPerPage]);
 
-	const visibleOptions = getVisibleOptions();
-
-	const moveSelection = (direction: "up" | "down" | "left" | "right") => {
+	const moveSelection = (
+		direction: "up" | "down" | "left" | "right" | "home" | "end",
+	) => {
 		const totalItems = visibleOptions.length;
 		let newIndex = selectedIndex;
 
@@ -58,10 +68,22 @@ export const useOptionCardGrid = <
 				newIndex = (selectedIndex + columns) % totalItems;
 				break;
 			case "left":
-				newIndex = (selectedIndex - 1 + totalItems) % totalItems;
+				newIndex =
+					selectedIndex % columns === 0
+						? selectedIndex + columns - 1
+						: selectedIndex - 1;
 				break;
 			case "right":
-				newIndex = (selectedIndex + 1) % totalItems;
+				newIndex =
+					(selectedIndex + 1) % columns === 0
+						? selectedIndex - columns + 1
+						: (selectedIndex + 1) % totalItems;
+				break;
+			case "home":
+				newIndex = 0;
+				break;
+			case "end":
+				newIndex = totalItems - 1;
 				break;
 		}
 
@@ -78,7 +100,7 @@ export const useOptionCardGrid = <
 	};
 
 	const toggleSelection = (option: T) => {
-		if (multiSelect) {
+		if (isMultiSelect) {
 			setSelectedOptions((prev) => {
 				const isSelected = prev.some((o) => o.value === option.value);
 				if (isSelected) {
@@ -107,13 +129,22 @@ export const useOptionCardGrid = <
 				moveSelection("left");
 			} else if (key.rightArrow) {
 				moveSelection("right");
+			} else if (key.pageUp) {
+				moveSelection("home");
+			} else if (key.pageDown) {
+				moveSelection("end");
 			} else if (input === " ") {
 				toggleSelection(visibleOptions[selectedIndex]);
+				if (!isMultiSelect) {
+					(onSubmit as (selectedOption: T) => void)(
+						visibleOptions[selectedIndex],
+					);
+				}
 			} else if (key.return) {
-				if (multiSelect) {
-					(onSelect as (selectedOptions: T[]) => void)(selectedOptions);
+				if (isMultiSelect) {
+					(onSubmit as (selectedOptions: T[]) => void)(selectedOptions);
 				} else {
-					(onSelect as (selectedOption: T) => void)(
+					(onSubmit as (selectedOption: T) => void)(
 						visibleOptions[selectedIndex],
 					);
 				}
@@ -130,5 +161,6 @@ export const useOptionCardGrid = <
 		currentPage,
 		totalPages,
 		selectedOptions,
+		error,
 	};
 };

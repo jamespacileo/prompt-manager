@@ -34,6 +34,7 @@ export const renderFullScreen = async (
 	element: React.ReactNode,
 	options?: RenderOptions,
 ) => {
+	process.stdin.resume();
 	process.stdout.write("\x1b[?1049h");
 	const { waitUntilExit, clear } = render(<FullScreen>{element}</FullScreen>);
 

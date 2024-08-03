@@ -1,9 +1,9 @@
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
+import { render } from "ink";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { renderFullScreen } from "../Fullscreen";
 import { THEME_COLORS } from "../uiConfig";
-import OptionCard from "./_atoms/OptionCard";
-import { useOptionNavigation } from "./hooks/useOptionNavigation";
+import OptionCardGrid from "./_atoms/OptionCardGrid";
 
 export interface Option {
 	label: string;
@@ -16,7 +16,9 @@ interface SelectComponentProps<T extends boolean> {
 	onSelect: T extends true
 		? (selectedOptions: Option[]) => void
 		: (selectedOption: Option) => void;
-	onSubmit?: (selectedOptions: T extends true ? Option[] : Option) => void;
+	onSubmit: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
 	onCancel?: () => void;
 	label?: string;
 	helpText?: string;
@@ -40,25 +42,6 @@ const SelectComponent = <T extends boolean>({
 	isMultiSelect,
 	maxVisibleOptions = 9,
 }: SelectComponentProps<T>) => {
-	const {
-		selectedIndex,
-		selectedOptions,
-		searchTerm,
-		pageIndex,
-		totalPages,
-		visibleOptions,
-		toggleOption,
-	} = useOptionNavigation({
-		options,
-		isMultiSelect,
-		maxSelections,
-		maxVisibleOptions,
-		isFocused,
-		onSelect,
-		onSubmit,
-		onCancel,
-	});
-
 	return (
 		<Box flexDirection="column">
 			<Text bold>{label}</Text>
@@ -69,34 +52,54 @@ const SelectComponent = <T extends boolean>({
 					: "Use ↑↓ arrows to move, Enter to select, C to cancel, ←→ to paginate"}
 			</Text>
 			<Text>{separator.repeat(20)}</Text>
-			<Box flexDirection="row" flexWrap="wrap">
-				{visibleOptions.map((option, index) => (
-					<OptionCard
-						key={option.value}
-						label={option.label}
-						description={option.description}
-						isActive={index === selectedIndex % maxVisibleOptions}
-						isSelected={isMultiSelect && selectedOptions.includes(option)}
-						columns={2}
-					/>
-				))}
-			</Box>
-			{isMultiSelect && (
-				<Text color={THEME_COLORS.secondary}>
-					Selected: {selectedOptions.length} /{" "}
-					{maxSelections === Number.POSITIVE_INFINITY
-						? "Unlimited"
-						: maxSelections}
-				</Text>
-			)}
-			{searchTerm && (
-				<Text color={THEME_COLORS.secondary}>Search: {searchTerm}</Text>
-			)}
-			<Text color={THEME_COLORS.secondary}>
-				Page {pageIndex + 1} / {totalPages}
-			</Text>
+			<OptionCardGrid
+				options={options}
+				onSelect={onSelect}
+				onSubmit={onSubmit}
+				onCancel={onCancel}
+				isMultiSelect={isMultiSelect}
+				// maxSelections={maxSelections}
+				isFocused={isFocused}
+				// maxVisibleOptions={maxVisibleOptions}
+				columns={2}
+			/>
 		</Box>
 	);
 };
 
 export default SelectComponent;
+
+if (import.meta.main) {
+	// Test code
+	const generateRandomOptions = (count: number): Option[] => {
+		return Array.from({ length: count }, (_, index) => ({
+			label: `Option ${index + 1}`,
+			value: `${index + 1}`,
+			description: `This is a randomly generated option ${index + 1}`,
+		}));
+	};
+
+	const testOptions: Option[] = generateRandomOptions(20);
+
+	const TestComponent: React.FC = () => {
+		const handleSelect = (option: Option) => {
+			console.log("Selected:", option);
+		};
+
+		const handleSubmit = (option: Option) => {
+			console.log("Submitted:", option);
+		};
+
+		return (
+			<SelectComponent
+				options={testOptions}
+				onSelect={handleSelect}
+				onSubmit={handleSubmit}
+				isMultiSelect={false}
+				isFocused={true}
+			/>
+		);
+	};
+
+	await renderFullScreen(<TestComponent />);
+}
