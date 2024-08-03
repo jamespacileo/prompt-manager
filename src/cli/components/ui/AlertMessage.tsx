@@ -1,6 +1,6 @@
-import type React from "react";
 import { Box, Text } from "ink";
 import { useAtom } from "jotai";
+import type React from "react";
 import { alertMessageAtom } from "../../atoms";
 
 const AlertMessage: React.FC = () => {

@@ -1,15 +1,15 @@
-import type React from "react";
-import { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import FireSpinner from "../components/ui/FireSpinner";
-import MultiOptionSelect from "../components/MultiOptionSelect";
-import { evaluatePrompt, generateUpdatedPrompt } from "../aiHelpers";
-import { amendPrompt, getPromptDetails } from "../commands";
 import { useAtom } from "jotai";
-import { currentScreenAtom, alertMessageAtom } from "../atoms";
-import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { evaluatePrompt, generateUpdatedPrompt } from "../aiHelpers";
+import { alertMessageAtom, currentScreenAtom } from "../atoms";
+import { amendPrompt, getPromptDetails } from "../commands";
+import MultiOptionSelect from "../components/MultiOptionSelect";
 import PromptView from "../components/prompt/PromptView";
+import FireSpinner from "../components/ui/FireSpinner";
+import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { THEME_COLORS } from "../uiConfig";
 
 interface PromptEvaluationScreenProps {

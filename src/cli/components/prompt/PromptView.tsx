@@ -1,8 +1,8 @@
-import { Box, Text, type BoxProps } from "ink";
-import type { IPrompt } from "../../../types/interfaces";
-import type React from "react";
 import chalk from "chalk";
+import { Box, type BoxProps, Text } from "ink";
 import yaml from "js-yaml";
+import type React from "react";
+import type { IPrompt } from "../../../types/interfaces";
 import JsonSchemaTree from "../JSONSchemaTree";
 
 interface RenderSectionProps extends BoxProps {

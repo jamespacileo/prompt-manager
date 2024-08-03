@@ -1,6 +1,6 @@
+import chalk from "chalk";
 import { Box, Text, useInput } from "ink";
 import { useState } from "react";
-import chalk from "chalk";
 
 interface PaginatedListProps<T> {
 	items: T[];
@@ -54,7 +54,7 @@ export const PaginatedList = <T,>({
 			</Text>
 			<Text>
 				{chalk.gray(
-					`Use ↑↓ to navigate, Enter to select, (N)ext/(P)revious page`,
+					"Use ↑↓ to navigate, Enter to select, (N)ext/(P)revious page",
 				)}
 			</Text>
 		</Box>

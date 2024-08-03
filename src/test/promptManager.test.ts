@@ -1,18 +1,18 @@
 import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
 	expect,
 	test,
-	describe,
-	beforeAll,
-	afterAll,
-	beforeEach,
-	afterEach,
 } from "bun:test";
+import path from "node:path";
+import fs from "fs-extra";
 import { Container } from "typedi";
-import { PromptManager } from "../promptManager";
-import { PromptFileSystem } from "../promptFileSystem";
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
-import fs from "fs/promises";
-import path from "path";
+import { PromptFileSystem } from "../promptFileSystem";
+import { PromptManager } from "../promptManager";
 import type { IPrompt, IPromptInput, IPromptOutput } from "../types/interfaces";
 
 const getRandomElement = (arr: string[]) =>

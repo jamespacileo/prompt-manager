@@ -4,8 +4,8 @@ import { useState } from "react";
 import { currentScreenAtom, selectedPromptAtom } from "../../atoms";
 
 import TextInput from "ink-text-input";
-import { createPrompt } from "../../commands";
 import { useAtom } from "jotai";
+import { createPrompt } from "../../commands";
 
 interface PromptCreateProps {
 	onComplete: () => void;

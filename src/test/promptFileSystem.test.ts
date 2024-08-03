@@ -1,18 +1,18 @@
 import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
 	expect,
 	test,
-	beforeAll,
-	afterAll,
-	beforeEach,
-	afterEach,
-	describe,
 } from "bun:test";
+import path from "node:path";
+import fs from "fs-extra";
 import { Container } from "typedi";
-import { PromptFileSystem } from "../promptFileSystem";
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
+import { PromptFileSystem } from "../promptFileSystem";
 import type { IPrompt, IPromptInput, IPromptOutput } from "../types/interfaces";
-import fs from "fs/promises";
-import path from "path";
 
 const COSMIC_PROMPT: IPrompt<IPromptInput, IPromptOutput> = {
 	name: "cosmicWhisper",
@@ -86,7 +86,7 @@ describe("PromptFileSystem", () => {
 		if (originalPromptsDir) {
 			process.env.PROMPTS_DIR = originalPromptsDir;
 		} else {
-			delete process.env.PROMPTS_DIR;
+			process.env.PROMPTS_DIR = undefined;
 		}
 	});
 

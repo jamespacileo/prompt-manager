@@ -1,25 +1,25 @@
-import Container, { Service, Inject } from "typedi";
-import type {
-	IPromptModel,
-	IPromptInput,
-	IPromptOutput,
-	IAsyncIterableStream,
-	IPrompt,
-} from "./types/interfaces";
-import type {
-	IPromptModelRequired,
-	IPromptFileSystem,
-} from "./types/interfaces";
-import type { JSONSchema7 } from "json-schema";
-import { generateText, generateObject, streamText } from "ai";
+import path from "node:path";
 import { openai } from "@ai-sdk/openai";
+import { generateObject, generateText, streamText } from "ai";
+import type { JSONSchema7 } from "json-schema";
+import Container, { Service, Inject } from "typedi";
 import type { z } from "zod";
-import { jsonSchemaToZod } from "./utils/jsonSchemaToZod";
-import { incrementVersion, compareVersions } from "./utils/versionUtils";
-import path from "path";
 import { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
 import { PromptFileSystem } from "./promptFileSystem";
+import type {
+	IAsyncIterableStream,
+	IPrompt,
+	IPromptInput,
+	IPromptModel,
+	IPromptOutput,
+} from "./types/interfaces";
+import type {
+	IPromptFileSystem,
+	IPromptModelRequired,
+} from "./types/interfaces";
+import { jsonSchemaToZod } from "./utils/jsonSchemaToZod";
 import { logger } from "./utils/logger";
+import { compareVersions, incrementVersion } from "./utils/versionUtils";
 
 export class PromptModel<
 	TInput extends IPromptInput<Record<string, any>> = IPromptInput<

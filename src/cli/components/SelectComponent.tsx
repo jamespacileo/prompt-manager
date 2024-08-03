@@ -1,9 +1,9 @@
-import type React from "react";
-import { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { THEME_COLORS } from "../uiConfig";
-import { useOptionNavigation } from "./hooks/useOptionNavigation";
 import OptionCard from "./_atoms/OptionCard";
+import { useOptionNavigation } from "./hooks/useOptionNavigation";
 
 export interface Option {
 	label: string;
@@ -72,13 +72,16 @@ const SelectComponent: React.FC<SelectComponentProps> = ({
 						description={option.description}
 						isActive={index === selectedIndex % maxVisibleOptions}
 						isSelected={isMultiSelect && selectedOptions.includes(option)}
+						columns={2}
 					/>
 				))}
 			</Box>
 			{isMultiSelect && (
 				<Text color={THEME_COLORS.secondary}>
 					Selected: {selectedOptions.length} /{" "}
-					{maxSelections === Number.POSITIVE_INFINITY ? "Unlimited" : maxSelections}
+					{maxSelections === Number.POSITIVE_INFINITY
+						? "Unlimited"
+						: maxSelections}
 				</Text>
 			)}
 			{searchTerm && (

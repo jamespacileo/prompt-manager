@@ -1,10 +1,10 @@
 import { generateObject, generateText, streamText } from "ai";
 
-import { PromptSchema } from "../schemas/prompts";
-import chalk from "chalk";
-import { logger } from "../utils/logger";
 import { openai } from "@ai-sdk/openai";
+import chalk from "chalk";
 import { z } from "zod";
+import { PromptSchema } from "../schemas/prompts";
+import { logger } from "../utils/logger";
 
 /**
  * Pretty prints the given prompt to the console with color-coded output.
@@ -14,20 +14,18 @@ import { z } from "zod";
 export function prettyPrintPrompt(prompt: any): string {
 	let output = "";
 	output += chalk.bold.underline("\nGenerated Prompt:\n");
-	output +=
-		chalk.cyan("Name: ") + prompt.name.toUpperCase().replace(/ /g, "_") + "\n";
-	output +=
-		chalk.magenta("Category: ") + prompt.category.replace(/ /g, "") + "\n";
-	output += chalk.yellow("Description: ") + prompt.description + "\n";
-	output += chalk.green("Template:\n") + prompt.template + "\n";
-	output += chalk.blue("Output Type: ") + prompt.outputType + "\n";
+	output += `${chalk.cyan("Name: ") + prompt.name.toUpperCase().replace(/ /g, "_")}\n`;
+	output += `${chalk.magenta("Category: ") + prompt.category.replace(/ /g, "")}\n`;
+	output += `${chalk.yellow("Description: ") + prompt.description}\n`;
+	output += `${chalk.green("Template:\n") + prompt.template}\n`;
+	output += `${chalk.blue("Output Type: ") + prompt.outputType}\n`;
 	if (prompt.tags && prompt.tags.length > 0) {
-		output += chalk.red("Tags: ") + prompt.tags.join(", ") + "\n";
+		output += `${chalk.red("Tags: ") + prompt.tags.join(", ")}\n`;
 	}
 	output += chalk.gray("\nInput Schema:\n");
-	output += JSON.stringify(prompt.inputSchema, null, 2) + "\n";
+	output += `${JSON.stringify(prompt.inputSchema, null, 2)}\n`;
 	output += chalk.gray("\nOutput Schema:\n");
-	output += JSON.stringify(prompt.outputSchema, null, 2) + "\n";
+	output += `${JSON.stringify(prompt.outputSchema, null, 2)}\n`;
 	return output;
 }
 

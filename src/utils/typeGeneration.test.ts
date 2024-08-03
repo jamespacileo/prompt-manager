@@ -1,12 +1,12 @@
-import { expect, test, describe } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import type { JSONSchema7 } from "json-schema";
+import type { IPrompt } from "../types/interfaces";
 import {
 	generateExportableSchemaAndType,
 	generatePromptTypeScript,
 	generatePromptTypescriptDefinition,
 	generateTestInputs,
 } from "./typeGeneration";
-import type { JSONSchema7 } from "json-schema";
-import type { IPrompt } from "../types/interfaces";
 
 describe("Type Generation Utilities", () => {
 	const sampleSchema: JSONSchema7 = {

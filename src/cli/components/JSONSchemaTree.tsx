@@ -1,7 +1,7 @@
-import type React from "react";
-import { Box, Text } from "ink";
 import chalk from "chalk";
+import { Box, Text } from "ink";
 import { type JSONSchema7, JSONSchema7TypeName } from "json-schema";
+import type React from "react";
 
 // interface JSONSchema7 {
 //     type?: string | string[];

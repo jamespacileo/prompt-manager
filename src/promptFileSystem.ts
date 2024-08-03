@@ -1,27 +1,28 @@
-import { Service, Inject } from "typedi";
-import fs from "fs/promises";
-import path from "path";
+import path from "node:path";
+import fs from "fs-extra";
+import { Inject, Service } from "typedi";
+import { z } from "zod";
+import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
+import { PromptModel } from "./promptModel";
+import { PromptSchema } from "./schemas/prompts";
 import type {
-	IPromptFileSystem,
 	IPrompt,
+	IPromptFileSystem,
 	IPromptInput,
-	IPromptOutput,
 	IPromptModelRequired,
+	IPromptOutput,
 	IPromptsFolderConfig,
 } from "./types/interfaces";
-import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
-import { PromptSchema } from "./schemas/prompts";
-import { PromptModel } from "./promptModel";
-import { z } from "zod";
-import { withLock } from "./utils/lockUtils";
+import { checkDiskSpace } from "./utils/fileSystemUtils";
+import { FileTransaction } from "./utils/fileTransaction";
+import { retryLock } from "./utils/lockUtils";
 import { logger } from "./utils/logger";
+import { cleanName } from "./utils/promptManagerUtils";
 import {
 	generateExportableSchemaAndType,
 	generatePromptTypeScript,
 	generateTestInputs,
 } from "./utils/typeGeneration";
-import { cleanName } from "./utils/promptManagerUtils";
-import { checkDiskSpace } from "./utils/fileSystemUtils";
 
 export const DEFAULT_PROMPT_FILENAME = "prompt.json";
 export const DEFAULT_TYPE_DEFINITION_FILENAME = "prompt.d.ts";
@@ -176,20 +177,28 @@ export class PromptFileSystem implements IPromptFileSystem {
 
 	private async generateTsOutputFile(
 		promptData: IPrompt<IPromptInput, IPromptOutput>,
-		filePath: string,
+		// filePath: string,
 	): Promise<void> {
 		// const { formattedSchemaTs } = await generateExportableSchemaAndType({
 		//   schema: promptData.inputSchema,
 		//   name: `${cleanName(promptData.category)}${cleanName(promptData.name)}Input`
 		// });
+		const filePath = this.getTsOutputPath({
+			category: promptData.category,
+			promptName: promptData.name,
+		});
 		const formattedSchemaTs = await generatePromptTypeScript(promptData);
 		await fs.writeFile(filePath, formattedSchemaTs);
 	}
 
 	private async generateTestInputsFile(
 		promptData: IPrompt<IPromptInput, IPromptOutput>,
-		filePath: string,
+		// filePath: string,
 	): Promise<void> {
+		const filePath = this.getTestInputsPath({
+			category: promptData.category,
+			promptName: promptData.name,
+		});
 		const testInputs = generateTestInputs(promptData.inputSchema);
 		await fs.writeFile(filePath, JSON.stringify(testInputs, null, 2));
 	}
@@ -349,93 +358,96 @@ export class PromptFileSystem implements IPromptFileSystem {
 			category: validatedPromptData.category,
 			promptName: validatedPromptData.name,
 		});
-		await withLock(path.dirname(filePath), async () => {
-			try {
-				await checkDiskSpace(path.dirname(filePath));
-				await fs.mkdir(path.dirname(filePath), { recursive: true });
+		const transaction = new FileTransaction();
 
-				const versionFilePath = this.getVersionFilePath({
+		try {
+			await checkDiskSpace(path.dirname(filePath));
+			await fs.mkdir(path.dirname(filePath), { recursive: true });
+
+			const versionFilePath = this.getVersionFilePath({
+				category: validatedPromptData.category,
+				promptName: validatedPromptData.name,
+				version: validatedPromptData.version,
+			});
+			await fs.mkdir(
+				this.getVersionsDir({
 					category: validatedPromptData.category,
 					promptName: validatedPromptData.name,
-					version: validatedPromptData.version,
-				});
-				await fs.mkdir(
-					this.getVersionsDir({
-						category: validatedPromptData.category,
-						promptName: validatedPromptData.name,
-					}),
-					{ recursive: true },
-				);
+				}),
+				{ recursive: true },
+			);
 
-				const existingPrompt = await this.loadPrompt({
-					category: validatedPromptData.category,
-					promptName: validatedPromptData.name,
-				}).catch(() => null);
+			const existingPrompt = await this.loadPrompt({
+				category: validatedPromptData.category,
+				promptName: validatedPromptData.name,
+			}).catch(() => null);
 
-				logger.debug(`Saving prompt to ${filePath}`);
-				await fs.writeFile(
-					filePath,
-					JSON.stringify(validatedPromptData, null, 2),
-				);
+			logger.debug(`Saving prompt to ${filePath}`);
+			await transaction.write(
+				filePath,
+				JSON.stringify(validatedPromptData, null, 2),
+			);
 
-				logger.debug(`Saving prompt version to ${versionFilePath}`);
-				await fs.writeFile(
-					versionFilePath,
-					JSON.stringify(validatedPromptData, null, 2),
-				);
+			logger.debug(`Saving prompt version to ${versionFilePath}`);
+			await transaction.write(
+				versionFilePath,
+				JSON.stringify(validatedPromptData, null, 2),
+			);
 
-				// const typeDefinitionPath = this.getTypeDefinitionPath({ category: validatedPromptData.category, promptName: validatedPromptData.name });
-				// logger.debug(`Generating type definition file at ${typeDefinitionPath}`);
-				// await this.generateTypeDefinitionFile(validatedPromptData, typeDefinitionPath);
+			const tsOutputPath = this.getTsOutputPath({
+				category: validatedPromptData.category,
+				promptName: validatedPromptData.name,
+			});
+			logger.debug(`Generating TS output file at ${tsOutputPath}`);
+			const tsOutput = await this.generateTsOutputFile(validatedPromptData);
+			await transaction.write(tsOutputPath, tsOutput);
 
-				const tsOutputPath = this.getTsOutputPath({
-					category: validatedPromptData.category,
-					promptName: validatedPromptData.name,
-				});
-				logger.debug(`Generating TS output file at ${tsOutputPath}`);
-				await this.generateTsOutputFile(validatedPromptData, tsOutputPath);
+			const testInputsPath = this.getTestInputsPath({
+				category: validatedPromptData.category,
+				promptName: validatedPromptData.name,
+			});
+			logger.debug(`Generating test inputs file at ${testInputsPath}`);
+			const testInputs = await this.generateTestInputsFile(validatedPromptData);
+			await transaction.write(
+				testInputsPath,
+				JSON.stringify(testInputs, null, 2),
+			);
 
-				const testInputsPath = this.getTestInputsPath({
-					category: validatedPromptData.category,
-					promptName: validatedPromptData.name,
-				});
-				logger.debug(`Generating test inputs file at ${testInputsPath}`);
-				await this.generateTestInputsFile(validatedPromptData, testInputsPath);
+			const versionsDir = this.getVersionsDir({
+				category: validatedPromptData.category,
+				promptName: validatedPromptData.name,
+			});
+			logger.debug(`Creating versions directory at ${versionsDir}`);
+			await fs.mkdir(versionsDir, { recursive: true });
 
-				const versionsDir = this.getVersionsDir({
-					category: validatedPromptData.category,
-					promptName: validatedPromptData.name,
-				});
-				logger.debug(`Creating versions directory at ${versionsDir}`);
-				await fs.mkdir(versionsDir, { recursive: true });
-
-				const versions = await this.getPromptVersions({
-					category: validatedPromptData.category,
-					promptName: validatedPromptData.name,
-				});
-				if (!versions.includes(validatedPromptData.version)) {
-					versions.push(validatedPromptData.version);
-					versions.sort((a, b) => this.compareVersions(b, a));
-				}
-				logger.debug(
-					`Writing versions to ${this.getVersionsFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name })}`,
-				);
-				await fs.writeFile(
-					this.getVersionsFilePath({
-						category: validatedPromptData.category,
-						promptName: validatedPromptData.name,
-					}),
-					JSON.stringify(versions, null, 2),
-				);
-			} catch (error) {
-				if (error instanceof Error) {
-					const errorMessage = this.getDetailedErrorMessage(error, filePath);
-					logger.error(errorMessage, error);
-					throw new Error(errorMessage);
-				}
-				throw new Error(`Unknown error while saving prompt: ${filePath}`);
+			const versions = await this.getPromptVersions({
+				category: validatedPromptData.category,
+				promptName: validatedPromptData.name,
+			});
+			if (!versions.includes(validatedPromptData.version)) {
+				versions.push(validatedPromptData.version);
+				versions.sort((a, b) => this.compareVersions(b, a));
 			}
-		});
+			logger.debug(
+				`Writing versions to ${this.getVersionsFilePath({ category: validatedPromptData.category, promptName: validatedPromptData.name })}`,
+			);
+			await transaction.write(
+				this.getVersionsFilePath({
+					category: validatedPromptData.category,
+					promptName: validatedPromptData.name,
+				}),
+				JSON.stringify(versions, null, 2),
+			);
+
+			await transaction.commit();
+		} catch (error) {
+			if (error instanceof Error) {
+				const errorMessage = this.getDetailedErrorMessage(error, filePath);
+				logger.error(errorMessage, error);
+				throw new Error(errorMessage);
+			}
+			throw new Error(`Unknown error while saving prompt: ${filePath}`);
+		}
 	}
 
 	/**
@@ -448,43 +460,47 @@ export class PromptFileSystem implements IPromptFileSystem {
 		const { category, promptName } = props;
 		const filePath = this.getFilePath({ category, promptName });
 
-		return withLock(path.dirname(filePath), async () => {
+		let release: (() => Promise<void>) | undefined;
+		try {
+			release = await retryLock(path.dirname(filePath), 5, 1000);
+			await fs.access(filePath);
+			const data = await fs.readFile(filePath, "utf-8");
+			let parsedData;
 			try {
-				await fs.access(filePath);
-				const data = await fs.readFile(filePath, "utf-8");
-				let parsedData;
-				try {
-					parsedData = JSON.parse(data);
-				} catch (jsonError) {
-					throw new Error(
-						`Invalid JSON in prompt file: ${filePath}. Error: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`,
-					);
-				}
-				try {
-					const validatedData = PromptSchema.parse(parsedData);
-					return validatedData as IPrompt<IPromptInput, IPromptOutput>;
-				} catch (validationError) {
-					if (validationError instanceof z.ZodError) {
-						throw new Error(
-							`Invalid prompt data structure in file: ${filePath}. Error: ${validationError.errors.map((e) => e.message).join(", ")}`,
-						);
-					}
-					throw validationError;
-				}
-			} catch (error) {
-				if (error instanceof Error) {
-					if ("code" in error && error.code === "ENOENT") {
-						throw new Error(
-							`Prompt not found: ${filePath}. Category: ${category}, Name: ${promptName}`,
-						);
-					}
-					throw new Error(
-						`Failed to load prompt: ${filePath}. Error: ${error.message}`,
-					);
-				}
-				throw new Error(`Unknown error while loading prompt: ${filePath}`);
+				parsedData = JSON.parse(data);
+			} catch (jsonError) {
+				throw new Error(
+					`Invalid JSON in prompt file: ${filePath}. Error: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`,
+				);
 			}
-		});
+			try {
+				const validatedData = PromptSchema.parse(parsedData);
+				return validatedData as IPrompt<IPromptInput, IPromptOutput>;
+			} catch (validationError) {
+				if (validationError instanceof z.ZodError) {
+					throw new Error(
+						`Invalid prompt data structure in file: ${filePath}. Error: ${validationError.errors.map((e) => e.message).join(", ")}`,
+					);
+				}
+				throw validationError;
+			}
+		} catch (error) {
+			if (error instanceof Error) {
+				if ("code" in error && error.code === "ENOENT") {
+					throw new Error(
+						`Prompt not found: ${filePath}. Category: ${category}, Name: ${promptName}`,
+					);
+				}
+				throw new Error(
+					`Failed to load prompt: ${filePath}. Error: ${error.message}`,
+				);
+			}
+			throw new Error(`Unknown error while loading prompt: ${filePath}`);
+		} finally {
+			if (release) {
+				await release();
+			}
+		}
 	}
 
 	async promptExists(props: {
@@ -619,7 +635,7 @@ export class PromptFileSystem implements IPromptFileSystem {
 		promptName,
 	}: { category: string; promptName: string }): Promise<void> {
 		const promptDir = this.getPromptDir({ category, promptName });
-		let release;
+		let release: lockfile.ReleaseFn | undefined;
 		try {
 			release = await lockfile.lock(promptDir);
 			await fs.rm(promptDir, { recursive: true, force: true });
@@ -644,7 +660,8 @@ export class PromptFileSystem implements IPromptFileSystem {
 		);
 		const newPath = path.join(this.getPromptsDir(), newCategory, newName);
 
-		let oldRelease, newRelease;
+		let oldRelease: lockfile.ReleaseFn | undefined;
+		let newRelease: lockfile.ReleaseFn | undefined;
 		try {
 			oldRelease = await lockfile.lock(oldPath);
 			newRelease = await lockfile.lock(path.dirname(newPath));

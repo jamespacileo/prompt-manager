@@ -1,12 +1,12 @@
+import { Box, Text, useInput } from "ink";
+import { useAtom } from "jotai";
 import type React from "react";
 import { useState } from "react";
-import { Box, Text, useInput } from "ink";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
+import { alertMessageAtom, currentScreenAtom } from "../atoms";
 import { importPrompt } from "../commands";
-import { useAtom } from "jotai";
-import { currentScreenAtom, alertMessageAtom } from "../atoms";
 import FireSpinner from "../components/ui/FireSpinner";
+import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 
 const PromptImportScreen: React.FC = () => {
 	const [, setCurrentScreen] = useAtom(currentScreenAtom);

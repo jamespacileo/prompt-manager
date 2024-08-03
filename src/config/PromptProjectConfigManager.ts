@@ -1,13 +1,13 @@
-import { cosmiconfig, type OptionsSync } from "cosmiconfig";
-import path from "path";
-import type { IPromptProjectConfigManager } from "../types/interfaces";
-import { ensureDirectoryExists } from "../utils/fileUtils";
-import { configSchema, DEFAULT_CONFIG, z } from "../schemas/config";
-import type { Config } from "../schemas/config";
+import path from "node:path";
+import chalk from "chalk";
+import { type OptionsSync, cosmiconfig } from "cosmiconfig";
 import { Service } from "typedi";
 import { fromError } from "zod-validation-error";
+import { DEFAULT_CONFIG, configSchema, z } from "../schemas/config";
+import type { Config } from "../schemas/config";
+import type { IPromptProjectConfigManager } from "../types/interfaces";
+import { ensureDirectoryExists } from "../utils/fileUtils";
 import { logger } from "../utils/logger";
-import chalk from "chalk";
 
 const DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME = ".promptmanager.config.json";
 
@@ -98,7 +98,7 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 	private async loadConfig(): Promise<void> {
 		try {
 			const result = await this.explorer.search();
-			if (result && result.config) {
+			if (result?.config) {
 				const validatedConfig = configSchema.parse({
 					...DEFAULT_CONFIG,
 					...result.config,
@@ -134,12 +134,11 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 				logger.error(validationError.toString());
 				logger.error("Invalid configuration:", error.errors);
 				throw new Error(`Invalid configuration: ${error.message}`);
-			} else {
-				logger.error("Error loading configuration:", error);
-				throw new Error(
-					"Failed to load configuration. Please check your configuration file.",
-				);
 			}
+			logger.error("Error loading configuration:", error);
+			throw new Error(
+				"Failed to load configuration. Please check your configuration file.",
+			);
 		}
 	}
 

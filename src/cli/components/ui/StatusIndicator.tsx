@@ -1,5 +1,5 @@
-import type React from "react";
 import { Text } from "ink";
+import type React from "react";
 
 interface StatusIndicatorProps {
 	status: "active" | "inactive" | "warning";

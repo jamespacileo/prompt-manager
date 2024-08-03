@@ -4,6 +4,25 @@ import { logger } from "./logger";
 const MAX_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 100; // ms
 
+export async function retryLock(
+	path: string,
+	maxRetries: number,
+	delay: number,
+): Promise<lockfile.Lock> {
+	for (let i = 0; i < maxRetries; i++) {
+		try {
+			return await lockfile.lock(path);
+		} catch (error) {
+			if (i === maxRetries - 1) throw error;
+			logger.warn(
+				`Lock acquisition failed for ${path}. Retrying in ${delay}ms...`,
+			);
+			await new Promise((resolve) => setTimeout(resolve, delay));
+		}
+	}
+	throw new Error(`Failed to acquire lock after ${maxRetries} attempts`);
+}
+
 export async function withLock<T>(
 	path: string,
 	operation: () => Promise<T>,
@@ -11,30 +30,11 @@ export async function withLock<T>(
 ): Promise<T> {
 	let release;
 	try {
-		release = await acquireLock(path, retries);
+		release = await retryLock(path, retries, INITIAL_RETRY_DELAY);
 		return await operation();
 	} finally {
 		if (release) {
 			await release();
 		}
-	}
-}
-
-async function acquireLock(
-	path: string,
-	retriesLeft: number,
-	delay: number = INITIAL_RETRY_DELAY,
-): Promise<lockfile.ReleaseFn> {
-	try {
-		return await lockfile.lock(path, { retries: 0 });
-	} catch (error) {
-		if (retriesLeft === 0) {
-			throw new Error(`Failed to acquire lock for ${path}: ${error}`);
-		}
-		logger.warn(
-			`Lock acquisition failed for ${path}. Retrying in ${delay}ms...`,
-		);
-		await new Promise((resolve) => setTimeout(resolve, delay));
-		return acquireLock(path, retriesLeft - 1, delay * 2);
 	}
 }

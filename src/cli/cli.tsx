@@ -3,16 +3,16 @@
 import "reflect-metadata";
 import "./cliPolyfills";
 
+import { Command } from "commander";
+import { RenderOptions, render } from "ink";
+import React from "react";
 import { Container } from "typedi";
+import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
 import { PromptFileSystem } from "../promptFileSystem";
 import { PromptManager } from "../promptManager";
-import PromptManagerUI from "./PromptManagerUI";
-import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
-import React from "react";
 import { logger } from "../utils/logger";
-import { render, RenderOptions } from "ink";
-import { Command } from "commander";
 import { renderFullScreen } from "./Fullscreen";
+import PromptManagerUI from "./PromptManagerUI";
 
 //you need this
 process.stdin.resume();

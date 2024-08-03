@@ -1,5 +1,5 @@
+import path from "node:path";
 import fs from "fs-extra";
-import path from "path";
 import { logger } from "../utils/logger";
 
 const PROMPTS_DIR = path.join(__dirname, "..", "..", "prompts");
@@ -17,7 +17,7 @@ async function generatePromptManager() {
 	let output = `import { PromptManagerBase } from './promptManagerBase';\n\n`;
 	let typeDefinition = `declare module "prompt-manager" {\n`;
 
-	output += `export interface GeneratedPromptManager {\n`;
+	output += "export interface GeneratedPromptManager {\n";
 	for (const category of categories) {
 		const categoryPath = path.join(PROMPTS_DIR, category);
 		const stats = await fs.stat(categoryPath);
@@ -38,27 +38,28 @@ async function generatePromptManager() {
 						.join("; ");
 
 					output += `    ${promptName}: {\n`;
-					output += `      content: string;\n`;
+					output += "      content: string;\n";
 					output += `      format: (params: { ${parameterTypes} }) => string;\n`;
-					output += `      description: string;\n`;
-					output += `      version: string;\n`;
-					output += `    };\n`;
+					output += "      description: string;\n";
+					output += "      version: string;\n";
+					output += "    };\n";
 
 					typeDefinition += `    export const ${promptName}: {\n`;
 					typeDefinition += `      format: (inputs: { ${parameterTypes} }) => string;\n`;
-					typeDefinition += `      description: string;\n`;
-					typeDefinition += `      version: string;\n`;
-					typeDefinition += `    };\n`;
+					typeDefinition += "      description: string;\n";
+					typeDefinition += "      version: string;\n";
+					typeDefinition += "    };\n";
 				}
 			}
-			output += `  };\n`;
-			typeDefinition += `  }\n`;
+			output += "  };\n";
+			typeDefinition += "  }\n";
 		}
 	}
-	output += `}\n\n`;
-	typeDefinition += `}\n`;
+	output += "}\n\n";
+	typeDefinition += "}\n";
 
-	output += `class PromptManager extends PromptManagerBase implements GeneratedPromptManager {\n`;
+	output +=
+		"class PromptManager extends PromptManagerBase implements GeneratedPromptManager {\n";
 	for (const category of categories) {
 		const categoryPath = path.join(PROMPTS_DIR, category);
 		const stats = await fs.stat(categoryPath);
@@ -71,16 +72,17 @@ async function generatePromptManager() {
 					output += `    ${promptName}: this.getPrompt('${category}', '${promptName}'),\n`;
 				}
 			}
-			output += `  };\n`;
+			output += "  };\n";
 		}
 	}
-	output += `}\n\n`;
+	output += "}\n\n";
 
-	output += `export async function getPromptManager(): Promise<GeneratedPromptManager> {\n`;
+	output +=
+		"export async function getPromptManager(): Promise<GeneratedPromptManager> {\n";
 	output += `  const manager = new PromptManager('${PROMPTS_DIR}');\n`;
-	output += `  await manager.initialize();\n`;
-	output += `  return manager;\n`;
-	output += `}\n`;
+	output += "  await manager.initialize();\n";
+	output += "  return manager;\n";
+	output += "}\n";
 
 	await fs.writeFile(OUTPUT_FILE, output);
 	await fs.writeFile(TYPE_DEFINITION_FILE, typeDefinition);

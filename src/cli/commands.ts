@@ -1,22 +1,22 @@
+import axios from "axios";
 import type {
 	IPrompt,
 	IPromptInput,
 	IPromptModel,
 	IPromptOutput,
 } from "../types/interfaces";
-import axios from "axios";
 
-import { Container } from "typedi";
-import { PromptManager } from "../promptManager";
-import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
-import { PromptSchema } from "../schemas/prompts";
+import path from "node:path";
 import fs from "fs-extra";
+import { Container } from "typedi";
+import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
+import { PromptManager } from "../promptManager";
+import { PromptSchema } from "../schemas/prompts";
+import { cleanName } from "../utils/promptManagerUtils";
 import {
 	generateExportableSchemaAndType,
 	generatePromptTypeScript,
 } from "../utils/typeGeneration";
-import path from "path";
-import { cleanName } from "../utils/promptManagerUtils";
 
 export const fetchContentFromUrl = async (url: string): Promise<string> => {
 	const response = await axios.get(url);
@@ -144,11 +144,11 @@ export async function generateTypes(): Promise<string> {
 			typeDefs += `        format: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<string>;\n`;
 			typeDefs += `        execute: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<${cleanName(category)}${cleanName(prompt.name)}Output>;\n`;
 			typeDefs += `        stream: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<IAsyncIterableStream<string>>;\n`;
-			typeDefs += `        description: string;\n`;
-			typeDefs += `        version: string;\n`;
-			typeDefs += `      };\n`;
+			typeDefs += "        description: string;\n";
+			typeDefs += "        version: string;\n";
+			typeDefs += "      };\n";
 		}
-		typeDefs += `    };\n`;
+		typeDefs += "    };\n";
 	}
 
 	typeDefs += "  }\n\n";
@@ -226,7 +226,8 @@ export async function amendPrompt(props: {
 	if (props.amendQuery) {
 		// Generate amended prompt based on the query
 		return await promptManager.generateAmendedPrompt(props);
-	} else if (props.amendedPrompt) {
+	}
+	if (props.amendedPrompt) {
 		// Save the amended prompt
 		await promptManager.updatePrompt({
 			...props,

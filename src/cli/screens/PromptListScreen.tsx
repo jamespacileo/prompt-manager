@@ -1,16 +1,16 @@
-import type React from "react";
-import { useState, useEffect, useCallback } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import { useAtom } from "jotai";
-import FireSpinner from "../components/ui/FireSpinner";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import { THEME_COLORS } from "../uiConfig";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { IPromptModel } from "../../types/interfaces";
 import { currentScreenAtom, selectedPromptAtom } from "../atoms";
 import { listPrompts } from "../commands";
+import FireSpinner from "../components/ui/FireSpinner";
 import InteractiveElement from "../components/ui/InteractiveElement";
 import { PaginatedList } from "../components/utils/PaginatedList";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
+import { THEME_COLORS } from "../uiConfig";
 
 const ITEMS_PER_PAGE = 10;
 

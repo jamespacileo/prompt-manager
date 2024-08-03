@@ -1,14 +1,14 @@
-import type {
-	IPromptManagerLibrary,
-	IPrompt,
-	IPromptInput,
-	IPromptOutput,
-	IAsyncIterableStream,
-} from "./types/interfaces";
+import path from "node:path";
+import fs from "fs-extra";
 import { PromptFileSystem } from "./promptFileSystem";
 import { PromptManager } from "./promptManager";
-import path from "path";
-import fs from "fs-extra";
+import type {
+	IAsyncIterableStream,
+	IPrompt,
+	IPromptInput,
+	IPromptManagerLibrary,
+	IPromptOutput,
+} from "./types/interfaces";
 
 export class PromptManagerClient implements IPromptManagerLibrary {
 	private promptFileSystem: PromptFileSystem;

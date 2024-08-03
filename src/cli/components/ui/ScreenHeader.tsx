@@ -1,8 +1,8 @@
 import { Box, Text } from "ink";
 
+import { useAtom } from "jotai";
 import type React from "react";
 import { currentScreenAtom } from "../../atoms";
-import { useAtom } from "jotai";
 
 interface ScreenHeaderProps {
 	subtitle?: string;

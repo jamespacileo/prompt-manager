@@ -1,19 +1,19 @@
 import {
-	expect,
-	test,
-	describe,
-	beforeAll,
 	afterAll,
-	beforeEach,
 	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
 	jest,
+	test,
 } from "bun:test";
+import path from "node:path";
+import fs from "fs-extra";
 import { Container } from "typedi";
-import { PromptManager } from "../promptManager";
-import { PromptFileSystem } from "../promptFileSystem";
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
-import fs from "fs/promises";
-import path from "path";
+import { PromptFileSystem } from "../promptFileSystem";
+import { PromptManager } from "../promptManager";
 import type { IPrompt, IPromptInput, IPromptOutput } from "../types/interfaces";
 
 // Function to create a unique dummy prompt for each test
@@ -82,12 +82,12 @@ describe("PromptModel", () => {
 		fileSystem = Container.get(PromptFileSystem);
 		await fileSystem.initialize();
 
-		logger.info(`Config manager initialized`);
+		console.info("Config manager initialized");
 
 		promptManager = Container.get(PromptManager);
 		await promptManager.initialize();
 
-		logger.info(`Prompt manager initialized`);
+		console.info("Prompt manager initialized");
 	});
 
 	afterAll(async () => {
@@ -96,11 +96,11 @@ describe("PromptModel", () => {
 
 	test("create and retrieve prompt", async () => {
 		const dummyPrompt = createUniqueDummyPrompt("createAndRetrieve");
-		logger.info(
+		console.info(
 			`Creating prompt ${dummyPrompt.name} in category ${dummyPrompt.category}`,
 		);
 		await promptManager.createPrompt({ prompt: dummyPrompt });
-		logger.info(`Prompt created`);
+		console.info("Prompt created");
 		const retrievedPrompt = promptManager.getPrompt({
 			category: dummyPrompt.category,
 			name: dummyPrompt.name,

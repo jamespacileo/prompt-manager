@@ -1,20 +1,20 @@
-import type React from "react";
-import { useCallback, useState, useEffect } from "react";
+import { promptCategoryKeys } from "@/fixtures/categories";
 import { Box, Text, useFocusManager, useInput } from "ink";
 import { useAtom } from "jotai";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import OptionSelect from "../components/OptionSelect";
-import MultiOptionSelect from "../components/MultiOptionSelect";
-import AutoCompleteInput from "../components/AutoCompleteInput";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	categoryAtom,
 	currentWizardStepAtom,
 	promptNameAtom,
 	tagsAtom,
 } from "../atoms";
-import { THEME_COLORS } from "../uiConfig";
-import { promptCategoryKeys } from "@/fixtures/categories";
+import AutoCompleteInput from "../components/AutoCompleteInput";
+import MultiOptionSelect from "../components/MultiOptionSelect";
+import OptionSelect from "../components/OptionSelect";
 import OptionCardGrid from "../components/_atoms/OptionCardGrid";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
+import { THEME_COLORS } from "../uiConfig";
 
 const categories = [
 	{

@@ -1,25 +1,25 @@
-import type React from "react";
-import { useState, useEffect } from "react";
-import { Box, Text, Newline, useInput } from "ink";
-import {
-	getPromptDetails,
-	deletePrompt,
-	listPromptVersions,
-	switchPromptVersion,
-	getGeneratedTypeScript,
-} from "../commands";
 import chalk from "chalk";
-import FireSpinner from "../components/ui/FireSpinner";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import PromptView from "../components/prompt/PromptView";
-import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
+import { Box, Newline, Text, useInput } from "ink";
 import { useAtom } from "jotai";
+import type React from "react";
+import { useEffect, useState } from "react";
 import type { IPrompt } from "../../types/interfaces";
 import {
-	currentScreenAtom,
 	alertMessageAtom,
+	currentScreenAtom,
 	selectedPromptAtom,
 } from "../atoms";
+import {
+	deletePrompt,
+	getGeneratedTypeScript,
+	getPromptDetails,
+	listPromptVersions,
+	switchPromptVersion,
+} from "../commands";
+import PromptView from "../components/prompt/PromptView";
+import FireSpinner from "../components/ui/FireSpinner";
+import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 
 interface PromptDetailScreenProps {
 	prompt: { category: string; name: string };

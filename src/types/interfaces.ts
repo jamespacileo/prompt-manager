@@ -17,20 +17,23 @@ import type { Config } from "../schemas/config";
  * Represents the input structure for a prompt.
  * This can be extended to include any key-value pairs.
  */
-type IPromptInput<T extends Record<string, any> = Record<string, any>> = T;
+type IPromptInput<T extends Record<string, unknown> = Record<string, unknown>> =
+	T;
 
 /**
  * Represents the output structure for a prompt.
  * This can be extended to include any key-value pairs.
  */
-type IPromptOutput<T extends Record<string, any> = Record<string, any>> = T;
+type IPromptOutput<
+	T extends Record<string, unknown> = Record<string, unknown>,
+> = T;
 
 /**
  * Represents the structure of a single prompt.
  */
 interface IPrompt<
-	PromptInput extends IPromptInput<any>,
-	PromptOutput extends IPromptOutput<any>,
+	PromptInput extends IPromptInput = IPromptInput,
+	PromptOutput extends IPromptOutput = IPromptOutput,
 > {
 	/** Unique identifier for the prompt */
 	name: string;
@@ -99,8 +102,8 @@ export interface IPromptModelRequired {
 }
 
 export interface IPromptModel<
-	TInput extends IPromptInput<any> = IPromptInput<any>,
-	TOutput extends IPromptOutput<any> = IPromptOutput<any>,
+	TInput extends IPromptInput = IPromptInput,
+	TOutput extends IPromptOutput = IPromptOutput,
 > extends Omit<IPrompt<TInput, TOutput>, "inputSchema" | "outputSchema">,
 		IPromptModelRequired {
 	version: string;

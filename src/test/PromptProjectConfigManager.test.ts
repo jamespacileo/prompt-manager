@@ -1,18 +1,18 @@
 import {
-	expect,
-	test,
-	beforeEach,
+	afterAll,
 	afterEach,
 	beforeAll,
-	afterAll,
+	beforeEach,
 	describe,
+	expect,
+	test,
 } from "bun:test";
+import path from "node:path";
+import fs from "fs-extra";
 import { Container } from "typedi";
+import { PromptFileSystem } from "..";
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
 import type { Config } from "../schemas/config";
-import fs from "fs/promises";
-import path from "path";
-import { PromptFileSystem } from "..";
 
 describe("PromptProjectConfigManager", () => {
 	let promptFileSystem: PromptFileSystem;

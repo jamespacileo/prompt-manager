@@ -1,20 +1,20 @@
 import {
-	expect,
-	test,
-	describe,
-	beforeAll,
 	afterAll,
+	beforeAll,
 	beforeEach,
+	describe,
+	expect,
 	jest,
 	spyOn,
+	test,
 } from "bun:test";
+import path from "node:path";
+import fs from "fs-extra";
 import { Container } from "typedi";
 import * as commands from "../cli/commands";
-import { PromptManager } from "../promptManager";
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
 import { PromptFileSystem } from "../promptFileSystem";
-import fs from "fs/promises";
-import path from "path";
+import { PromptManager } from "../promptManager";
 import type { IPrompt } from "../types/interfaces";
 
 describe.skip("CLI Commands", () => {
@@ -48,7 +48,7 @@ describe.skip("CLI Commands", () => {
 		if (originalPromptsDir) {
 			process.env.PROMPTS_DIR = originalPromptsDir;
 		} else {
-			delete process.env.PROMPTS_DIR;
+			process.env.PROMPTS_DIR = undefined;
 		}
 	});
 

@@ -1,5 +1,5 @@
-import React, { type FC } from "react";
 import { Box, Text } from "ink";
+import React, { type FC } from "react";
 import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 import { THEME_COLORS } from "../uiConfig";
 

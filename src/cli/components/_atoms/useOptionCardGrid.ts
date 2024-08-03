@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { useInput } from "ink";
+import { useEffect, useState } from "react";
 import type { Option } from "../types";
 
 interface UseOptionCardGridProps {
@@ -81,9 +81,8 @@ export const useOptionCardGrid = ({
 				const isSelected = prev.some((o) => o.value === option.value);
 				if (isSelected) {
 					return prev.filter((o) => o.value !== option.value);
-				} else {
-					return [...prev, option];
 				}
+				return [...prev, option];
 			});
 		} else {
 			onSelect([option]);

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { MAIN_TERM_COLOR } from "../../uiConfig";
-import type React from "react";
 import { Text } from "ink";
+import type React from "react";
+import { MAIN_TERM_COLOR } from "../../uiConfig";
 
 const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 

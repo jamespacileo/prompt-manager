@@ -1,10 +1,10 @@
 import type { JSONSchema7 } from "json-schema";
+import jsf from "json-schema-faker";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import { format } from "prettier";
-import jsf from "json-schema-faker";
+import { zodToTs } from "zod-to-ts";
 import type { IPrompt } from "../types/interfaces";
 import { cleanName } from "./promptManagerUtils";
-import { zodToTs } from "zod-to-ts";
 
 export interface SchemaAndType {
 	formattedSchemaTs: string;
@@ -114,10 +114,7 @@ export async function generatePromptTypescriptDefinition(
  * logger.info(testInputs);
  * // Output: [{ name: "John Doe" }, { name: "Jane Doe" }, { name: "Jim Doe" }]
  */
-export function generateTestInputs(
-	schema: JSONSchema7,
-	count = 5,
-): any[] {
+export function generateTestInputs(schema: JSONSchema7, count = 5): any[] {
 	jsf.option({
 		alwaysFakeOptionals: true,
 		useDefaultValue: true,

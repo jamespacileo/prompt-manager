@@ -1,5 +1,5 @@
-import fs from "fs/promises";
-import path from "path";
+import path from "node:path";
+import fs from "fs-extra";
 // import 'reflect-metadata';
 
 const TEST_CONFIG = {
@@ -44,4 +44,4 @@ async function setupTestEnvironment() {
 	process.env.FURY_VERBOSITY = "1"; // Add this line to set verbosity
 }
 
-setupTestEnvironment().catch(logger.error);
+setupTestEnvironment().catch(console.error);

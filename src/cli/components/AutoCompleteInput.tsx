@@ -1,7 +1,7 @@
-import type React from "react";
-import { useState, useEffect, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { generateAutoComplete } from "../aiHelpers";
 
 interface AutoCompleteInputProps {

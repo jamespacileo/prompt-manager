@@ -2,7 +2,7 @@ import type { IPrompt } from "./types/interfaces";
 
 export interface PromptManagerBase {
 	[category: string]: {
-		[prompt: string]: IPrompt<any, any>;
+		[prompt: string]: IPrompt<Record<string, unknown>, Record<string, unknown>>;
 	};
 }
 

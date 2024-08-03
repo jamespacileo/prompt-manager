@@ -1,7 +1,7 @@
 // ... existing code ...
 
 import { Box } from "ink";
-import { useState, useEffect, type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 declare const module: {
 	hot?: {

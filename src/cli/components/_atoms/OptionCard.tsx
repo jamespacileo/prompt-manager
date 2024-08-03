@@ -1,6 +1,6 @@
-import type React from "react";
-import { Box, Text } from "ink";
 import { THEME_COLORS } from "@/cli/uiConfig";
+import { Box, Text } from "ink";
+import type React from "react";
 
 export interface OptionCardProps {
 	label: string;

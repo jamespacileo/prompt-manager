@@ -1,17 +1,17 @@
-import React, { type FC, useCallback, useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import { useAtom } from "jotai";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
-import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
-import PromptView from "../components/prompt/PromptView";
-import { PaginatedList } from "../components/utils/PaginatedList";
-import FireSpinner from "../components/ui/FireSpinner";
-import { THEME_COLORS } from "../uiConfig";
-import { currentScreenAtom, selectedPromptAtom } from "../atoms";
-import { updatePrompt } from "../commands";
+import React, { type FC, useCallback, useState, useEffect } from "react";
 import type { IPromptModel } from "../../types/interfaces";
 import { updatePromptWithAI } from "../aiHelpers";
+import { currentScreenAtom, selectedPromptAtom } from "../atoms";
+import { updatePrompt } from "../commands";
+import PromptView from "../components/prompt/PromptView";
+import FireSpinner from "../components/ui/FireSpinner";
+import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
+import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
+import { PaginatedList } from "../components/utils/PaginatedList";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
+import { THEME_COLORS } from "../uiConfig";
 
 const amendOptions = [
 	{ key: "all", name: "All" },

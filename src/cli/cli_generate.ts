@@ -1,7 +1,7 @@
+import path from "node:path";
 import fs from "fs-extra";
 import { getConfig } from "../config";
 import { logger } from "../utils/logger";
-import path from "path";
 
 const PROMPTS_DIR = await getConfig("promptsDir");
 const OUTPUT_DIR = await getConfig("outputDir");
@@ -44,16 +44,16 @@ export function generateTypes(prompts: PromptData[]): string {
 		const categoryPrompts = prompts.filter((p) => p.category === category);
 		for (const prompt of categoryPrompts) {
 			output += `    ${prompt.name}: {\n`;
-			output += `      name: string;\n`;
-			output += `      category: string;\n`;
-			output += `      version: string;\n`;
-			output += `      content: string;\n`;
-			output += `      parameters: string[];\n`;
-			output += `      description: string;\n`;
+			output += "      name: string;\n";
+			output += "      category: string;\n";
+			output += "      version: string;\n";
+			output += "      content: string;\n";
+			output += "      parameters: string[];\n";
+			output += "      description: string;\n";
 			output += `      format: (inputs: {${prompt.parameters.map((p: string) => `${p}: string`).join("; ")}}) => string;\n`;
-			output += `    };\n`;
+			output += "    };\n";
 		}
-		output += `  };\n`;
+		output += "  };\n";
 	}
 
 	output += "}\n";
@@ -75,16 +75,17 @@ export function generateImplementation(prompts: PromptData[]): string {
 			output += `      content: ${JSON.stringify(prompt.content)},\n`;
 			output += `      parameters: ${JSON.stringify(prompt.parameters)},\n`;
 			output += `      description: ${JSON.stringify(prompt.description)},\n`;
-			output += `      format: (inputs) => {\n`;
+			output += "      format: (inputs) => {\n";
 			output += `        let formatted = ${JSON.stringify(prompt.content)};\n`;
-			output += `        for (const [key, value] of Object.entries(inputs)) {\n`;
+			output +=
+				"        for (const [key, value] of Object.entries(inputs)) {\n";
 			output += `          formatted = formatted.replace(new RegExp(\`{{$\{key}}}\`, 'g'), value);\n`;
-			output += `        }\n`;
-			output += `        return formatted;\n`;
-			output += `      },\n`;
-			output += `    },\n`;
+			output += "        }\n";
+			output += "        return formatted;\n";
+			output += "      },\n";
+			output += "    },\n";
 		}
-		output += `  },\n`;
+		output += "  },\n";
 	}
 
 	output += "};\n\nexport default promptManager;\n";

@@ -1,8 +1,8 @@
-import type React from "react";
-import { Box, Text } from "ink";
-import OptionCard from "./OptionCard";
-import type { Option } from "../../types";
 import { THEME_COLORS } from "@/cli/uiConfig";
+import { Box, Text } from "ink";
+import type React from "react";
+import OptionCard from "./OptionCard";
+import type { Option } from "./types";
 import { useOptionCardGrid } from "./useOptionCardGrid";
 
 interface OptionCardGridProps {

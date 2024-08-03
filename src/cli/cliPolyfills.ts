@@ -6,7 +6,7 @@ export class TextEncoderStream {
 	#transform = new TransformStream<string, Uint8Array>({
 		transform: (chunk, controller) => {
 			// https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk
-			chunk = String(chunk);
+			const stringChunk = String(chunk);
 
 			let finalChunk = "";
 			for (let i = 0; i < chunk.length; i++) {

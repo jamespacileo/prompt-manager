@@ -1,7 +1,7 @@
 import type {
 	IPrompt,
-	IPromptManagerCLI,
 	IPromptCategory,
+	IPromptManagerCLI,
 	IPromptManagerLibrary,
 } from "./interfaces";
 

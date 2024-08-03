@@ -1,6 +1,6 @@
+import { Box, Text, useInput } from "ink";
 import type React from "react";
 import { useState } from "react";
-import { Box, Text, useInput } from "ink";
 import GridOptions, { type Option } from "./GridOptions";
 
 interface MultiSelectProps {

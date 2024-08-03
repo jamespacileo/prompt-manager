@@ -1,4 +1,4 @@
-import fs from "fs-extra";
+import fs from "node:fs/promises";
 import { logger } from "./logger";
 
 export async function checkDiskSpace(dir: string): Promise<void> {
@@ -12,8 +12,12 @@ export async function checkDiskSpace(dir: string): Promise<void> {
 				`Insufficient disk space. Only ${freeSpace / (1024 * 1024)} MB available.`,
 			);
 		}
-	} catch (error) {
-		logger.error(`Failed to check disk space: ${error.message}`);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			logger.error(`Failed to check disk space: ${error.message}`);
+		} else {
+			logger.error("Failed to check disk space: Unknown error");
+		}
 		throw error;
 	}
 }

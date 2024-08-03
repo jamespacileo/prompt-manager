@@ -1,6 +1,6 @@
+import { Text, useStdout } from "ink";
 import type React from "react";
 import { useState } from "react";
-import { Text, useStdout } from "ink";
 
 import { useInterval } from "react-use";
 

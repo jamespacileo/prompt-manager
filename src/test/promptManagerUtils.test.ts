@@ -1,12 +1,12 @@
-import path from "path";
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import path from "node:path";
+import type { PromptModel } from "../promptModel";
 import {
 	getPromptFilePath,
-	validateCategoryAndName,
-	mapPromptToFileInfo,
 	handlePromptNotFound,
+	mapPromptToFileInfo,
+	validateCategoryAndName,
 } from "../utils/promptManagerUtils";
-import type { PromptModel } from "../promptModel";
 
 describe("promptManagerUtils", () => {
 	describe("getPromptFilePath", () => {

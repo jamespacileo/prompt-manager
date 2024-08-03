@@ -4,7 +4,7 @@
     "module": "ESNext",
     "lib": [
       "ES2022",
-      "dom",
+      "dom"
     ],
     "declaration": true,
     "outDir": "dist",
@@ -27,6 +27,7 @@
     // "verbatimModuleSyntax": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
     "noEmit": false,
     "strict": true,
     // "noUnusedLocals": true,
@@ -38,7 +39,7 @@
       "@/*": [
         "src/*"
       ]
-    },
+    }
   },
   "include": [
     "src/**/*",
@@ -49,6 +50,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    // "test"
+    "test"
   ]
 }

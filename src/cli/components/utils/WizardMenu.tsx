@@ -1,5 +1,5 @@
-import React, { useState, type ReactElement } from "react";
 import { Box, Text } from "ink";
+import React, { useState, type ReactElement } from "react";
 
 interface WizardStep {
 	title: string;

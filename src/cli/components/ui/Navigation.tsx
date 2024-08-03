@@ -1,10 +1,10 @@
 import { Box, Text } from "ink";
 import React, { type FC } from "react";
 
-import { currentScreenAtom } from "../../atoms";
-import { logger } from "../../../utils/logger";
-import { useAtom } from "jotai";
 import { useInput } from "ink";
+import { useAtom } from "jotai";
+import { logger } from "../../../utils/logger";
+import { currentScreenAtom } from "../../atoms";
 
 interface NavigationProps {
 	onNavigate: (screen: string) => void;

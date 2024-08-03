@@ -1,8 +1,8 @@
 import { Box, Text } from "ink";
 
-import FireSpinner from "./FireSpinner";
-import type React from "react";
 import chalk from "chalk";
+import type React from "react";
+import FireSpinner from "./FireSpinner";
 
 const Header: React.FC<{ title: string }> = ({ title }) => (
 	<Box width="100%" borderColor="#ea580c" borderStyle="round" paddingX={1}>

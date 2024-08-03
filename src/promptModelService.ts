@@ -1,7 +1,7 @@
-import { Service, Inject } from "typedi";
+import { Inject, Service } from "typedi";
 import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
-import { PromptModel } from "./promptModel";
 import type { PromptFileSystem } from "./promptFileSystem";
+import { PromptModel } from "./promptModel";
 import type { IPromptModelRequired } from "./types/interfaces";
 
 @Service()

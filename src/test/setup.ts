@@ -9,11 +9,11 @@ export class TextEncoderStream {
 	#transform = new TransformStream<string, Uint8Array>({
 		transform: (chunk, controller) => {
 			// https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk
-			chunk = String(chunk);
-
+			const stringChunk = String(chunk);
 			let finalChunk = "";
-			for (let i = 0; i < chunk.length; i++) {
-				const item = chunk[i];
+			for (let i = 0; i < stringChunk.length; i++) {
+				const item = stringChunk[i];
+
 				const codeUnit = item.charCodeAt(0);
 				if (this.#pendingHighSurrogate !== null) {
 					const highSurrogate = this.#pendingHighSurrogate;
@@ -137,16 +137,15 @@ const ensureTextDecoderStream = () => {
 
 ensureTextDecoderStream();
 
-logger.info("TextDecoderStream polyfill is working");
+console.info("TextDecoderStream polyfill is working");
 
-import fs from "fs/promises";
-import path from "path";
+import fs from "fs-extra";
 import "./setupEnvs";
 // Create test directories
 const testDirs = ["test_prompts", "test_output"];
 Promise.all(testDirs.map((dir) => fs.mkdir(dir, { recursive: true })))
-	.then(() => logger.info("Test directories created"))
-	.catch(logger.error);
+	.then(() => console.info("Test directories created"))
+	.catch(console.error);
 
 // Create test-fury-config.json
 const testConfig = {
@@ -155,5 +154,5 @@ const testConfig = {
 };
 
 fs.writeFile("test-fury-config.json", JSON.stringify(testConfig, null, 2))
-	.then(() => logger.info("test-fury-config.json created"))
-	.catch(logger.error);
+	.then(() => console.info("test-fury-config.json created"))
+	.catch(console.error);

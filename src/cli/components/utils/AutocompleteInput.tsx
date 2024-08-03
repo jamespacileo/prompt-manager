@@ -1,6 +1,6 @@
-import type React from "react";
-import { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
+import type React from "react";
+import { useEffect, useState } from "react";
 import GridOptions, { type Option } from "./GridOptions";
 
 interface AutocompleteInputProps {

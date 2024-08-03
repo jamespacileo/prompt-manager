@@ -1,11 +1,11 @@
-import type React from "react";
-import { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import FireSpinner from "../components/ui/FireSpinner";
-import { generateTypes } from "../commands";
 import { useAtom } from "jotai";
-import { currentScreenAtom, alertMessageAtom } from "../atoms";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { alertMessageAtom, currentScreenAtom } from "../atoms";
+import { generateTypes } from "../commands";
+import FireSpinner from "../components/ui/FireSpinner";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 
 const PromptGenerateScreen: React.FC = () => {
 	const [, setCurrentScreen] = useAtom(currentScreenAtom);

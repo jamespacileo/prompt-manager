@@ -1,21 +1,21 @@
-import { Service, Inject } from "typedi";
+import fs from "fs-extra";
+import { Inject, Service } from "typedi";
+import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
+import type { PromptFileSystem } from "./promptFileSystem";
+import { PromptModel } from "./promptModel";
 import type {
-	IPromptCategory,
 	IPrompt,
+	IPromptCategory,
 	IPromptInput,
 	IPromptOutput,
 } from "./types/interfaces";
-import { PromptModel } from "./promptModel";
-import type { PromptFileSystem } from "./promptFileSystem";
-import { incrementVersion } from "./utils/versionUtils";
-import type { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
-import {
-	validateCategoryAndName,
-	mapPromptToFileInfo,
-	handlePromptNotFound,
-} from "./utils/promptManagerUtils";
-import fs from "fs-extra";
 import { logger } from "./utils/logger";
+import {
+	handlePromptNotFound,
+	mapPromptToFileInfo,
+	validateCategoryAndName,
+} from "./utils/promptManagerUtils";
+import { incrementVersion } from "./utils/versionUtils";
 
 @Service()
 export class PromptManager<
@@ -113,7 +113,7 @@ export class PromptManager<
 	async loadPrompts(): Promise<void> {
 		logger.info(`Loading prompts from ${this.configManager.getPromptsDir()}`);
 		if (!fs.existsSync(this.configManager.getPromptsDir())) {
-			logger.warn(`Prompts directory does not exist, creating it`);
+			logger.warn("Prompts directory does not exist, creating it");
 			await fs.mkdir(this.configManager.getPromptsDir(), { recursive: true });
 		}
 		try {
@@ -306,10 +306,11 @@ export class PromptManager<
 		const prompt = this.getPrompt({ category, name });
 
 		switch (action) {
-			case "list":
+			case "list": {
 				const versions = await prompt.versions();
 				return { action, category, name, result: versions };
-			case "create":
+			}
+			case "create": {
 				const newVersion = this.incrementVersion(prompt.version);
 				prompt.version = newVersion;
 				await this.fileSystem.savePrompt({
@@ -319,9 +320,10 @@ export class PromptManager<
 					>,
 				});
 				return { action, category, name, result: newVersion };
+			}
 			case "switch":
 				if (!version) {
-					throw new Error(`Version is required for switch action`);
+					throw new Error("Version is required for switch action");
 				}
 				await prompt.switchVersion(version);
 				await this.fileSystem.savePrompt({ promptData: prompt });

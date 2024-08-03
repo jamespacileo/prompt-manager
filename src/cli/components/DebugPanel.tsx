@@ -1,7 +1,7 @@
-import type React from "react";
-import { useState, useCallback } from "react";
 import { Box, Text, useInput } from "ink";
 import { useAtomValue } from "jotai";
+import type React from "react";
+import { useCallback, useState } from "react";
 import {
 	currentScreenAtom,
 	currentWizardStepAtom,
@@ -16,14 +16,17 @@ const DebugPanel: React.FC = () => {
 	const currentWizardStep = useAtomValue(currentWizardStepAtom);
 	const selectedPrompt = useAtomValue(selectedPromptAtom);
 
-	const handleInput = useCallback((input: string, key: any) => {
-		setLastInput(input);
-		setLastKey(
-			Object.keys(key)
-				.filter((k) => key[k as keyof typeof key])
-				.join(", "),
-		);
-	}, []);
+	const handleInput = useCallback(
+		(input: string, key: Record<string, unknown>) => {
+			setLastInput(input);
+			setLastKey(
+				Object.keys(key)
+					.filter((k) => key[k as keyof typeof key])
+					.join(", "),
+			);
+		},
+		[],
+	);
 
 	useInput(handleInput);
 
@@ -36,10 +39,10 @@ const DebugPanel: React.FC = () => {
 		>
 			<Text bold>Debug Panel</Text>
 			<Text>
-				Input: {lastInput} {"||"} Key: {lastKey}
+				Input: {lastInput} || Key: {lastKey}
 			</Text>
 			<Text>
-				Screen: {currentScreen} {"||"} Wizard Step: {currentWizardStep}
+				Screen: {currentScreen} || Wizard Step: {currentWizardStep}
 			</Text>
 			<Text>Selected Prompt: {JSON.stringify(selectedPrompt, null, 2)}</Text>
 		</Box>

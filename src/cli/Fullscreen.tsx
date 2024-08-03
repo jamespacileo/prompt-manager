@@ -1,5 +1,5 @@
-import { type BoxProps, Box, render, type RenderOptions } from "ink";
-import { useState, useEffect, type PropsWithChildren } from "react";
+import { Box, type BoxProps, type RenderOptions, render } from "ink";
+import { type PropsWithChildren, useEffect, useState } from "react";
 import { logger } from "../utils/logger";
 
 function useStdoutDimensions(): [number, number] {

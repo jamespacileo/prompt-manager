@@ -1,9 +1,9 @@
-import React, { type FC } from "react";
 import { Box, Text } from "ink";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import { PaginatedList } from "../components/utils/PaginatedList";
-import { THEME_COLORS } from "../uiConfig";
+import React, { type FC } from "react";
 import type { Screen } from "../../types/interfaces";
+import { PaginatedList } from "../components/utils/PaginatedList";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
+import { THEME_COLORS } from "../uiConfig";
 
 interface HomeScreenProps {
 	onNavigate?: (screen: Screen) => void;

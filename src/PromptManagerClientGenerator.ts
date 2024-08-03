@@ -1,8 +1,8 @@
-import fs from "fs/promises";
-import path from "path";
-import { PromptFileSystem } from "./promptFileSystem";
-import { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
+import path from "node:path";
+import fs from "fs-extra";
 import { Container } from "typedi";
+import { PromptProjectConfigManager } from "./config/PromptProjectConfigManager";
+import { PromptFileSystem } from "./promptFileSystem";
 import { logger } from "./utils/logger";
 
 const fileSystem = Container.get(PromptFileSystem);
@@ -76,13 +76,14 @@ export class PromptManagerClient implements IPromptManagerLibrary {
 			categoryCode += `      ${prompt}: {\n`;
 			categoryCode += `        raw: async () => (await promptManager.getPrompt({ category: '${category}', name: '${prompt}' })).template,\n`;
 			categoryCode += `        version: async () => (await promptManager.getPrompt({ category: '${category}', name: '${prompt}' })).version,\n`;
-			categoryCode += `        format: async (inputs: Record<string, any>) => {\n`;
+			categoryCode +=
+				"        format: async (inputs: Record<string, any>) => {\n";
 			categoryCode += `          const prompt = await promptManager.getPrompt({ category: '${category}', name: '${prompt}' });\n`;
 			categoryCode += `          return prompt.template.replace(/\\{(\\w+)\\}/g, (_, key) => inputs[key] ?? '');\n`;
-			categoryCode += `        },\n`;
-			categoryCode += `      },\n`;
+			categoryCode += "        },\n";
+			categoryCode += "      },\n";
 		}
-		categoryCode += `    },\n`;
+		categoryCode += "    },\n";
 		return categoryCode;
 	}
 

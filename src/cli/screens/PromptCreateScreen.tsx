@@ -1,20 +1,20 @@
 import { Box, Text, useInput } from "ink";
 import React, { type FC, useCallback, useState } from "react";
 
-import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
-import FireSpinner from "../components/ui/FireSpinner";
+import { useAtom } from "jotai";
 import type { IPromptModel } from "../../types/interfaces";
-import PromptView from "../components/prompt/PromptView";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
-import { THEME_COLORS } from "../uiConfig";
+import { generatePromptWithAI } from "../aiHelpers";
 import { currentScreenAtom } from "../atoms";
 import { createPrompt } from "../commands";
-import { generatePromptWithAI } from "../aiHelpers";
-import { useAtom } from "jotai";
-import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
-import OptionSelect from "../components/OptionSelect";
-import MultiOptionSelect from "../components/MultiOptionSelect";
 import AutoCompleteInput from "../components/AutoCompleteInput";
+import MultiOptionSelect from "../components/MultiOptionSelect";
+import OptionSelect from "../components/OptionSelect";
+import PromptView from "../components/prompt/PromptView";
+import FireSpinner from "../components/ui/FireSpinner";
+import { AsyncInputHandler } from "../components/utils/AsyncInputHandler";
+import { ConfirmationDialog } from "../components/utils/ConfirmationDialog";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
+import { THEME_COLORS } from "../uiConfig";
 
 const promptTypeOptions = [
 	{

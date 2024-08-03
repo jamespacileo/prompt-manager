@@ -1,5 +1,5 @@
-import fs from "fs/promises";
-import path from "path";
+import path from "node:path";
+import fs from "fs-extra";
 
 async function cleanup() {
 	const dirsToRemove = ["test_prompts", "test_output"];
@@ -8,16 +8,16 @@ async function cleanup() {
 	for (const dir of dirsToRemove) {
 		await fs
 			.rm(dir, { recursive: true, force: true })
-			.then(() => logger.info(`Removed ${dir}`))
-			.catch(logger.error);
+			.then(() => console.info(`Removed ${dir}`))
+			.catch(console.error);
 	}
 
 	for (const file of filesToRemove) {
 		await fs
 			.unlink(file)
-			.then(() => logger.info(`Removed ${file}`))
-			.catch(logger.error);
+			.then(() => console.info(`Removed ${file}`))
+			.catch(console.error);
 	}
 }
 
-// cleanup().then(() => logger.info('Cleanup complete'));
+// cleanup().then(() => console.info('Cleanup complete'));

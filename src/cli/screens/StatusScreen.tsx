@@ -2,11 +2,11 @@ import { Box, Text, useInput } from "ink";
 import type React from "react";
 import { useEffect, useState } from "react";
 
-import FireSpinner from "../components/ui/FireSpinner";
-import { ScreenWrapper } from "../components/utils/ScreenWrapper";
+import { useAtom } from "jotai";
 import { currentScreenAtom } from "../atoms";
 import { getStatus } from "../commands";
-import { useAtom } from "jotai";
+import FireSpinner from "../components/ui/FireSpinner";
+import { ScreenWrapper } from "../components/utils/ScreenWrapper";
 
 const StatusScreen: React.FC = () => {
 	const [, setCurrentScreen] = useAtom(currentScreenAtom);

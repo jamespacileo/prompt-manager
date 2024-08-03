@@ -1,6 +1,6 @@
+import { Box } from "ink";
 import type React from "react";
 import type { ReactNode } from "react";
-import { Box } from "ink";
 import AlertMessage from "./AlertMessage";
 
 interface LayoutProps {

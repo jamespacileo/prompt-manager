@@ -1,5 +1,5 @@
-import type React from "react";
 import { Box, Text } from "ink";
+import type React from "react";
 
 export interface Option {
 	value: string;
@@ -25,7 +25,7 @@ const GridOptions: React.FC<GridOptionsProps> = ({
 	highlightColor = "green",
 }) => {
 	const truncate = (str: string, maxLength: number) =>
-		str.length > maxLength ? str.slice(0, maxLength) + "..." : str;
+		str.length > maxLength ? `${str.slice(0, maxLength)}...` : str;
 
 	return (
 		<Box flexDirection="column">

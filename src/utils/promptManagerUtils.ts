@@ -1,6 +1,6 @@
-import path from "path";
-import type { IPrompt, IPromptInput, IPromptOutput } from "../types/interfaces";
+import path from "node:path";
 import type { PromptModel } from "../promptModel";
+import type { IPrompt, IPromptInput, IPromptOutput } from "../types/interfaces";
 
 export function cleanName(name: string): string {
 	return name

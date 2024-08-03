@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { useInput } from "ink";
+import { useEffect, useState } from "react";
 import type { Option } from "../types";
 
 interface UseOptionNavigationProps {
@@ -43,7 +43,8 @@ export const useOptionNavigation = ({
 		setSelectedOptions((prev) => {
 			if (prev.includes(option)) {
 				return prev.filter((o) => o !== option);
-			} else if (prev.length < maxSelections) {
+			}
+			if (prev.length < maxSelections) {
 				return [...prev, option];
 			}
 			return prev;

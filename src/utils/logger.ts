@@ -1,9 +1,9 @@
-import { createLogger, format, type Logger, transports } from "winston";
+import { type Logger, createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
+import fs from "node:fs";
+import path from "node:path";
 import chalk from "chalk";
 import type { JSONSchema7 } from "json-schema";
-import path from "path";
-import fs from "fs";
 
 // Ensure log directory exists
 const logDirectory = path.join(process.cwd(), ".fury");
@@ -67,10 +67,7 @@ logger.success = (message: string) => {
 	logger.log({ level: "info", message: chalk.green(message) });
 };
 
-export function prettyPrintJsonSchema(
-	schema: JSONSchema7,
-	indent = 0,
-): string {
+export function prettyPrintJsonSchema(schema: JSONSchema7, indent = 0): string {
 	const spaces = " ".repeat(indent);
 	let output = "";
 

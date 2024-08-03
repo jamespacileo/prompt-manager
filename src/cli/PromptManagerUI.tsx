@@ -1,32 +1,32 @@
-import type React from "react";
-import { type FC, useEffect } from "react"
 import chalk from "chalk";
 import { Box, Text, useApp, useInput } from "ink";
+import { useStdout } from "ink";
 import { useAtom } from "jotai";
+import type React from "react";
+import { type FC, useEffect } from "react";
 import type { Screen } from "../types/interfaces";
-import Layout from "./components/ui/Layout";
 import { logger } from "../utils/logger";
 import {
 	currentScreenAtom,
 	currentWizardStepAtom,
 	selectedPromptAtom,
 } from "./atoms";
+import DebugPanel from "./components/DebugPanel";
+import AlertMessage from "./components/ui/AlertMessage";
 import Footer from "./components/ui/Footer";
 import Header from "./components/ui/Header";
-import AlertMessage from "./components/ui/AlertMessage";
+import Layout from "./components/ui/Layout";
+import HelpScreen from "./screens/HelpScreen";
 import HomeScreen from "./screens/HomeScreen";
+import PromptAmendScreen from "./screens/PromptAmendScreen";
 import PromptCreateScreen from "./screens/PromptCreateScreen";
 import PromptDetailScreen from "./screens/PromptDetailScreen";
-import PromptListScreen from "./screens/PromptListScreen";
-import StatusScreen from "./screens/StatusScreen";
-import HelpScreen from "./screens/HelpScreen";
-import PromptAmendScreen from "./screens/PromptAmendScreen";
-import PromptImportScreen from "./screens/PromptImportScreen";
 import PromptEvaluationScreen from "./screens/PromptEvaluationScreen";
 import PromptGenerateScreen from "./screens/PromptGenerateScreen";
+import PromptImportScreen from "./screens/PromptImportScreen";
+import PromptListScreen from "./screens/PromptListScreen";
+import StatusScreen from "./screens/StatusScreen";
 import TestScreen from "./screens/TestScreen";
-import DebugPanel from "./components/DebugPanel";
-import { useStdout } from "ink";
 
 interface PromptManagerUIProps {
 	initialScreen?: string;
