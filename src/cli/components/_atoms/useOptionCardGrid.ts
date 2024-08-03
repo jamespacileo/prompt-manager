@@ -58,45 +58,80 @@ export const useOptionCardGrid = <
 		direction: "up" | "down" | "left" | "right" | "home" | "end",
 	) => {
 		const totalItems = visibleOptions.length;
-		let newIndex = selectedIndex;
+		const rows = Math.ceil(totalItems / columns);
+		let currentRow = Math.floor(selectedIndex / columns);
+		let currentCol = selectedIndex % columns;
 
 		switch (direction) {
 			case "up":
-				newIndex = (selectedIndex - columns + totalItems) % totalItems;
+				currentRow = (currentRow - 1 + rows) % rows;
 				break;
 			case "down":
-				newIndex = (selectedIndex + columns) % totalItems;
+				currentRow = (currentRow + 1) % rows;
 				break;
 			case "left":
-				newIndex =
-					selectedIndex % columns === 0
-						? selectedIndex + columns - 1
-						: selectedIndex - 1;
+				if (currentCol === 0) {
+					if (currentPage > 0) {
+						const newPage = currentPage - 1;
+						const newTotalItems = Math.min(
+							adjustedItemsPerPage,
+							options.length - newPage * adjustedItemsPerPage,
+						);
+						const newColumns = Math.min(columns, newTotalItems);
+						const newSelectedIndex = currentRow * newColumns + (newColumns - 1);
+						setCurrentPage(newPage);
+						setSelectedIndex(newSelectedIndex);
+						return;
+					}
+				} else {
+					currentCol = (currentCol - 1 + columns) % columns;
+				}
 				break;
 			case "right":
-				newIndex =
-					(selectedIndex + 1) % columns === 0
-						? selectedIndex - columns + 1
-						: (selectedIndex + 1) % totalItems;
+				if (currentCol === columns - 1) {
+					if (currentPage < totalPages - 1) {
+						changePage("next");
+						return;
+					}
+				} else {
+					currentCol = (currentCol + 1) % columns;
+				}
 				break;
 			case "home":
-				newIndex = 0;
+				currentRow = 0;
+				currentCol = 0;
 				break;
 			case "end":
-				newIndex = totalItems - 1;
+				currentRow = rows - 1;
+				currentCol = (totalItems - 1) % columns;
 				break;
+		}
+
+		let newIndex = currentRow * columns + currentCol;
+		if (newIndex >= totalItems) {
+			newIndex = totalItems - 1;
 		}
 
 		setSelectedIndex(newIndex);
 	};
 
 	const changePage = (direction: "prev" | "next") => {
+		let newPage = currentPage;
 		if (direction === "prev" && currentPage > 0) {
-			setCurrentPage(currentPage - 1);
+			newPage = currentPage - 1;
 		} else if (direction === "next" && currentPage < totalPages - 1) {
-			setCurrentPage(currentPage + 1);
+			newPage = currentPage + 1;
 		}
-		setSelectedIndex(0);
+
+		if (newPage !== currentPage) {
+			setCurrentPage(newPage);
+			const newTotalItems = Math.min(
+				adjustedItemsPerPage,
+				options.length - newPage * adjustedItemsPerPage,
+			);
+			const newSelectedIndex = direction === "prev" ? newTotalItems - 1 : 0;
+			setSelectedIndex(newSelectedIndex);
+		}
 	};
 
 	const toggleSelection = (option: T) => {
