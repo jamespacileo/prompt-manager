@@ -1,36 +1,34 @@
 {
-  "name": "Generate Prompt",
-  "category": "Prompt Creation",
-  "description": "Create a prompt based on a given description.",
-  "version": "1.2",
-  "template": "Could you please create a detailed and engaging prompt based on the following description: {description}?",
-  "parameters": [
-    "description"
-  ],
-  "metadata": {
-    "created": "2023-10-05",
-    "lastModified": "2024-07-29T23:50:22.607Z"
-  },
-  "outputType": "plain",
-  "defaultModelName": "text-davinci-003",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "description": {
-        "type": "string"
-      }
-    }
-  },
-  "outputSchema": {
-    "type": "string"
-  },
-  "configuration": {
-    "modelName": "text-davinci-003",
-    "temperature": 0.7,
-    "maxTokens": 100,
-    "topP": 1,
-    "frequencyPenalty": 0,
-    "presencePenalty": 0,
-    "stopSequences": []
-  }
+	"name": "Generate Prompt",
+	"category": "Prompt Creation",
+	"description": "Create a prompt based on a given description.",
+	"version": "1.2",
+	"template": "Could you please create a detailed and engaging prompt based on the following description: {description}?",
+	"parameters": ["description"],
+	"metadata": {
+		"created": "2023-10-05",
+		"lastModified": "2024-07-29T23:50:22.607Z"
+	},
+	"outputType": "plain",
+	"defaultModelName": "gpt-4o-mini",
+	"inputSchema": {
+		"type": "object",
+		"properties": {
+			"description": {
+				"type": "string"
+			}
+		}
+	},
+	"outputSchema": {
+		"type": "string"
+	},
+	"configuration": {
+		"modelName": "gpt-4o-mini",
+		"temperature": 0.7,
+		"maxTokens": 100,
+		"topP": 1,
+		"frequencyPenalty": 0,
+		"presencePenalty": 0,
+		"stopSequences": []
+	}
 }

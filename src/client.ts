@@ -104,7 +104,13 @@ export class PromptManagerClient implements IPromptManagerLibrary {
 	> {
 		this.ensureInitialized();
 		try {
-			return await this.promptManager.listPrompts(props);
+			const prompts = await this.promptManager.listPrompts(props);
+			return prompts.map((prompt) => ({
+				...prompt,
+				filePath: prompt.filePath || "",
+			})) as Array<
+				IPrompt<Record<string, any>, Record<string, any>> & { filePath: string }
+			>;
 		} catch (error: unknown) {
 			this.handleError(error, "Failed to list prompts");
 		}

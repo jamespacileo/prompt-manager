@@ -103,7 +103,7 @@ describe.skip("CLI Commands", () => {
 		);
 
 		expect(stardustSymphony).toBeDefined();
-		expect(stardustSymphony).toEqual({
+		expect(stardustSymphony).toMatchObject({
 			category: "cosmicCompositions",
 			name: "stardustSymphony",
 			version: "1.0.0",

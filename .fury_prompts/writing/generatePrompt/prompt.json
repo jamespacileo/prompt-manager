@@ -1,58 +1,53 @@
 {
-  "name": "generate_prompt",
-  "category": "writing",
-  "description": "Create a writing prompt for aspiring writers to explore themes and settings in their stories.",
-  "version": "1.4",
-  "template": "Write a story that delves into themes such as friendship, betrayal, or courage within a fantasy or sci-fi setting. For example, consider a world where magic exists, or a futuristic society with advanced technology. The main character, who could be a young hero or an unlikely ally, discovers a hidden power that could alter the fate of their realm. They must choose whether to share this power with a trusted friend or keep it secret. What choices do they make, and how do those choices impact their relationships and the world around them?",
-  "parameters": [
-    "themes",
-    "setting",
-    "main_character",
-    "conflict"
-  ],
-  "metadata": {
-    "created": "2023-10-01",
-    "lastModified": "2024-07-30T02:31:55.664Z"
-  },
-  "outputType": "structured",
-  "defaultModelName": "text-davinci-003",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "themes": {
-        "type": "string",
-        "description": "Themes to explore in the story, e.g., friendship, betrayal."
-      },
-      "setting": {
-        "type": "string",
-        "description": "The setting of the story, e.g., fantasy world, futuristic city."
-      },
-      "main_character": {
-        "type": "string",
-        "description": "Description of the main character, e.g., a young hero, an unlikely ally."
-      },
-      "conflict": {
-        "type": "string",
-        "description": "The central conflict the character faces."
-      }
-    }
-  },
-  "outputSchema": {
-    "type": "object",
-    "properties": {
-      "story": {
-        "type": "string",
-        "description": "The generated story based on the provided themes, setting, and character."
-      }
-    }
-  },
-  "configuration": {
-    "modelName": "text-davinci-003",
-    "temperature": 0.7,
-    "maxTokens": 100,
-    "topP": 1,
-    "frequencyPenalty": 0,
-    "presencePenalty": 0,
-    "stopSequences": []
-  }
+	"name": "generate_prompt",
+	"category": "writing",
+	"description": "Create a writing prompt for aspiring writers to explore themes and settings in their stories.",
+	"version": "1.4",
+	"template": "Write a story that delves into themes such as friendship, betrayal, or courage within a fantasy or sci-fi setting. For example, consider a world where magic exists, or a futuristic society with advanced technology. The main character, who could be a young hero or an unlikely ally, discovers a hidden power that could alter the fate of their realm. They must choose whether to share this power with a trusted friend or keep it secret. What choices do they make, and how do those choices impact their relationships and the world around them?",
+	"parameters": ["themes", "setting", "main_character", "conflict"],
+	"metadata": {
+		"created": "2023-10-01",
+		"lastModified": "2024-07-30T02:31:55.664Z"
+	},
+	"outputType": "structured",
+	"defaultModelName": "gpt-4o-mini",
+	"inputSchema": {
+		"type": "object",
+		"properties": {
+			"themes": {
+				"type": "string",
+				"description": "Themes to explore in the story, e.g., friendship, betrayal."
+			},
+			"setting": {
+				"type": "string",
+				"description": "The setting of the story, e.g., fantasy world, futuristic city."
+			},
+			"main_character": {
+				"type": "string",
+				"description": "Description of the main character, e.g., a young hero, an unlikely ally."
+			},
+			"conflict": {
+				"type": "string",
+				"description": "The central conflict the character faces."
+			}
+		}
+	},
+	"outputSchema": {
+		"type": "object",
+		"properties": {
+			"story": {
+				"type": "string",
+				"description": "The generated story based on the provided themes, setting, and character."
+			}
+		}
+	},
+	"configuration": {
+		"modelName": "gpt-4o-mini",
+		"temperature": 0.7,
+		"maxTokens": 100,
+		"topP": 1,
+		"frequencyPenalty": 0,
+		"presencePenalty": 0,
+		"stopSequences": []
+	}
 }

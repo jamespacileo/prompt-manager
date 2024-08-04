@@ -28,3 +28,4 @@ class ErrorBoundary extends React.Component<
 }
 
 export default ErrorBoundary;
+import { logger } from "../../../utils/logger";

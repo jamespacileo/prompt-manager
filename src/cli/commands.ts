@@ -142,13 +142,13 @@ export async function generateTypes(): Promise<string> {
 	);
 
 	const env = vento();
-	const template = await env.load(`src/templates/fury-client-types.vto`);
+	const template = await env.load("src/templates/fury-client-types.vto");
 	const result = await template({
 		prompts,
 		categories: promptsByCategory,
 		generatedSchemas,
 	});
-	
+
 	const tsOutput = await format(result.content, { parser: "typescript" });
 
 	await fs.writeFile(path.join(outputDir, "..", "..", "prompts.ts"), tsOutput);

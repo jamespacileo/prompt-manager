@@ -14,6 +14,40 @@ const DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME = ".promptmanager.config.json";
 
 export type { Config };
 
+/**
+ * @class PromptProjectConfigManager
+ * @description Manages the configuration for the prompt project
+ *
+ * @saga
+ * This class is responsible for loading, validating, and providing access to the project configuration.
+ * It handles the initialization of necessary directories and provides methods to update and retrieve
+ * configuration values.
+ *
+ * @epicFeatures
+ * - Configuration loading and validation
+ * - Directory initialization
+ * - Configuration update and retrieval
+ * - Verbosity control
+ *
+ * @alliances
+ * - cosmiconfig: For searching and loading configuration files
+ * - zod: For schema validation of the configuration
+ *
+ * @allies
+ * - PromptFileSystem: Uses this configuration for file operations
+ * - PromptManager: Relies on this configuration for prompt management
+ *
+ * @epicTale
+ * ```typescript
+ * const configManager = Container.get(PromptProjectConfigManager);
+ * await configManager.initialize();
+ * const promptsDir = configManager.getConfig('promptsDir');
+ * ```
+ *
+ * @safeguards
+ * - Validates configuration against a schema to ensure integrity
+ * - Ensures necessary directories exist before operations
+ */
 @Service()
 export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 	private config: Config;
@@ -75,6 +109,22 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 		return this.configFilePath;
 	}
 
+	/**
+	 * Initialize the configuration manager
+	 *
+	 * @quest None
+	 * @reward void
+	 * @peril Error - Thrown if initialization fails
+	 *
+	 * @lore
+	 * This method loads the configuration, ensures necessary directories exist,
+	 * and prints the configuration if verbosity is high enough.
+	 *
+	 * @epicDeed
+	 * ```typescript
+	 * await configManager.initialize();
+	 * ```
+	 */
 	public async initialize(): Promise<void> {
 		if (this.initialized) return;
 
@@ -96,6 +146,22 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 		return this.initialized;
 	}
 
+	/**
+	 * Load and validate the configuration
+	 *
+	 * @quest None
+	 * @reward void
+	 * @peril Error - Thrown if configuration loading or validation fails
+	 *
+	 * @lore
+	 * This method searches for a configuration file, loads it, and validates it against the schema.
+	 * If no configuration is found, it uses the default configuration.
+	 *
+	 * @epicDeed
+	 * ```typescript
+	 * await configManager.loadConfig();
+	 * ```
+	 */
 	private async loadConfig(): Promise<void> {
 		try {
 			const result = await this.explorer.search();
@@ -194,6 +260,22 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 		return { ...this.config };
 	}
 
+	/**
+	 * Update the configuration with new values
+	 *
+	 * @quest newConfig - Partial configuration to update
+	 * @reward void
+	 * @peril Error - Thrown if the new configuration is invalid
+	 *
+	 * @lore
+	 * This method updates the current configuration with new values,
+	 * validates the resulting configuration, and prints it if verbosity is high.
+	 *
+	 * @epicDeed
+	 * ```typescript
+	 * await configManager.updateConfig({ promptsDir: './new-prompts' });
+	 * ```
+	 */
 	public async updateConfig(newConfig: Partial<Config>): Promise<void> {
 		try {
 			const updatedConfig = configSchema.parse({
@@ -212,10 +294,40 @@ export class PromptProjectConfigManager implements IPromptProjectConfigManager {
 			throw error;
 		}
 	}
+
+	/**
+	 * Set the verbosity level of the configuration
+	 *
+	 * @quest level - The new verbosity level
+	 * @reward void
+	 *
+	 * @lore
+	 * This method updates the verbosity level in the configuration.
+	 * Higher verbosity levels result in more detailed logging.
+	 *
+	 * @epicDeed
+	 * ```typescript
+	 * configManager.setVerbosity(2);
+	 * ```
+	 */
 	setVerbosity(level: number): void {
 		this.config.verbosity = level;
 	}
 
+	/**
+	 * Get the current verbosity level
+	 *
+	 * @quest None
+	 * @reward number - The current verbosity level
+	 *
+	 * @lore
+	 * This method retrieves the current verbosity level from the configuration.
+	 *
+	 * @epicDeed
+	 * ```typescript
+	 * const verbosity = configManager.getVerbosity();
+	 * ```
+	 */
 	getVerbosity(): number {
 		return this.config.verbosity;
 	}

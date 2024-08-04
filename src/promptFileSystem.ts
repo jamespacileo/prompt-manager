@@ -42,6 +42,46 @@ export const DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME = "prompts-config.json";
  * including saving, loading, listing, and managing versions of prompts. It also handles
  * the generation of TypeScript definition files for prompts.
  */
+/**
+ * @class PromptFileSystem
+ * @description Handles all file system operations related to prompts.
+ *
+ * @saga
+ * PromptFileSystem is responsible for managing the storage and retrieval of prompts
+ * in the file system. It handles operations such as saving, loading, listing, and
+ * versioning prompts, as well as generating associated files like TypeScript
+ * definitions and test inputs.
+ *
+ * @epicFeatures
+ * - Prompt saving and loading
+ * - Version management
+ * - TypeScript definition generation
+ * - Test input generation
+ * - Prompt listing and searching
+ *
+ * @alliances
+ * - PromptProjectConfigManager: Provides configuration for file paths
+ * - FileTransaction: Ensures atomic file operations
+ * - PromptSchema: Validates prompt data structure
+ *
+ * @allies
+ * - PromptModel: Uses PromptFileSystem for persistence operations
+ * - PromptManager: Utilizes PromptFileSystem for bulk operations on prompts
+ *
+ * @epicTale
+ * ```typescript
+ * import { Container } from "typedi";
+ * const fileSystem = Container.get(PromptFileSystem);
+ * await fileSystem.initialize();
+ * const promptData = await fileSystem.loadPrompt({ category: 'general', promptName: 'greeting' });
+ * console.log(promptData);
+ * ```
+ *
+ * @safeguards
+ * - File locking to prevent concurrent modifications
+ * - Error handling for file system operations
+ * - Validation of prompt data before saving
+ */
 @Service()
 export class PromptFileSystem implements IPromptFileSystem {
 	private initialized = false;
@@ -340,6 +380,32 @@ export class PromptFileSystem implements IPromptFileSystem {
 	 *
 	 * @param props An object containing the prompt data to be saved
 	 * @throws Error if the prompt data is invalid or if there's a file system error
+	 */
+	/**
+	 * Save a prompt to the file system.
+	 *
+	 * @quest props - An object containing the prompt data to be saved
+	 * @peril Error - Thrown if the prompt data is invalid or if there's a file system error
+	 *
+	 * @lore
+	 * This method handles the entire process of saving a prompt, including:
+	 * - Validating the prompt data
+	 * - Saving the main prompt file and a versioned copy
+	 * - Generating and saving TypeScript output and test inputs
+	 * - Updating the list of versions
+	 * All operations are performed within a transaction to ensure data consistency.
+	 *
+	 * @epicDeed
+	 * ```typescript
+	 * await fileSystem.savePrompt({
+	 *   promptData: {
+	 *     name: 'greeting',
+	 *     category: 'general',
+	 *     template: 'Hello, {{name}}!',
+	 *     // ... other prompt properties
+	 *   }
+	 * });
+	 * ```
 	 */
 	async savePrompt(props: {
 		promptData: IPrompt<IPromptInput, IPromptOutput>;

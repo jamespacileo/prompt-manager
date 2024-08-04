@@ -42,6 +42,9 @@ run-selector:
 run-gen:
 	bun run src/cli/cli.tsx -g
 
+make-tester:
+	bun run src/promptTester.ts
+
 watch:
 	chokidar 'src/**/*.{ts,tsx}' -c 'make $(filter-out $@,$(MAKECMDGOALS))'
 

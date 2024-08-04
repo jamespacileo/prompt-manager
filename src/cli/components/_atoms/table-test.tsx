@@ -202,3 +202,4 @@ const App = () => (
 if (import.meta.main) {
 	await renderFullScreen(<App />);
 }
+import { logger } from "../../../utils/logger";

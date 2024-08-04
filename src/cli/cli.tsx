@@ -4,7 +4,7 @@ import "reflect-metadata";
 import "./cliPolyfills";
 
 import { Command } from "commander";
-import { RenderOptions, render } from "ink";
+import { render } from "ink";
 import React from "react";
 import { Container } from "typedi";
 import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
@@ -58,13 +58,13 @@ async function main() {
 	const options = program.opts();
 
 	await ensureInitialized();
-	
+
 	if (options.generateTypes) {
 		const result = await generateTypes();
 		console.log(result);
 		process.exit(0);
 	}
-	
+
 	await renderFullScreen(
 		<PromptManagerUI
 			initialScreen={options.screen}

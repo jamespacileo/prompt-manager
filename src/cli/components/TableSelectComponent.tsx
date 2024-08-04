@@ -105,7 +105,11 @@ export const TableSelectComponent = <T extends boolean>({
 					if (newIndices.length > maxSelections) {
 						newIndices.shift();
 					}
-					onSelect(newIndices.map((i) => options[i]) as T extends true ? Option[] : Option);
+					onSelect(
+						newIndices.map((i) => options[i]) as T extends true
+							? Option[]
+							: Option,
+					);
 					return newIndices;
 				});
 			} else {
@@ -141,9 +145,7 @@ export const TableSelectComponent = <T extends boolean>({
 					focus={!gridFocused}
 				/>
 				{searchValue && (
-					<Text color={THEME_COLORS.secondary} style={{ marginLeft: 1 }}>
-						Press 'x' to clear
-					</Text>
+					<Text color={THEME_COLORS.secondary}>Press 'x' to clear</Text>
 				)}
 			</Box>
 			<Table

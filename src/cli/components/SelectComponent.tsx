@@ -164,3 +164,4 @@ if (import.meta.main) {
 
 	await renderFullScreen(<TestComponent />);
 }
+import { logger } from "../../utils/logger";

@@ -596,6 +596,7 @@ export interface IPromptsFolderConfig {
 	lastUpdated: string;
 	promptCount: number;
 }
+
 export type Screen =
 	| "home"
 	| "list"
@@ -608,3 +609,10 @@ export type Screen =
 	| "evaluate"
 	| "generate"
 	| "test";
+
+export interface IPromptModelImporter {
+	importFromSource(source: {
+		type: "url" | "text" | "file";
+		content: string;
+	}): Promise<IPromptModel[]>;
+}

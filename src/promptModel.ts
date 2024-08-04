@@ -45,6 +45,43 @@ function toCamelCase({
 		.join("");
 }
 
+/**
+ * @class PromptModel
+ * @description Represents a prompt model with input and output types.
+ *
+ * @saga
+ * PromptModel is the core class for managing and executing prompts in the system.
+ * It encapsulates all the necessary data and operations for a single prompt,
+ * including versioning, execution, and file system interactions.
+ *
+ * @epicFeatures
+ * - Prompt execution with input validation
+ * - Version management
+ * - File system operations (save, load, delete)
+ * - Metadata and configuration management
+ * - Input and output schema validation using Zod
+ *
+ * @alliances
+ * - PromptFileSystem: Handles file operations for prompts
+ * - PromptProjectConfigManager: Manages project-wide configurations
+ * - openai: Provides the AI model for prompt execution
+ *
+ * @allies
+ * - PromptManager: Uses PromptModel to manage multiple prompts
+ * - CLI commands: Interact with PromptModel for various operations
+ *
+ * @epicTale
+ * ```typescript
+ * const promptModel = new PromptModel(promptData);
+ * const result = await promptModel.execute({ input: "Hello, world!" });
+ * console.log(result);
+ * ```
+ *
+ * @safeguards
+ * - Input and output validation to ensure data integrity
+ * - Version control to prevent conflicts and allow rollbacks
+ * - Error handling for file system and execution operations
+ */
 export class PromptModel<
 	TInput extends IPromptInput<Record<string, any>> = IPromptInput<
 		Record<string, any>
@@ -124,6 +161,39 @@ export class PromptModel<
 		this.configuration = this.initializeConfiguration();
 	}
 
+	static createWithDefaults(
+		partialPrompt: Partial<IPromptModel<IPromptInput, IPromptOutput>>,
+	): PromptModel<IPromptInput, IPromptOutput> {
+		const defaultPrompt: Partial<IPromptModel> = {
+			name: "default-prompt",
+			category: "general",
+			description: "A default prompt",
+			template: "This is a default template.",
+			parameters: [],
+			inputSchema: { type: "object", properties: {} },
+			outputSchema: { type: "object", properties: {} },
+			version: "1.0.0",
+			metadata: {
+				created: new Date().toISOString(),
+				lastModified: new Date().toISOString(),
+				author: "System",
+				license: "MIT",
+			},
+			configuration: {
+				modelName: "gpt-4o-mini",
+				temperature: 0.7,
+				maxTokens: 100,
+				topP: 1,
+				frequencyPenalty: 0,
+				presencePenalty: 0,
+				stopSequences: [],
+			},
+		};
+
+		const mergedPrompt = { ...defaultPrompt, ...partialPrompt };
+		return new PromptModel(mergedPrompt as unknown as IPromptModelRequired);
+	}
+
 	get cleanName(): string {
 		// camelCase
 		return toCamelCase({
@@ -165,6 +235,10 @@ export class PromptModel<
 
 	get className(): string {
 		return `${this.cleanCategory}${this.cleanName}`;
+	}
+
+	get isSaved(): boolean {
+		return this._isSaved;
 	}
 
 	async getFilePath(): Promise<string> {
@@ -317,6 +391,23 @@ export class PromptModel<
 	 * Purpose: Process the prompt with given inputs and generate the final output.
 	 * @param inputs The input values for the prompt
 	 * @returns The execution result, either structured or plain text
+	 */
+	/**
+	 * Execute the prompt with the given inputs and return the result.
+	 *
+	 * @quest inputs - The input data for the prompt execution
+	 * @reward The execution result, either structured or plain text
+	 * @peril Error - Thrown if input is invalid, output generation fails, or output validation fails
+	 *
+	 * @lore
+	 * This method handles both structured and plain text outputs.
+	 * It performs input validation, prompt formatting, and output validation.
+	 *
+	 * @epicDeed
+	 * ```typescript
+	 * const result = await promptModel.execute({ question: "What is the capital of France?" });
+	 * console.log(result.answer); // "The capital of France is Paris."
+	 * ```
 	 */
 	async execute(inputs: TInput): Promise<TOutput> {
 		try {
@@ -489,9 +580,5 @@ export class PromptModel<
 		});
 		Object.assign(this, versionData);
 		this._isSaved = true;
-	}
-
-	get isSaved(): boolean {
-		return this._isSaved;
 	}
 }
