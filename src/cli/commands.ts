@@ -1,23 +1,24 @@
+import path from "node:path";
+import type { PromptModel } from "@/promptModel";
 import axios from "axios";
+import fs from "fs-extra";
+import { format } from "prettier";
+import { Container } from "typedi";
+import vento from "ventojs";
+import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
+import { PromptManager } from "../promptManager";
+import { PromptSchema } from "../schemas/prompts";
 import type {
 	IPrompt,
 	IPromptInput,
 	IPromptModel,
 	IPromptOutput,
 } from "../types/interfaces";
-
-import path from "node:path";
-import fs from "fs-extra";
-import { Container } from "typedi";
-import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
-import { PromptManager } from "../promptManager";
-import { PromptSchema } from "../schemas/prompts";
 import { cleanName } from "../utils/promptManagerUtils";
 import {
 	generateExportableSchemaAndType,
 	generatePromptTypeScript,
 } from "../utils/typeGeneration";
-
 export const fetchContentFromUrl = async (url: string): Promise<string> => {
 	const response = await axios.get(url);
 	return response.data;
@@ -63,14 +64,7 @@ export async function createPrompt(
 }
 
 export async function listPrompts(): Promise<
-	Array<
-		{
-			name: string;
-			category: string;
-			version: string;
-			filePath: string;
-		} & Partial<IPrompt<IPromptInput, IPromptOutput>>
-	>
+	Array<PromptModel<IPromptInput, IPromptOutput>>
 > {
 	const promptManager = Container.get(PromptManager);
 	const prompts = await promptManager.listPrompts({});
@@ -108,49 +102,57 @@ export async function generateTypes(): Promise<string> {
 	const outputDir = configManager.getConfig("outputDir");
 	const promptManager = Container.get(PromptManager);
 	const prompts = await promptManager.listPrompts({});
-	let typeDefs =
-		'import { IAsyncIterableStream } from "./types/interfaces";\n\n';
-	typeDefs += 'declare module "prompt-manager" {\n';
-	typeDefs += "  export class PromptManagerClient {\n";
 
-	const categories = new Set<string>();
+	type PromptsByCategory = {
+		name: string;
+		prompts: PromptModel<IPromptInput, IPromptOutput>[];
+	};
 
-	for (const prompt of prompts) {
-		categories.add(prompt.category);
-		const inputTypes = await generateExportableSchemaAndType({
+	const promptsByCategory = prompts.reduce<PromptsByCategory[]>(
+		(acc, prompt) => {
+			const existingCategory = acc.find((c) => c.name === prompt.cleanCategory);
+			if (existingCategory) {
+				existingCategory.prompts.push(prompt);
+			} else {
+				acc.push({ name: prompt.cleanCategory, prompts: [prompt] });
+			}
+			return acc;
+		},
+		[],
+	);
+	const generateSchemaAndType = async (
+		prompt: PromptModel<IPromptInput, IPromptOutput>,
+	) => {
+		const inputSchema = await generateExportableSchemaAndType({
 			schema: prompt.inputSchema,
-			name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Input`,
+			name: prompt.inputTypeName,
 		});
-		const outputTypes = await generateExportableSchemaAndType({
+		const outputSchema = await generateExportableSchemaAndType({
 			schema: prompt.outputSchema,
-			name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Output`,
+			name: prompt.outputTypeName,
 		});
+		return {
+			inputTs: inputSchema.formattedSchemaTsNoImports,
+			outputTs: outputSchema.formattedSchemaTsNoImports,
+		};
+	};
 
-		typeDefs += `    ${inputTypes.formattedSchemaTsNoImports}\n`;
-		typeDefs += `    ${outputTypes.formattedSchemaTsNoImports}\n`;
-	}
+	const generatedSchemas = await Promise.all(
+		prompts.map(generateSchemaAndType),
+	);
 
-	for (const category of categories) {
-		typeDefs += `    ${category}: {\n`;
-		const categoryPrompts = prompts.filter((p) => p.category === category);
-		for (const prompt of categoryPrompts) {
-			typeDefs += `      ${cleanName(prompt.name)}: {\n`;
-			typeDefs += `        format: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<string>;\n`;
-			typeDefs += `        execute: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<${cleanName(category)}${cleanName(prompt.name)}Output>;\n`;
-			typeDefs += `        stream: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<IAsyncIterableStream<string>>;\n`;
-			typeDefs += "        description: string;\n";
-			typeDefs += "        version: string;\n";
-			typeDefs += "      };\n";
-		}
-		typeDefs += "    };\n";
-	}
+	const env = vento();
+	const template = await env.load(`src/templates/fury-client-types.vto`);
+	const result = await template({
+		prompts,
+		categories: promptsByCategory,
+		generatedSchemas,
+	});
+	
+	const tsOutput = await format(result.content, { parser: "typescript" });
 
-	typeDefs += "  }\n\n";
-	typeDefs += "  export const promptManager: PromptManagerClient;\n";
-	typeDefs += "}\n";
-
-	await fs.writeFile(path.join(outputDir, "prompts.d.ts"), typeDefs);
-	return typeDefs;
+	await fs.writeFile(path.join(outputDir, "..", "..", "prompts.ts"), tsOutput);
+	return tsOutput;
 }
 
 export async function getStatus(): Promise<{

@@ -1,21 +1,28 @@
-import * as fs from 'fs-extra';
-import * as path from "node:path";
 import { execSync } from "node:child_process";
+import * as path from "node:path";
 import chalk from 'chalk';
+import * as fs from "fs-extra";
 
 // List of relative file paths to include in the documentation
 const filesToInclude = [
 	// Core files
-	"src/promptManager.ts",
-	"src/promptModel.ts",
-	"src/promptFileSystem.ts",
-	"src/config/PromptProjectConfigManager.ts",
+	// "src/promptManager.ts",
+	// "src/promptModel.ts",
+	// "src/promptFileSystem.ts",
+	// "src/config/PromptProjectConfigManager.ts",
+	"src/cli/components/_atoms/table.tsx",
+	// "src/cli/components/_atoms/OptionCard.tsx",
+	// "src/cli/components/_atoms/OptionCardGrid.tsx",
+	// "src/cli/components/_atoms/useOptionCardGrid.ts",
+	"src/cli/components/_atoms/TableRow.tsx",
+	"src/cli/components/_atoms/TableGrid.tsx",
+	"src/cli/components/_atoms/useTableGrid.ts",
 
 	// CLI files
 	// "src/cli/cli.tsx",
 	// "src/cli/commands.ts",
 	// "src/cli/PromptManagerUI.tsx",
-	"src/client.ts",
+	// "src/client.ts",
 
 	// 'src/cli/screens/HomeScreen.tsx',
 	// 'src/cli/screens/PromptCreateScreen.tsx',

@@ -38,6 +38,9 @@ export const useOptionCardGrid = <
 	const rowsPerPage = Math.ceil(itemsPerPage / columns);
 	const adjustedItemsPerPage = columns * rowsPerPage;
 
+	const startIndex = currentPage * adjustedItemsPerPage;
+	const endIndex = startIndex + adjustedItemsPerPage;
+
 	useEffect(() => {
 		setSelectedIndex(0);
 		setCurrentPage(0);
@@ -197,5 +200,7 @@ export const useOptionCardGrid = <
 		totalPages,
 		selectedOptions,
 		error,
+		startIndex,
+		endIndex,
 	};
 };

@@ -205,6 +205,7 @@ const PromptEvaluationScreen: React.FC<PromptEvaluationScreenProps> = ({
 												setSelectedAdvice(selected.map((s) => s.value))
 											}
 											label="Select advice to apply:"
+											onSubmit={handleApplyAdvice}
 										/>
 										<Text>
 											Press{" "}

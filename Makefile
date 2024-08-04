@@ -39,6 +39,9 @@ run-wizard:
 run-selector:
 	bun run src/cli/components/SelectComponent.tsx  
 
+run-gen:
+	bun run src/cli/cli.tsx -g
+
 watch:
 	chokidar 'src/**/*.{ts,tsx}' -c 'make $(filter-out $@,$(MAKECMDGOALS))'
 

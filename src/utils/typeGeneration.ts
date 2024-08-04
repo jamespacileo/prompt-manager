@@ -6,6 +6,14 @@ import { zodToTs } from "zod-to-ts";
 import type { IPrompt } from "../types/interfaces";
 import { cleanName } from "./promptManagerUtils";
 
+function capFirst(str: string): string {
+	return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function lowerFirst(str: string): string {
+	return str.charAt(0).toLowerCase() + str.slice(1);
+}
+
 export interface SchemaAndType {
 	formattedSchemaTs: string;
 	formattedSchemaTsNoImports: string;
@@ -31,7 +39,7 @@ export async function generateExportableSchemaAndType({
 }: { schema: JSONSchema7; name: string }): Promise<SchemaAndType> {
 	const zodSchemaString = jsonSchemaToZod(schema, {
 		module: "esm",
-		name: name,
+		name: lowerFirst(name),
 		type: true,
 	});
 	const formatted = await format(zodSchemaString, { parser: "typescript" });

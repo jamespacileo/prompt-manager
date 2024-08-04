@@ -3,1467 +3,897 @@
 ## Project Structure
 
 ```
-generateTsProjectDocAndQualityReport.ts  [error opening dir]
-tsup.config.ts  [error opening dir]
 ./src
+├── PromptManagerClientGenerator.ts
 ├── cli
+│   ├── aiHelpers.ts
+│   ├── atoms.ts
+│   ├── cliPolyfills.ts
+│   ├── cli_generate.ts
+│   ├── commands.ts
 │   ├── components
 │   │   ├── _atoms
+│   │   │   ├── types.ts
+│   │   │   ├── useOptionCardGrid.ts
+│   │   │   └── useTableGrid.ts
 │   │   ├── hooks
+│   │   │   └── useOptionNavigation.ts
 │   │   ├── prompt
+│   │   ├── types.ts
 │   │   ├── ui
 │   │   └── utils
 │   ├── screens
+│   ├── uiConfig.ts
 │   └── utils
+├── client.ts
 ├── config
+│   ├── PromptProjectConfigManager.ts
+│   └── constants.ts
+├── config.ts
 ├── fixtures
+│   └── categories.ts
 ├── generated
+│   ├── index.ts
+│   └── promptManagerBase.ts
+├── generated.ts
+├── index.ts
+├── initializationManager.ts
+├── promptFileSystem.ts
+├── promptManager.ts
+├── promptModel.ts
+├── promptModelService.ts
 ├── schemas
+│   ├── config.ts
+│   └── prompts.ts
 ├── scripts
+│   └── generatePromptManager.ts
 ├── test
-│   └── __snapshots__
+│   ├── PromptProjectConfigManager.test.d.ts
+│   ├── PromptProjectConfigManager.test.ts
+│   ├── __snapshots__
+│   ├── commands.test.d.ts
+│   ├── commands.test.ts
+│   ├── index.test.d.ts
+│   ├── index.test.ts
+│   ├── promptFileSystem.test.d.ts
+│   ├── promptFileSystem.test.ts
+│   ├── promptManager.test.d.ts
+│   ├── promptManager.test.ts
+│   ├── promptManagerUtils.test.ts
+│   ├── promptModel.test.d.ts
+│   ├── promptModel.test.ts
+│   ├── setup.d.ts
+│   ├── setup.ts
+│   ├── setupEnvs.d.ts
+│   ├── setupEnvs.ts
+│   ├── testsUnload.d.ts
+│   └── testsUnload.ts
 ├── types
+│   ├── index.ts
+│   └── interfaces.ts
 └── utils
-    └── __snapshots__
+    ├── __snapshots__
+    ├── cache.ts
+    ├── fileSystemUtils.ts
+    ├── fileTransaction.ts
+    ├── fileUtils.ts
+    ├── jsonSchemaToZod.ts
+    ├── lockUtils.ts
+    ├── logger.ts
+    ├── promptManagerUtils.ts
+    ├── typeGeneration.test.ts
+    ├── typeGeneration.ts
+    └── versionUtils.ts
 
-20 directories, 2 files
-
+20 directories, 61 files
 ```
 
-## src/cli/PromptManagerUI.tsx
+## src/cli/components/_atoms/table.tsx
 
 **Description:** No description available
 
 ```typescript
-import chalk from "chalk";
-import { Box, Text, useApp, useInput } from "ink";
-import { useStdout } from "ink";
-import { useAtom } from "jotai";
-import type React from "react";
-import { type FC, useEffect } from "react";
-import type { Screen } from "../types/interfaces";
-import { logger } from "../utils/logger";
-import {
-	currentScreenAtom,
-	currentWizardStepAtom,
-	selectedPromptAtom,
-} from "./atoms";
-import DebugPanel from "./components/DebugPanel";
-import AlertMessage from "./components/ui/AlertMessage";
-import Footer from "./components/ui/Footer";
-import Header from "./components/ui/Header";
-import Layout from "./components/ui/Layout";
-import HelpScreen from "./screens/HelpScreen";
-import HomeScreen from "./screens/HomeScreen";
-import PromptAmendScreen from "./screens/PromptAmendScreen";
-import PromptCreateScreen from "./screens/PromptCreateScreen";
-import PromptDetailScreen from "./screens/PromptDetailScreen";
-import PromptEvaluationScreen from "./screens/PromptEvaluationScreen";
-import PromptGenerateScreen from "./screens/PromptGenerateScreen";
-import PromptImportScreen from "./screens/PromptImportScreen";
-import PromptListScreen from "./screens/PromptListScreen";
-import StatusScreen from "./screens/StatusScreen";
-import TestScreen from "./screens/TestScreen";
+import { Box, Text } from "ink";
+import { sha1 } from "object-hash";
+import React from "react";
 
-interface PromptManagerUIProps {
-	initialScreen?: string;
-	initialPrompt?: { category: string; name: string };
-	initialVersion?: string;
-	initialWizardStep?: number;
-}
+/* Table */
 
-const PromptManagerUI: FC<PromptManagerUIProps> = ({
-	initialScreen = "home",
-	initialPrompt,
-	initialVersion,
-	initialWizardStep = 1,
-}) => {
-	const { exit } = useApp();
-	const [currentScreen, setCurrentScreen] = useAtom(currentScreenAtom);
-	const [selectedPrompt, setSelectedPrompt] = useAtom(selectedPromptAtom);
-	const { write } = useStdout();
-	const [currentWizardStep, setCurrentWizardStep] = useAtom(
-		currentWizardStepAtom,
-	);
+type Scalar = string | number | boolean | null | undefined;
 
-	useEffect(() => {
-		setCurrentScreen(initialScreen as any);
-		if (initialPrompt) {
-			setSelectedPrompt(initialPrompt);
-		}
-		if (initialScreen === "test") {
-			setCurrentWizardStep(initialWizardStep);
-		}
-	}, []);
+type ScalarDict = {
+	[key: string]: Scalar;
+};
 
-	useEffect(() => {
-		const cleanup = () => {
-			logger.info("Cleaning up...");
+export type CellProps = React.PropsWithChildren<{ column: number }>;
+
+export type TableProps<T extends ScalarDict> = {
+	/**
+	 * List of values (rows).
+	 */
+	data: T[];
+	/**
+	 * Columns that we should display in the table.
+	 */
+	columns: (keyof T)[];
+	/**
+	 * Cell padding.
+	 */
+	padding: number;
+	/**
+	 * Header component.
+	 */
+	header: (props: React.PropsWithChildren<{}>) => JSX.Element;
+	/**
+	 * Component used to render a cell in the table.
+	 */
+	cell: (props: CellProps) => JSX.Element;
+	/**
+	 * Component used to render the skeleton of the table.
+	 */
+	skeleton: (props: React.PropsWithChildren<{}>) => JSX.Element;
+};
+
+/* Table */
+
+export default class Table<T extends ScalarDict> extends React.Component<
+	Pick<TableProps<T>, "data"> & Partial<TableProps<T>>
+> {
+	/* Config */
+
+	/**
+	 * Merges provided configuration with defaults.
+	 */
+	getConfig(): TableProps<T> {
+		return {
+			data: this.props.data,
+			columns: this.props.columns || this.getDataKeys(),
+			padding: this.props.padding || 1,
+			header: this.props.header || Header,
+			cell: this.props.cell || Cell,
+			skeleton: this.props.skeleton || Skeleton,
 		};
-		return cleanup;
-	}, []);
+	}
 
-	useInput((input, key) => {
-		if (key.escape) {
-			if (currentScreen !== "home") {
-				setCurrentScreen("home");
-			} else {
-				exit();
+	/**
+	 * Gets all keyes used in data by traversing through the data.
+	 */
+	getDataKeys(): (keyof T)[] {
+		const keys = new Set<keyof T>();
+
+		// Collect all the keys.
+		for (const data of this.props.data) {
+			for (const key in data) {
+				keys.add(key);
 			}
 		}
+
+		return Array.from(keys);
+	}
+
+	/**
+	 * Calculates the width of each column by finding
+	 * the longest value in a cell of a particular column.
+	 *
+	 * Returns a list of column names and their widths.
+	 */
+	getColumns(): Column<T>[] {
+		const { columns, padding } = this.getConfig();
+
+		const widths: Column<T>[] = columns.map((key) => {
+			const header = String(key).length;
+			/* Get the width of each cell in the column */
+			const data = this.props.data.map((data) => {
+				const value = data[key];
+
+				if (value == undefined || value == null) return 0;
+				return String(value).length;
+			});
+
+			const width = Math.max(...data, header) + padding * 2;
+
+			/* Construct a cell */
+			return {
+				column: key,
+				width: width,
+				key: String(key),
+			};
+		});
+
+		return widths;
+	}
+
+	/**
+	 * Returns a (data) row representing the headings.
+	 */
+	getHeadings(): Partial<T> {
+		const { columns } = this.getConfig();
+
+		const headings: Partial<T> = columns.reduce(
+			(acc, column) => ({ ...acc, [column]: column }),
+			{},
+		);
+
+		return headings;
+	}
+
+	/* Rendering utilities */
+
+	// The top most line in the table.
+	header = row<T>({
+		cell: this.getConfig().skeleton,
+		padding: this.getConfig().padding,
+		skeleton: {
+			component: this.getConfig().skeleton,
+			// chars
+			line: "─",
+			left: "┌",
+			right: "┐",
+			cross: "┬",
+		},
 	});
 
-	const screenComponents: Record<Screen, React.ReactNode> = {
-		home: (
-			<HomeScreen onNavigate={(screen: Screen) => setCurrentScreen(screen)} />
-		),
-		list: <PromptListScreen />,
-		detail: selectedPrompt ? (
-			<PromptDetailScreen
-				prompt={selectedPrompt}
-				onBack={() => setCurrentScreen("list")}
-				initialVersion={initialVersion}
-			/>
-		) : (
-			<Text>No prompt selected. Please select a prompt from the list.</Text>
-		),
-		create: <PromptCreateScreen />,
-		status: <StatusScreen />,
-		help: <HelpScreen />,
-		amend: <PromptAmendScreen />,
-		import: <PromptImportScreen />,
-		evaluate: selectedPrompt ? (
-			<PromptEvaluationScreen
-				prompt={selectedPrompt}
-				onBack={() => setCurrentScreen("detail")}
-			/>
-		) : (
-			<Text>No prompt selected. Please select a prompt from the list.</Text>
-		),
-		generate: <PromptGenerateScreen />,
-		test: <TestScreen />,
-	};
+	// The line with column names.
+	heading = row<T>({
+		cell: this.getConfig().header,
+		padding: this.getConfig().padding,
+		skeleton: {
+			component: this.getConfig().skeleton,
+			// chars
+			line: " ",
+			left: "│",
+			right: "│",
+			cross: "│",
+		},
+	});
 
-	const renderScreen = () =>
-		screenComponents[currentScreen as Screen] ?? <Text>Screen not found</Text>;
+	// The line that separates rows.
+	separator = row<T>({
+		cell: this.getConfig().skeleton,
+		padding: this.getConfig().padding,
+		skeleton: {
+			component: this.getConfig().skeleton,
+			// chars
+			line: "─",
+			left: "├",
+			right: "┤",
+			cross: "┼",
+		},
+	});
 
-	return (
-		<Layout>
-			<Header title={`Prompt Manager - ${chalk.green(currentScreen)}`} />
-			<Box flexGrow={1} flexDirection="column">
-				{renderScreen()}
+	// The row with the data.
+	data = row<T>({
+		cell: this.getConfig().cell,
+		padding: this.getConfig().padding,
+		skeleton: {
+			component: this.getConfig().skeleton,
+			// chars
+			line: " ",
+			left: "│",
+			right: "│",
+			cross: "│",
+		},
+	});
+
+	// The bottom most line of the table.
+	footer = row<T>({
+		cell: this.getConfig().skeleton,
+		padding: this.getConfig().padding,
+		skeleton: {
+			component: this.getConfig().skeleton,
+			// chars
+			line: "─",
+			left: "└",
+			right: "┘",
+			cross: "┴",
+		},
+	});
+
+	/* Render */
+
+	render() {
+		/* Data */
+		const columns = this.getColumns();
+		const headings = this.getHeadings();
+
+		/**
+		 * Render the table line by line.
+		 */
+		return (
+			<Box flexDirection="column">
+				{/* Header */}
+				{this.header({ key: "header", columns, data: {} })}
+				{this.heading({ key: "heading", columns, data: headings })}
+				{/* Data */}
+				{this.props.data.map((row, index) => {
+					// Calculate the hash of the row based on its value and position
+					const key = `row-${sha1(row)}-${index}`;
+
+					// Construct a row.
+					return (
+						<Box flexDirection="column" key={key}>
+							{this.separator({ key: `separator-${key}`, columns, data: {} })}
+							{this.data({ key: `data-${key}`, columns, data: row })}
+						</Box>
+					);
+				})}
+				{/* Footer */}
+				{this.footer({ key: "footer", columns, data: {} })}
 			</Box>
-			<DebugPanel />
-			<Footer>
-				<Text>Press 'Esc' to go back, 'q' to quit</Text>
-			</Footer>
-		</Layout>
-	);
-};
-
-export default PromptManagerUI;
-
-```
-
-## src/cli/commands.ts
-
-**Description:** No description available
-
-```typescript
-import axios from "axios";
-import type {
-	IPrompt,
-	IPromptInput,
-	IPromptModel,
-	IPromptOutput,
-} from "../types/interfaces";
-
-import path from "node:path";
-import fs from "fs-extra";
-import { Container } from "typedi";
-import { PromptProjectConfigManager } from "../config/PromptProjectConfigManager";
-import { PromptManager } from "../promptManager";
-import { PromptSchema } from "../schemas/prompts";
-import { cleanName } from "../utils/promptManagerUtils";
-import {
-	generateExportableSchemaAndType,
-	generatePromptTypeScript,
-} from "../utils/typeGeneration";
-
-export const fetchContentFromUrl = async (url: string): Promise<string> => {
-	const response = await axios.get(url);
-	return response.data;
-};
-
-export const createPromptFromContent = async (
-	content: string,
-): Promise<Partial<IPromptModel>> => {
-	// Implement the logic to send a request to the AI to create a prompt from the content
-	// This is a placeholder implementation
-	return {
-		name: "Imported Prompt",
-		category: "Imported",
-		description: "This prompt was imported from external content.",
-		template: content,
-		version: "1.0",
-		parameters: [],
-		metadata: {
-			created: new Date().toISOString(),
-			lastModified: new Date().toISOString(),
-		},
-		outputType: "plain",
-		inputSchema: {},
-		outputSchema: {},
-		configuration: {
-			modelName: "default",
-			temperature: 0.7,
-			maxTokens: 100,
-			topP: 1.0,
-			frequencyPenalty: 0.0,
-			presencePenalty: 0.0,
-			stopSequences: [],
-		},
-	};
-};
-
-export async function createPrompt(
-	promptData: Partial<Omit<IPrompt<IPromptInput, IPromptOutput>, "versions">>,
-): Promise<void> {
-	const promptManager = Container.get(PromptManager);
-	const validatedPromptData = PromptSchema.parse(promptData);
-	await promptManager.createPrompt({ prompt: validatedPromptData as any });
-}
-
-export async function listPrompts(): Promise<
-	Array<
-		{
-			name: string;
-			category: string;
-			version: string;
-			filePath: string;
-		} & Partial<IPrompt<IPromptInput, IPromptOutput>>
-	>
-> {
-	const promptManager = Container.get(PromptManager);
-	const prompts = await promptManager.listPrompts({});
-	return prompts;
-	return prompts.map((prompt) => ({
-		name: prompt.name,
-		category: prompt.category,
-		version: prompt.version || "1.0.0",
-		filePath: prompt.filePath || "",
-	}));
-}
-
-export async function getPromptDetails(props: {
-	category: string;
-	name: string;
-	version?: string;
-}): Promise<Partial<IPrompt<IPromptInput, IPromptOutput>>> {
-	const promptManager = Container.get(PromptManager);
-
-	if (props.version) {
-		return await promptManager.getPromptVersion({
-			...props,
-			version: props.version,
-		});
-	}
-	return promptManager.getPrompt(props);
-}
-
-export async function updatePrompt(props: {
-	category: string;
-	name: string;
-	updates: Partial<IPrompt<IPromptInput, IPromptOutput>>;
-}): Promise<void> {
-	const promptManager = Container.get(PromptManager);
-	const validatedUpdates = PromptSchema.parse(props.updates);
-	await promptManager.updatePrompt({ ...props, updates: validatedUpdates });
-}
-
-export async function generateTypes(): Promise<string> {
-	const configManager = Container.get(PromptProjectConfigManager);
-	const outputDir = configManager.getConfig("outputDir");
-	const promptManager = Container.get(PromptManager);
-	const prompts = await promptManager.listPrompts({});
-	let typeDefs =
-		'import { IAsyncIterableStream } from "./types/interfaces";\n\n';
-	typeDefs += 'declare module "prompt-manager" {\n';
-	typeDefs += "  export class PromptManagerClient {\n";
-
-	const categories = new Set<string>();
-
-	for (const prompt of prompts) {
-		categories.add(prompt.category);
-		const inputTypes = await generateExportableSchemaAndType({
-			schema: prompt.inputSchema,
-			name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Input`,
-		});
-		const outputTypes = await generateExportableSchemaAndType({
-			schema: prompt.outputSchema,
-			name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Output`,
-		});
-
-		typeDefs += `    ${inputTypes.formattedSchemaTsNoImports}\n`;
-		typeDefs += `    ${outputTypes.formattedSchemaTsNoImports}\n`;
-	}
-
-	for (const category of categories) {
-		typeDefs += `    ${category}: {\n`;
-		const categoryPrompts = prompts.filter((p) => p.category === category);
-		for (const prompt of categoryPrompts) {
-			typeDefs += `      ${cleanName(prompt.name)}: {\n`;
-			typeDefs += `        format: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<string>;\n`;
-			typeDefs += `        execute: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<${cleanName(category)}${cleanName(prompt.name)}Output>;\n`;
-			typeDefs += `        stream: (inputs: ${cleanName(category)}${cleanName(prompt.name)}Input) => Promise<IAsyncIterableStream<string>>;\n`;
-			typeDefs += "        description: string;\n";
-			typeDefs += "        version: string;\n";
-			typeDefs += "      };\n";
-		}
-		typeDefs += "    };\n";
-	}
-
-	typeDefs += "  }\n\n";
-	typeDefs += "  export const promptManager: PromptManagerClient;\n";
-	typeDefs += "}\n";
-
-	await fs.writeFile(path.join(outputDir, "prompts.d.ts"), typeDefs);
-	return typeDefs;
-}
-
-export async function getStatus(): Promise<{
-	config: any;
-	totalPrompts: number;
-	categories: string[];
-	lastGenerated: string | null;
-	warnings: string[];
-}> {
-	const configManager = Container.get(PromptProjectConfigManager);
-	const promptManager = Container.get(PromptManager);
-
-	const config = {
-		promptsDir: configManager.getConfig("promptsDir"),
-		outputDir: configManager.getConfig("outputDir"),
-		preferredModels: configManager.getConfig("preferredModels"),
-		modelParams: configManager.getConfig("modelParams"),
-	};
-
-	const prompts = await promptManager.listPrompts({});
-	const categories = [...new Set(prompts.map((prompt) => prompt.category))];
-
-	let lastGenerated = null;
-	try {
-		const stats = await fs.stat(path.join(config.outputDir, "prompts.d.ts"));
-		lastGenerated = stats.mtime.toISOString();
-	} catch (error) {
-		// File doesn't exist, which is fine
-	}
-
-	const warnings = [];
-	if (prompts.length === 0) {
-		warnings.push(
-			'No prompts found. Use the "create" command to add new prompts.',
 		);
 	}
-	if (!lastGenerated) {
-		warnings.push(
-			'Type definitions have not been generated yet. Use the "generate" command to create them.',
-		);
-	}
+}
 
-	return {
-		config,
-		totalPrompts: prompts.length,
-		categories,
-		lastGenerated,
-		warnings,
+/* Helper components */
+
+type RowConfig = {
+	/**
+	 * Component used to render cells.
+	 */
+	cell: (props: CellProps) => JSX.Element;
+	/**
+	 * Tells the padding of each cell.
+	 */
+	padding: number;
+	/**
+	 * Component used to render skeleton in the row.
+	 */
+	skeleton: {
+		component: (props: React.PropsWithChildren<{}>) => JSX.Element;
+		/**
+		 * Characters used in skeleton.
+		 *    |             |
+		 * (left)-(line)-(cross)-(line)-(right)
+		 *    |             |
+		 */
+		left: string;
+		right: string;
+		cross: string;
+		line: string;
 	};
-}
-
-export async function deletePrompt(props: {
-	category: string;
-	name: string;
-}): Promise<void> {
-	const promptManager = Container.get(PromptManager);
-	await promptManager.deletePrompt(props);
-}
-
-export async function amendPrompt(props: {
-	category: string;
-	name: string;
-	amendQuery?: string;
-	amendedPrompt?: Partial<IPromptModel>;
-}): Promise<Partial<IPromptModel>> {
-	const promptManager = Container.get(PromptManager);
-	if (props.amendQuery) {
-		// Generate amended prompt based on the query
-		return await promptManager.generateAmendedPrompt(props);
-	}
-	if (props.amendedPrompt) {
-		// Save the amended prompt
-		await promptManager.updatePrompt({
-			...props,
-			updates: props.amendedPrompt,
-			bumpVersion: true,
-		});
-		return props.amendedPrompt;
-	}
-	throw new Error("Invalid amendment operation");
-}
-
-export async function listPromptVersions(props: {
-	category: string;
-	name: string;
-}): Promise<string[]> {
-	const promptManager = Container.get(PromptManager);
-	const versions = await promptManager.versionPrompt({
-		...props,
-		action: "list",
-	});
-	return (versions.result as string[]).sort((a, b) => {
-		const [aMajor, aMinor, aPatch] = a.split(".").map(Number);
-		const [bMajor, bMinor, bPatch] = b.split(".").map(Number);
-		if (aMajor !== bMajor) return aMajor - bMajor;
-		if (aMinor !== bMinor) return aMinor - bMinor;
-		return aPatch - bPatch;
-	});
-}
-
-export async function switchPromptVersion(props: {
-	category: string;
-	name: string;
-	version: string;
-}): Promise<void> {
-	const promptManager = Container.get(PromptManager);
-	await promptManager.versionPrompt({ ...props, action: "switch" });
-}
-
-export async function getGeneratedTypeScript(props: {
-	category: string;
-	name: string;
-}): Promise<string> {
-	const promptManager = Container.get(PromptManager);
-	const prompt = await promptManager.getPrompt(props);
-	return await generatePromptTypeScript(prompt);
-}
-export const importPrompt = async (promptData: any) => {
-	// Implementation here
 };
 
-```
-
-## src/cli/components/prompt/PromptList.tsx
-
-**Description:** No description available
-
-```typescript
-import { Box, Text, useInput } from "ink";
-import type React from "react";
-import { useEffect, useState } from "react";
-
-import { listPrompts } from "../../commands";
-
-interface PromptListProps {
-	onSelectPrompt: (prompt: any) => void;
-}
-
-const PromptList: React.FC<PromptListProps> = ({ onSelectPrompt }) => {
-	const [prompts, setPrompts] = useState<any[]>([]);
-	const [selectedIndex, setSelectedIndex] = useState(0);
-
-	useEffect(() => {
-		listPrompts().then(setPrompts);
-	}, []);
-
-	useInput((input, key) => {
-		if (key.upArrow) {
-			setSelectedIndex(Math.max(0, selectedIndex - 1));
-		} else if (key.downArrow) {
-			setSelectedIndex(Math.min(prompts.length - 1, selectedIndex + 1));
-		} else if (key.return) {
-			onSelectPrompt(prompts[selectedIndex]);
-		}
-	});
-
-	return (
-		<Box flexDirection="column">
-			{prompts.map((prompt, index) => (
-				<Text key={index} color={index === selectedIndex ? "green" : undefined}>
-					{prompt.category}/{prompt.name} (v{prompt.version})
-				</Text>
-			))}
-		</Box>
-	);
+type RowProps<T extends ScalarDict> = {
+	key: string;
+	data: Partial<T>;
+	columns: Column<T>[];
 };
 
-export default PromptList;
+type Column<T> = {
+	key: string;
+	column: keyof T;
+	width: number;
+};
 
-```
+/**
+ * Constructs a Row element from the configuration.
+ */
+function row<T extends ScalarDict>(
+	config: RowConfig,
+): (props: RowProps<T>) => JSX.Element {
+	/* This is a component builder. We return a function. */
 
-## src/cli/components/prompt/PromptView.tsx
+	const skeleton = config.skeleton;
 
-**Description:** No description available
+	/* Row */
+	return (props) => (
+		<Box flexDirection="row">
+			{/* Left */}
+			<skeleton.component>{skeleton.left}</skeleton.component>
+			{/* Data */}
+			{...intersperse(
+				(i) => {
+					const key = `${props.key}-hseparator-${i}`;
 
-```typescript
-import chalk from "chalk";
-import { Box, type BoxProps, Text } from "ink";
-import yaml from "js-yaml";
-import type React from "react";
-import type { IPrompt } from "../../../types/interfaces";
-import JsonSchemaTree from "../JSONSchemaTree";
+					// The horizontal separator.
+					return (
+						<skeleton.component key={key}>{skeleton.cross}</skeleton.component>
+					);
+				},
 
-interface RenderSectionProps extends BoxProps {
-	title: string;
-	content: string | string[] | undefined;
-	color: string;
-	showTitle?: boolean;
-}
+				// Values.
+				props.columns.map((column, colI) => {
+					// content
+					const value = props.data[column.column];
 
-const RenderSection: React.FC<RenderSectionProps> = ({
-	title,
-	content,
-	color,
-	showTitle = true,
-	flexDirection = "row",
-	...boxProps
-}) => (
-	<Box flexDirection={flexDirection} {...boxProps}>
-		{showTitle && (
-			<Text bold color={color}>
-				{title}:
-			</Text>
-		)}
-		<Box paddingLeft={showTitle ? 1 : 0}>
-			{Array.isArray(content) ? (
-				content.map((item, index) => (
-					<Text key={index}>{chalk.white(item)}</Text>
-				))
-			) : content ? (
-				<Text>{chalk.white(content)}</Text>
-			) : (
-				<Text>{chalk.gray("Not specified")}</Text>
+					if (value == undefined || value == null) {
+						const key = `${props.key}-empty-${column.key}`;
+
+						return (
+							<config.cell key={key} column={colI}>
+								{skeleton.line.repeat(column.width)}
+							</config.cell>
+						);
+					} else {
+						const key = `${props.key}-cell-${column.key}`;
+
+						// margins
+						const ml = config.padding;
+						const mr = column.width - String(value).length - config.padding;
+
+						return (
+							/* prettier-ignore */
+							<config.cell key={key} column={colI}>
+								{`${skeleton.line.repeat(ml)}${String(value)}${skeleton.line.repeat(mr)}`}
+							</config.cell>
+						);
+					}
+				}),
 			)}
-		</Box>
-	</Box>
-);
-
-interface RenderObjectProps extends BoxProps {
-	obj: Record<string, any>;
-	indent?: number;
-}
-
-const RenderObject: React.FC<RenderObjectProps> = ({
-	obj,
-	indent = 1,
-	...boxProps
-}) => (
-	<Box flexDirection="column" paddingLeft={indent} {...boxProps}>
-		{Object.entries(obj).map(([key, value], index) => (
-			<Text key={index}>
-				{chalk.yellow(key)}:{" "}
-				{typeof value === "object"
-					? JSON.stringify(value, null, 2)
-							.split("\n")
-							.map((line, i) =>
-								i === 0 ? line : " ".repeat(indent + key.length + 2) + line,
-							)
-							.join("\n")
-					: chalk.white(JSON.stringify(value))}
-			</Text>
-		))}
-	</Box>
-);
-
-interface RenderSchemaProps extends BoxProps {
-	schema: Record<string, any>;
-}
-
-const RenderSchema: React.FC<RenderSchemaProps> = ({ schema, ...boxProps }) => {
-	const yamlString = yaml.dump(schema, { indent: 2 });
-	return (
-		<Box flexDirection="column" {...boxProps}>
-			{yamlString.split("\n").map((line, index) => (
-				<Text key={index}>
-					{line.startsWith(" ") ? chalk.cyan(line) : chalk.yellow(line)}
-				</Text>
-			))}
+			{/* Right */}
+			<skeleton.component>{skeleton.right}</skeleton.component>
 		</Box>
 	);
-};
-
-interface RenderTemplateProps extends BoxProps {
-	template: string;
 }
 
-const RenderTemplate: React.FC<RenderTemplateProps> = ({
-	template,
-	...boxProps
-}) => (
-	<Box {...boxProps}>
-		<Text>
-			{template
-				.split(/(\{\{.*?\}\})/)
-				.map((part, index) =>
-					part.startsWith("{{") && part.endsWith("}}")
-						? chalk.magenta(part)
-						: chalk.white(part),
-				)}
+/**
+ * Renders the header of a table.
+ */
+export function Header(props: React.PropsWithChildren<{}>) {
+	return (
+		<Text bold color="blue">
+			{props.children}
 		</Text>
-	</Box>
-);
-
-interface PromptViewProps {
-	prompt: Partial<IPrompt<any, any>>;
-	compact?: boolean;
+	);
 }
 
-const PromptView: React.FC<PromptViewProps> = ({ prompt, compact = true }) => {
+/**
+ * Renders a cell in the table.
+ */
+export function Cell(props: CellProps) {
+	return <Text>{props.children}</Text>;
+}
+
+/**
+ * Redners the scaffold of the table.
+ */
+export function Skeleton(props: React.PropsWithChildren<{}>) {
+	return <Text bold>{props.children}</Text>;
+}
+
+/* Utility functions */
+
+/**
+ * Intersperses a list of elements with another element.
+ */
+function intersperse<T, I>(
+	intersperser: (index: number) => I,
+	elements: T[],
+): (T | I)[] {
+	// Intersparse by reducing from left.
+	const interspersed: (T | I)[] = elements.reduce(
+		(acc, element, index) => {
+			// Only add element if it's the first one.
+			if (acc.length === 0) return [element];
+			// Add the intersparser as well otherwise.
+			return [...acc, intersperser(index), element];
+		},
+		[] as (T | I)[],
+	);
+
+	return interspersed;
+}
+```
+
+## src/cli/components/_atoms/TableRow.tsx
+
+**Description:** No description available
+
+```typescript
+import { THEME_COLORS } from "@/cli/uiConfig";
+import { Box, Text } from "ink";
+import type React from "react";
+import type { Option } from "./types";
+
+interface TableRowProps {
+	option: Option;
+	isSelected: boolean;
+	isFocused: boolean;
+	isMultiSelect: boolean;
+	onSelect: () => void;
+}
+
+export const TableRow: React.FC<TableRowProps> = ({
+	option,
+	isSelected,
+	isFocused,
+	isMultiSelect,
+	onSelect,
+}) => {
+	const borderColor = isFocused ? THEME_COLORS.primary : THEME_COLORS.secondary;
+	const backgroundColor = isSelected ? THEME_COLORS.selected : undefined;
+
 	return (
 		<Box
-			flexDirection="column"
 			borderStyle="round"
-			borderColor="#ffedd5"
-			padding={0}
+			borderColor={borderColor}
+			// backgroundColor={backgroundColor}
+			paddingX={1}
+			paddingY={0}
+			marginY={0}
 		>
-			<Box flexDirection="row" marginBottom={0}>
-				<Box width="50%">
-					<RenderSection title="Name" content={prompt.name} color="green" />
-				</Box>
-				<Box width="50%">
-					<RenderSection
-						title="Category"
-						content={prompt.category}
-						color="green"
-					/>
-				</Box>
-			</Box>
-			<Box flexDirection="row" marginBottom={0}>
-				<Box width="50%" flexDirection="row">
-					<RenderSection title="Ver" content={prompt.version} color="green" />
-				</Box>
-				<Box width="50%" flexDirection="row">
-					<RenderSection
-						title="Output Type"
-						content={prompt.outputType}
-						color="cyan"
-					/>
-				</Box>
-			</Box>
-			<RenderSection
-				title="Description"
-				showTitle={false}
-				flexDirection="column"
-				content={prompt.description}
-				color="yellow"
-				paddingLeft={0}
-				paddingBottom={1}
-			/>
-
-			<Box marginY={0} borderStyle="round" borderColor="#ffedd5" paddingX={1}>
-				{prompt.template && <RenderTemplate template={prompt.template} />}
-			</Box>
-			<Box flexDirection="row" marginY={0} paddingX={1}>
-				<Box width="50%" flexDirection="column" marginRight={1}>
-					<Text bold color="red">
-						Input Schema:
-					</Text>
-					{prompt.inputSchema && <JsonSchemaTree schema={prompt.inputSchema} />}
-				</Box>
-				<Box width="50%" flexDirection="column" marginLeft={1}>
-					<Text bold color="red">
-						Output Schema:
-					</Text>
-					{prompt.outputSchema && (
-						<JsonSchemaTree schema={prompt.outputSchema} />
-					)}
-				</Box>
-			</Box>
-			{!compact && (
-				<>
-					<Box flexDirection="column" marginY={1}>
-						<Text bold color="red">
-							Metadata:
-						</Text>
-						{prompt.metadata && <RenderObject obj={prompt.metadata} />}
-					</Box>
-					<Box flexDirection="column" marginY={1}>
-						<Text bold color="red">
-							Configuration:
-						</Text>
-						{prompt.configuration && (
-							<RenderObject obj={prompt.configuration} />
-						)}
-					</Box>
-				</>
-			)}
-		</Box>
-	);
-};
-
-export default PromptView;
-
-```
-
-## src/cli/components/utils/KeyboardShortcuts.tsx
-
-**Description:** No description available
-
-```typescript
-import { Box, Text, useInput } from "ink";
-
-import chalk from "chalk";
-
-interface Shortcut {
-	key: string;
-	description: string;
-	action: () => void;
-}
-
-interface KeyboardShortcutsProps {
-	shortcuts: Shortcut[];
-}
-
-export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
-	shortcuts,
-}) => {
-	useInput((input) => {
-		const shortcut = shortcuts.find((s) => s.key === input);
-		if (shortcut) {
-			shortcut.action();
-		}
-	});
-
-	return (
-		<Box flexDirection="column">
-			{shortcuts.map((shortcut, index) => (
-				<Text key={index}>
-					Press {chalk.bold(shortcut.key)} to {shortcut.description}
+			<Box width="100%" flexDirection="column">
+				<Text
+					color={
+						isSelected
+							? THEME_COLORS.selected
+							: isFocused
+								? THEME_COLORS.primary
+								: undefined
+					}
+					bold={isFocused || isSelected}
+				>
+					{isMultiSelect ? (isSelected ? "✓ " : "  ") : ""}
+					{option.label}
 				</Text>
-			))}
+				{option.description && (
+					<Text
+						color={isFocused ? "#ffffff" : THEME_COLORS.secondary}
+						dimColor={!isFocused}
+					>
+						{"  "}
+						{option.description}
+					</Text>
+				)}
+			</Box>
 		</Box>
 	);
 };
 
 ```
 
-## src/config/PromptProjectConfigManager.ts
+## src/cli/components/_atoms/TableGrid.tsx
 
 **Description:** No description available
 
 ```typescript
-import path from "node:path";
-import chalk from "chalk";
-import { type OptionsSync, cosmiconfig } from "cosmiconfig";
-import { Service } from "typedi";
-import { fromError } from "zod-validation-error";
-import { DEFAULT_CONFIG, configSchema, z } from "../schemas/config";
-import type { Config } from "../schemas/config";
-import type { IPromptProjectConfigManager } from "../types/interfaces";
-import { ensureDirectoryExists } from "../utils/fileUtils";
-import { logger } from "../utils/logger";
-
-const DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME = ".promptmanager.config.json";
-
-export type { Config };
-
-@Service()
-export class PromptProjectConfigManager implements IPromptProjectConfigManager {
-	private config: Config;
-	private initialized = false;
-	private explorer;
-	private basePath: string;
-	private configFilePath: string | undefined;
-
-	constructor() {
-		this.config = { ...DEFAULT_CONFIG };
-		this.basePath = process.env.FURY_PROJECT_ROOT || process.cwd();
-		const explorerOptions: OptionsSync = {
-			searchPlaces: [
-				"package.json",
-				".promptmanagerrc",
-				".promptmanagerrc.json",
-				".promptmanagerrc.yaml",
-				".promptmanagerrc.yml",
-				".promptmanagerrc.js",
-				"promptmanager.config.js",
-			],
-			loaders: {},
-			transform: (result) => result,
-			ignoreEmptySearchPlaces: true,
-			cache: true,
-			mergeImportArrays: true,
-			mergeSearchPlaces: true,
-			searchStrategy: "project",
-		};
-		this.explorer = cosmiconfig("promptmanager", explorerOptions);
-		logger.debug(
-			`Initializing PromptProjectConfigManager with basePath: ${this.basePath}`,
-		);
-	}
-
-	public getBasePath(): string {
-		return this.basePath;
-	}
-
-	public getPromptsDir(): string {
-		if (!this.config.promptsDir) {
-			throw new Error(
-				"Prompts directory not set. Please set the prompts directory in your configuration file.",
-			);
-		}
-		if (!path.isAbsolute(this.config.promptsDir)) {
-			return path.join(this.basePath, this.config.promptsDir);
-		}
-		return this.config.promptsDir;
-	}
-
-	public getProjectConfigPath(): string {
-		if (!this.configFilePath) {
-			logger.warn("No configuration file found. Using default configuration.");
-			throw new Error(
-				"No configuration file found. Please set the configuration file in your project.",
-			);
-		}
-		return this.configFilePath;
-	}
-
-	public async initialize(): Promise<void> {
-		if (this.initialized) return;
-
-		try {
-			await this.loadConfig();
-			await this.ensureConfigDirectories();
-			this.prettyPrintConfig();
-			this.initialized = true;
-		} catch (error: any) {
-			logger.error("Failed to initialize config:", error.message, error.stack);
-			throw new Error(
-				"Failed to initialize PromptProjectConfigManager. Please check your configuration and try again.",
-				error.stack,
-			);
-		}
-	}
-
-	public async isInitialized(): Promise<boolean> {
-		return this.initialized;
-	}
-
-	private async loadConfig(): Promise<void> {
-		try {
-			const result = await this.explorer.search();
-			if (result?.config) {
-				const validatedConfig = configSchema.parse({
-					...DEFAULT_CONFIG,
-					...result.config,
-				});
-				this.config = {
-					...validatedConfig,
-					promptsDir: path.resolve(this.basePath, validatedConfig.promptsDir),
-					outputDir: path.resolve(this.basePath, validatedConfig.outputDir),
-				};
-				logger.debug(`Found configuration file at ${result.filepath}`);
-				this.configFilePath = result.filepath;
-			} else {
-				logger.warn(
-					"No configuration file found. Using default configuration.",
-				);
-				this.config = { ...DEFAULT_CONFIG };
-			}
-			if (!this.configFilePath) {
-				logger.error(`No configuration file found at ${this.basePath}`);
-				this.configFilePath = path.join(
-					this.basePath,
-					DEFAULT_PROMPTS_FOLDER_CONFIG_FILENAME,
-				);
-			} else {
-				logger.debug(`Configuration file found at ${this.configFilePath}`);
-			}
-			logger.debug("Configuration loaded successfully");
-			logger.debug(`Prompts directory: ${this.config.promptsDir}`);
-			logger.debug(`Output directory: ${this.config.outputDir}`);
-		} catch (error) {
-			if (error instanceof z.ZodError) {
-				const validationError = fromError(error);
-				logger.error(validationError.toString());
-				logger.error("Invalid configuration:", error.errors);
-				throw new Error(`Invalid configuration: ${error.message}`);
-			}
-			logger.error("Error loading configuration:", error);
-			throw new Error(
-				"Failed to load configuration. Please check your configuration file.",
-			);
-		}
-	}
-
-	private async ensureConfigDirectories(): Promise<void> {
-		try {
-			await ensureDirectoryExists(this.config.promptsDir);
-			logger.success(
-				`Created prompts directory: ${chalk.yellow(this.config.promptsDir)}`,
-			);
-			await ensureDirectoryExists(this.config.outputDir);
-			logger.success(
-				`Created output directory: ${chalk.yellow(this.config.outputDir)}`,
-			);
-		} catch (error: any) {
-			logger.error("Error: Failed to create necessary directories.");
-			logger.warn(
-				"Please check that you have write permissions in the project directory.",
-			);
-			throw new Error(`Failed to create directories: ${error.message}`);
-		}
-	}
-
-	private prettyPrintConfig(): void {
-		if (this.config.verbosity > 99) {
-			logger.info(chalk.bold("\nLoaded Configuration:"));
-			logger.info(`prompts_dir:      ${chalk.cyan(this.config.promptsDir)}`);
-			logger.info(`output_dir:       ${chalk.cyan(this.config.outputDir)}`);
-			logger.info(
-				`preferredModels:  ${chalk.cyan(this.config.preferredModels.join(", "))}`,
-			);
-			logger.info("modelParams:");
-			Object.entries(this.config.modelParams).forEach(([model, params]) => {
-				logger.info(`  ${model}:`);
-				Object.entries(params).forEach(([key, value]) => {
-					logger.info(`    ${key}: ${chalk.cyan(value)}`);
-				});
-			});
-			logger.info(`verbosity:        ${chalk.cyan(this.config.verbosity)}`);
-			logger.info("\n");
-		}
-	}
-
-	public getConfig<K extends keyof Config>(key: K): Config[K] {
-		return this.config[key];
-	}
-
-	public getAllConfig(): Config {
-		return { ...this.config };
-	}
-
-	public async updateConfig(newConfig: Partial<Config>): Promise<void> {
-		try {
-			const updatedConfig = configSchema.parse({
-				...this.config,
-				...newConfig,
-			});
-			this.config = updatedConfig;
-			this.prettyPrintConfig();
-		} catch (error: any) {
-			if (error instanceof z.ZodError) {
-				const validationError = fromError(error);
-				logger.error("Validation error:", validationError.toString());
-				logger.error("Invalid configuration update:", error.errors);
-				throw new Error(`Invalid configuration update: ${error.message}`);
-			}
-			throw error;
-		}
-	}
-	setVerbosity(level: number): void {
-		this.config.verbosity = level;
-	}
-
-	getVerbosity(): number {
-		return this.config.verbosity;
-	}
-}
-
-```
-
-## src/cli/components/utils/MultiSelect.tsx
-
-**Description:** No description available
-
-```typescript
-import { Box, Text, useInput } from "ink";
+import { renderFullScreen } from "@/cli/Fullscreen";
+import { THEME_COLORS } from "@/cli/uiConfig";
+import { Box, Text } from "ink";
+import Table, { type CellProps } from "ink-table";
 import type React from "react";
 import { useState } from "react";
-import GridOptions, { type Option } from "./GridOptions";
+import type { Option } from "./types";
+import { useTableGrid } from "./useTableGrid";
 
-interface MultiSelectProps {
+interface TableGridProps<T extends boolean> {
 	options: Option[];
-	onSelect: (selectedOptions: Option[]) => void;
-	maxDisplayedOptions?: number;
-	descriptionMaxLength?: number;
+	onSelect: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
+	onSubmit: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
+	isMultiSelect: T;
+	itemsPerPage?: number;
 	isFocused?: boolean;
 }
 
-const MultiSelect: React.FC<MultiSelectProps> = ({
+type ExtendedOption = Option & {
+	isSelected: boolean;
+	isFocused: boolean;
+};
+
+export const TableGrid = <T extends boolean>({
 	options,
 	onSelect,
-	maxDisplayedOptions = 10,
-	descriptionMaxLength = 50,
+	onSubmit,
+	isMultiSelect,
+	itemsPerPage = 10,
 	isFocused = true,
-}) => {
-	const [selectedOptions, setSelectedOptions] = useState<Set<string>>(
-		new Set(),
-	);
-	const [focusedIndex, setFocusedIndex] = useState(0);
+}: TableGridProps<T>) => {
+	const {
+		visibleOptions,
+		selectedIndices,
+		focusedIndex,
+		currentPage,
+		totalPages,
+		error,
+		handleSelect,
+		handleSubmit,
+	} = useTableGrid({
+		options,
+		onSelect,
+		onSubmit,
+		isMultiSelect,
+		itemsPerPage,
+		isFocused,
+	});
 
-	useInput(
-		(input, key) => {
-			if (key.return) {
-				onSelect(
-					Array.from(selectedOptions).map(
-						(value) => options.find((option) => option.value === value)!,
-					),
-				);
-			} else if (key.upArrow) {
-				setFocusedIndex((prev) => (prev > 0 ? prev - 1 : prev));
-			} else if (key.downArrow) {
-				setFocusedIndex((prev) =>
-					prev < options.length - 1 ? prev + 1 : prev,
-				);
-			} else if (key.tab) {
-				setSelectedOptions((prev) => {
-					const newSet = new Set(prev);
-					const focusedOption = options[focusedIndex];
-					if (newSet.has(focusedOption.value)) {
-						newSet.delete(focusedOption.value);
-					} else {
-						newSet.add(focusedOption.value);
-					}
-					return newSet;
-				});
-			}
-		},
-		{ isActive: isFocused },
-	);
-
-	const optionsWithSelection = options.map((option) => ({
+	const tableData: ExtendedOption[] = visibleOptions.map((option, index) => ({
 		...option,
-		label: `${selectedOptions.has(option.value) ? "[x]" : "[ ]"} ${option.label}`,
+		isSelected: selectedIndices.includes(currentPage * itemsPerPage + index),
+		isFocused: index === focusedIndex,
 	}));
 
 	return (
 		<Box flexDirection="column">
-			<GridOptions
-				options={optionsWithSelection}
-				selectedIndex={focusedIndex}
-				maxDisplayedOptions={maxDisplayedOptions}
-				descriptionMaxLength={descriptionMaxLength}
-				showNumbers={false}
+			{error && (
+				<Box marginBottom={1}>
+					<Text color="red">{error}</Text>
+				</Box>
+			)}
+			<Table
+				data={tableData}
+				columns={["label", "value", "description"]}
+				cell={({ row, column }) => {
+					return (
+						<Text
+							color={
+								row.isSelected
+									? THEME_COLORS.selected
+									: row.isFocused
+										? THEME_COLORS.primary // Use primary color for focused items
+										: undefined
+							}
+						>
+							{row[column as keyof ExtendedOption]}
+						</Text>
+					);
+				}}
 			/>
-			<Text>Press Space to select, Enter to confirm</Text>
+			{totalPages > 1 && (
+				<Box justifyContent="center" marginY={1}>
+					<Text>
+						Page {currentPage + 1} of {totalPages}
+					</Text>
+				</Box>
+			)}
+			<Box flexDirection="column" marginTop={1}>
+				<Text>
+					Use <Text color={THEME_COLORS.primary}>↑/↓</Text> to navigate,{" "}
+					{isMultiSelect ? (
+						<>
+							<Text color={THEME_COLORS.primary}>Space</Text> to
+							select/deselect, <Text color={THEME_COLORS.primary}>S</Text> to
+							submit
+						</>
+					) : (
+						<Text color={THEME_COLORS.primary}>Enter</Text>
+					)}{" "}
+					to select
+				</Text>
+				<Text>
+					<Text color={THEME_COLORS.primary}>PgUp/PgDown</Text> to change pages,{" "}
+					<Text color={THEME_COLORS.primary}>Home/End</Text> to jump to
+					start/end
+				</Text>
+			</Box>
 		</Box>
 	);
 };
 
-export default MultiSelect;
+const generateRandomOptions = (count: number): Option[] => {
+	return Array.from({ length: count }, (_, index) => ({
+		label: `Option ${index + 1}`,
+		value: `${index + 1}`,
+		description: `This is a randomly generated option ${index + 1}`,
+	}));
+};
+
+const testOptions: Option[] = generateRandomOptions(20);
+
+const TestComponent: React.FC = () => {
+	const [isMultiSelect, setIsMultiSelect] = useState(true);
+	const [lastSelected, setLastSelected] = useState<Option | Option[] | null>(
+		null,
+	);
+	const [lastSubmitted, setLastSubmitted] = useState<Option | Option[] | null>(
+		null,
+	);
+
+	const handleSelect = (selected: Option | Option[]) => {
+		setLastSelected(selected);
+		console.log("Selected:", selected);
+	};
+
+	const handleSubmit = (submitted: Option | Option[]) => {
+		setLastSubmitted(submitted);
+		console.log("Submitted:", submitted);
+	};
+
+	const toggleMultiSelect = () => {
+		setIsMultiSelect(!isMultiSelect);
+		setLastSelected(null);
+		setLastSubmitted(null);
+	};
+
+	return (
+		<Box flexDirection="column">
+			<Text>Press 'T' to toggle between single and multi-select</Text>
+			<Text>
+				Current mode: {isMultiSelect ? "Multi-select" : "Single-select"}
+			</Text>
+			<Box marginY={1}>
+				<TableGrid
+					options={testOptions}
+					onSelect={handleSelect}
+					onSubmit={handleSubmit}
+					isMultiSelect={isMultiSelect}
+					isFocused={true}
+					itemsPerPage={10}
+				/>
+			</Box>
+			<Text>Last Selected: {JSON.stringify(lastSelected)}</Text>
+			<Text>Last Submitted: {JSON.stringify(lastSubmitted)}</Text>
+		</Box>
+	);
+};
+
+if (import.meta.main) {
+	await renderFullScreen(<TestComponent />);
+
+	// Simulate user input
+	// setTimeout(() => {
+	//   // Navigate down
+	//   stdin.write('\x1B[B');
+	//   // Select an option
+	//   stdin.write(' ');
+	//   // Submit
+	//   stdin.write('s');
+	//   // Toggle multi-select
+	//   stdin.write('t');
+	//   // Select another option
+	//   stdin.write(' ');
+	//   // Submit in single-select mode
+	//   stdin.write('\r');
+	// }, 100);
+
+	// Clean up
+	// setTimeout(() => {
+	//   unmount();
+	// }, 1000);
+}
 
 ```
 
-## src/cli/components/utils/PaginatedList.tsx
+## src/cli/components/_atoms/useTableGrid.ts
 
 **Description:** No description available
 
 ```typescript
-import chalk from "chalk";
-import { Box, Text, useInput } from "ink";
-import { useState } from "react";
+import { useInput } from "ink";
+import { useCallback, useEffect, useState } from "react";
+import type { Option } from "./types";
 
-interface PaginatedListProps<T> {
-	items: T[];
-	itemsPerPage: number;
-	renderItem: (item: T, index: number, isSelected: boolean) => React.ReactNode;
-	onSelectItem: (item: T) => void;
+interface UseTableGridProps<T extends boolean> {
+	options: Option[];
+	onSelect: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
+	onSubmit: T extends true
+		? (selectedOptions: Option[]) => void
+		: (selectedOption: Option) => void;
+	isMultiSelect: T;
+	itemsPerPage?: number;
+	isFocused?: boolean;
 }
 
-export const PaginatedList = <T,>({
-	items,
-	itemsPerPage,
-	renderItem,
-	onSelectItem,
-}: PaginatedListProps<T>) => {
+export const useTableGrid = <T extends boolean>({
+	options,
+	onSelect,
+	onSubmit,
+	isMultiSelect,
+	itemsPerPage = 10,
+	isFocused = true,
+}: UseTableGridProps<T>) => {
+	const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+	const [focusedIndex, setFocusedIndex] = useState(0);
 	const [currentPage, setCurrentPage] = useState(0);
-	const [selectedIndex, setSelectedIndex] = useState(0);
+	const [error, setError] = useState<string | null>(null);
 
-	const paginatedItems = items.slice(
+	const totalPages = Math.ceil(options.length / itemsPerPage);
+
+	const visibleOptions = options.slice(
 		currentPage * itemsPerPage,
 		(currentPage + 1) * itemsPerPage,
 	);
 
-	useInput((input, key) => {
-		if (key.upArrow) {
-			setSelectedIndex(Math.max(0, selectedIndex - 1));
-		} else if (key.downArrow) {
-			setSelectedIndex(Math.min(paginatedItems.length - 1, selectedIndex + 1));
-		} else if (key.return) {
-			onSelectItem(paginatedItems[selectedIndex]);
-		} else if (
-			input === "n" &&
-			currentPage < Math.floor(items.length / itemsPerPage) - 1
-		) {
-			setCurrentPage(currentPage + 1);
-			setSelectedIndex(0);
-		} else if (input === "p" && currentPage > 0) {
-			setCurrentPage(currentPage - 1);
-			setSelectedIndex(0);
-		}
-	});
+	const handleKeyPress = useCallback(
+		(input: string, key: any) => {
+			if (!isFocused) return;
 
-	return (
-		<Box flexDirection="column">
-			{paginatedItems.map((item, index) => (
-				<Box key={index}>
-					{renderItem(item, index, index === selectedIndex)}
-				</Box>
-			))}
-			<Text>
-				Page {currentPage + 1} of {Math.ceil(items.length / itemsPerPage)}
-			</Text>
-			<Text>
-				{chalk.gray(
-					"Use ↑↓ to navigate, Enter to select, (N)ext/(P)revious page",
-				)}
-			</Text>
-		</Box>
-	);
-};
-
-```
-
-## src/utils/typeGeneration.test.ts
-
-**Description:** No description available
-
-```typescript
-import { describe, expect, test } from "bun:test";
-import type { JSONSchema7 } from "json-schema";
-import type { IPrompt } from "../types/interfaces";
-import {
-	generateExportableSchemaAndType,
-	generatePromptTypeScript,
-	generatePromptTypescriptDefinition,
-	generateTestInputs,
-} from "./typeGeneration";
-
-describe("Type Generation Utilities", () => {
-	const sampleSchema: JSONSchema7 = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			age: { type: "number" },
-			isStudent: { type: "boolean" },
+			if (key.upArrow) {
+				setFocusedIndex((prev) =>
+					prev > 0 ? prev - 1 : visibleOptions.length - 1,
+				);
+			} else if (key.downArrow) {
+				setFocusedIndex((prev) =>
+					prev < visibleOptions.length - 1 ? prev + 1 : 0,
+				);
+			} else if (key.return || (isMultiSelect && input === " ")) {
+				handleSelect(focusedIndex);
+			} else if (key.pageUp) {
+				changePage("prev");
+			} else if (key.pageDown) {
+				changePage("next");
+			} else if (key.home) {
+				setFocusedIndex(0);
+			} else if (key.end) {
+				setFocusedIndex(visibleOptions.length - 1);
+			} else if (input === "c") {
+				// Cancel/Clear selection
+				setSelectedIndices([]);
+			} else if (input === "s") {
+				handleSubmit();
+			}
 		},
-		required: ["name", "age"],
+		[visibleOptions, focusedIndex, isMultiSelect, isFocused],
+	);
+
+	useInput(handleKeyPress);
+
+	const handleSelect = useCallback(
+		(index: number) => {
+			const actualIndex = currentPage * itemsPerPage + index;
+			if (isMultiSelect) {
+				setSelectedIndices((prev) =>
+					prev.includes(actualIndex)
+						? prev.filter((i) => i !== actualIndex)
+						: [...prev, actualIndex],
+				);
+			} else {
+				setSelectedIndices([actualIndex]);
+			}
+			const selectedOptions = options.filter((_, i) =>
+				isMultiSelect ? selectedIndices.includes(i) : i === actualIndex,
+			);
+			(onSelect as (selected: Option | Option[]) => void)(
+				isMultiSelect ? selectedOptions : selectedOptions[0],
+			);
+		},
+		[
+			options,
+			selectedIndices,
+			isMultiSelect,
+			currentPage,
+			itemsPerPage,
+			onSelect,
+		],
+	);
+
+	const handleSubmit = useCallback(() => {
+		if (selectedIndices.length === 0) {
+			setError("Please select at least one option before submitting.");
+		} else {
+			const selectedOptions = options.filter((_, i) =>
+				selectedIndices.includes(i),
+			);
+			(onSubmit as (selected: Option | Option[]) => void)(
+				isMultiSelect ? selectedOptions : selectedOptions[0],
+			);
+			setError(null);
+		}
+	}, [options, selectedIndices, onSubmit, isMultiSelect]);
+
+	const changePage = (direction: "prev" | "next") => {
+		setCurrentPage((prev) => {
+			if (direction === "prev" && prev > 0) return prev - 1;
+			if (direction === "next" && prev < totalPages - 1) return prev + 1;
+			return prev;
+		});
+		setFocusedIndex(0);
 	};
 
-	test("generateExportableSchemaAndType", async () => {
-		const result = await generateExportableSchemaAndType({
-			schema: sampleSchema,
-			name: "Person",
-		});
-		expect(result.formattedSchemaTs).toContain(
-			"export const Person = z.object({",
-		);
-		expect(result.formattedSchemaTs).toContain("name: z.string(),");
-		expect(result.formattedSchemaTs).toContain("age: z.number(),");
-		expect(result.formattedSchemaTs).toContain(
-			"isStudent: z.boolean().optional(),",
-		);
-		expect(result.formattedSchemaTs).toContain(
-			"export type Person = z.infer<typeof Person>;",
-		);
-		expect(result).toMatchSnapshot();
-	});
-
-	test("generatePromptTypeScript", async () => {
-		const prompt: IPrompt<any, any> = {
-			name: "ExamplePrompt",
-			category: "exampleCategory",
-			description: "An example prompt",
-			version: "1.0.0",
-			template: "Example template",
-			inputSchema: {
-				type: "object",
-				properties: {
-					input: { type: "string" },
-				},
-			},
-			outputSchema: {
-				type: "object",
-				properties: {
-					output: { type: "string" },
-				},
-			},
-			// parameters: {}, // Add appropriate parameters
-			metadata: {
-				created: "2023-01-01T00:00:00.000Z",
-				lastModified: "2023-01-01T00:00:00.000Z",
-			}, // Add appropriate metadata
-			outputType: "structured", // Add appropriate outputType
-			// configuration: {} // Add appropriate configuration
-		};
-		const result = await generatePromptTypeScript(prompt);
-		expect(result).toContain("export interface ExamplePromptInput");
-		expect(result).toContain("export interface ExamplePromptOutput");
-		expect(result).toMatchSnapshot();
-	});
-
-	test("generatePromptTypescriptDefinition", async () => {
-		const prompt: IPrompt<any, any> = {
-			name: "ExamplePrompt",
-			category: "exampleCategory",
-			description: "An example prompt",
-			version: "1.0.0",
-			template: "Example template",
-			inputSchema: {
-				type: "object",
-				properties: {
-					input: { type: "string" },
-				},
-			},
-			outputSchema: {
-				type: "object",
-				properties: {
-					output: { type: "string" },
-				},
-			},
-			metadata: {
-				created: "2023-01-01T00:00:00.000Z",
-				lastModified: "2023-01-01T00:00:00.000Z",
-			},
-			outputType: "structured",
-		};
-		const result = await generatePromptTypescriptDefinition(prompt);
-		expect(result).toContain("export interface ExamplePromptInput");
-		expect(result).toContain("export interface ExamplePromptOutput");
-		expect(result).toMatchSnapshot();
-	});
-
-	test("generateTestInputs", () => {
-		const result = generateTestInputs(sampleSchema, 3);
-		expect(result).toHaveLength(3);
-		result.forEach((input) => {
-			expect(input).toHaveProperty("name");
-			expect(input).toHaveProperty("age");
-			expect(input).toHaveProperty("isStudent");
-		});
-		expect(result).toMatchSnapshot();
-	});
-});
-
-```
-
-## src/utils/fileTransaction.ts
-
-**Description:** No description available
-
-```typescript
-import path from "node:path";
-import fs from "fs-extra";
-import type lockfile from "proper-lockfile";
-import { retryLock } from "./lockUtils";
-
-type Operation = {
-	type: "write" | "read" | "delete";
-	path: string;
-	data?: string;
-};
-
-export class FileTransaction {
-	private operations: Operation[] = [];
-
-	async write(filePath: string, data: string): Promise<void> {
-		this.operations.push({ type: "write", path: filePath, data });
-	}
-
-	async read(filePath: string): Promise<string> {
-		this.operations.push({ type: "read", path: filePath });
-		return fs.readFile(filePath, "utf-8");
-	}
-
-	async delete(filePath: string): Promise<void> {
-		this.operations.push({ type: "delete", path: filePath });
-	}
-
-	async commit(): Promise<void> {
-		const lockPath = path.dirname(this.operations[0].path);
-		let release: (() => Promise<void>) | undefined;
-
-		try {
-			release = await retryLock(lockPath, 5, 1000);
-
-			for (const op of this.operations) {
-				switch (op.type) {
-					case "write":
-						await fs.writeFile(op.path, op.data!);
-						break;
-					case "delete":
-						await fs.remove(op.path);
-						break;
-					// "read" operations are not executed during commit
-				}
-			}
-		} catch (error) {
-			await this.rollback();
-			throw error;
-		} finally {
-			if (release) {
-				await release();
-			}
+	useEffect(() => {
+		if (options.length === 0) {
+			setError("No options available.");
+		} else {
+			setError(null);
 		}
-	}
+	}, [options]);
 
-	async rollback(): Promise<void> {
-		for (let i = this.operations.length - 1; i >= 0; i--) {
-			const op = this.operations[i];
-			if (op.type === "write") {
-				try {
-					await fs.remove(op.path);
-				} catch (error) {
-					console.error(`Error rolling back write operation: ${error}`);
-				}
-			} else if (op.type === "delete") {
-				try {
-					if (op.data) {
-						await fs.writeFile(op.path, op.data);
-					}
-				} catch (error) {
-					console.error(`Error rolling back delete operation: ${error}`);
-				}
-			}
-		}
-	}
-}
-
-```
-
-## src/utils/typeGeneration.ts
-
-**Description:** No description available
-
-```typescript
-import type { JSONSchema7 } from "json-schema";
-import jsf from "json-schema-faker";
-import { jsonSchemaToZod } from "json-schema-to-zod";
-import { format } from "prettier";
-import { zodToTs } from "zod-to-ts";
-import type { IPrompt } from "../types/interfaces";
-import { cleanName } from "./promptManagerUtils";
-
-export interface SchemaAndType {
-	formattedSchemaTs: string;
-	formattedSchemaTsNoImports: string;
-}
-
-/**
- * Generates TypeScript types from a JSON schema and formats them.
- *
- * @param {Object} params - The parameters.
- * @param {JSONSchema7} params.schema - The JSON schema.
- * @param {string} params.name - The name for the generated type.
- * @returns {Promise<SchemaAndType>} The formatted TypeScript types.
- *
- * @example
- * const schema = { type: "object", properties: { name: { type: "string" } } };
- * const result = await generateExportableSchemaAndType({ schema, name: "MyType" });
- * logger.info(result.formattedSchemaTs);
- * // Output: "export const MyType = z.object({ name: z.string() });"
- */
-export async function generateExportableSchemaAndType({
-	schema,
-	name,
-}: { schema: JSONSchema7; name: string }): Promise<SchemaAndType> {
-	const zodSchemaString = jsonSchemaToZod(schema, {
-		module: "esm",
-		name: name,
-		type: true,
-	});
-	const formatted = await format(zodSchemaString, { parser: "typescript" });
-	const zodSchemaNoImports = formatted.replace(/import { z } from "zod";/g, "");
 	return {
-		formattedSchemaTs: zodSchemaNoImports,
-		formattedSchemaTsNoImports: zodSchemaNoImports,
+		visibleOptions,
+		selectedIndices,
+		focusedIndex,
+		currentPage,
+		totalPages,
+		error,
+		handleSelect,
+		handleSubmit,
 	};
-}
-
-/**
- * Generates TypeScript interfaces for a given prompt.
- *
- * @param {IPrompt<any, any>} prompt - The prompt object containing input and output schemas.
- * @returns {Promise<string>} The generated TypeScript content.
- *
- * @example
- * const prompt = { name: "ExamplePrompt", inputSchema: { type: "object", properties: { input: { type: "string" } } }, outputSchema: { type: "object", properties: { output: { type: "string" } } } };
- * const result = await generatePromptTypeScript(prompt);
- * logger.info(result);
- * // Output:
- * // import {z} from "zod";
- * // export interface ExamplePromptInput { input: string; }
- * // export interface ExamplePromptOutput { output: string; }
- */
-export async function generatePromptTypeScript(
-	prompt: IPrompt<any, any>,
-): Promise<string> {
-	const inputTypes = await generateExportableSchemaAndType({
-		schema: prompt.inputSchema,
-		name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Input`,
-	});
-	const outputTypes = await generateExportableSchemaAndType({
-		schema: prompt.outputSchema,
-		name: `${cleanName(prompt.category)}${cleanName(prompt.name)}Output`,
-	});
-	const content = `import { z } from "zod";
-import { IAsyncIterableStream } from "../types/interfaces";
-
-${inputTypes.formattedSchemaTsNoImports}
-
-${outputTypes.formattedSchemaTsNoImports}
-
-export interface ${cleanName(prompt.category)}${cleanName(prompt.name)}Prompt {
-  format: (inputs: ${cleanName(prompt.category)}${cleanName(prompt.name)}Input) => Promise<string>;
-  execute: (inputs: ${cleanName(prompt.category)}${cleanName(prompt.name)}Input) => Promise<${cleanName(prompt.category)}${cleanName(prompt.name)}Output>;
-  stream: (inputs: ${cleanName(prompt.category)}${cleanName(prompt.name)}Input) => Promise<IAsyncIterableStream<string>>;
-  description: string;
-  version: string;
-}
-`;
-
-	return content;
-}
-
-export async function generatePromptTypescriptDefinition(
-	prompt: IPrompt<any, any>,
-): Promise<string> {
-	const zodInputSchema = eval(
-		jsonSchemaToZod(prompt.inputSchema, { module: "esm" }),
-	);
-	const inputDef = zodToTs(zodInputSchema, `${cleanName(prompt.name)}Input`);
-	const zodOutputSchema = eval(
-		jsonSchemaToZod(prompt.outputSchema, { module: "esm" }),
-	);
-	const outputDef = zodToTs(zodOutputSchema, `${cleanName(prompt.name)}Output`);
-	return `${inputDef}\n\n${outputDef}`;
-}
-
-/**
- * Generates test inputs based on a JSON schema.
- *
- * @param {JSONSchema7} schema - The JSON schema.
- * @param {number} [count=5] - The number of test inputs to generate.
- * @returns {any[]} The generated test inputs.
- *
- * @example
- * const schema = { type: "object", properties: { name: { type: "string" } } };
- * const testInputs = generateTestInputs(schema, 3);
- * logger.info(testInputs);
- * // Output: [{ name: "John Doe" }, { name: "Jane Doe" }, { name: "Jim Doe" }]
- */
-export function generateTestInputs(schema: JSONSchema7, count = 5): any[] {
-	jsf.option({
-		alwaysFakeOptionals: true,
-		useDefaultValue: true,
-	});
-
-	const testInputs = [];
-	for (let i = 0; i < count; i++) {
-		testInputs.push(jsf.generate(schema));
-	}
-	return testInputs;
-}
+};
 
 ```
 

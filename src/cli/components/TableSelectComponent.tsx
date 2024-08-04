@@ -1,27 +1,17 @@
 import Fuse from "fuse.js";
 import { Box, Text, useInput } from "ink";
-import { render } from "ink";
+import Table, { CellProps } from "ink-table";
 import TextInput from "ink-text-input";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { renderFullScreen } from "../Fullscreen";
 import { THEME_COLORS } from "../uiConfig";
-import OptionCardGrid from "./_atoms/OptionCardGrid";
+import type { Option } from "./types";
 
-export interface Option {
-	label: string;
-	value: string;
-	description?: string;
-}
-
-interface SelectComponentProps<T extends boolean> {
+interface TableSelectComponentProps<T extends boolean> {
 	options: Option[];
-	onSelect: T extends true
-		? (selectedOptions: Option[]) => void
-		: (selectedOption: Option) => void;
-	onSubmit: T extends true
-		? (selectedOptions: Option[]) => void
-		: (selectedOption: Option) => void;
+	onSelect: (selectedOptions: T extends true ? Option[] : Option) => void;
+	onSubmit: (selectedOptions: T extends true ? Option[] : Option) => void;
 	onCancel?: () => void;
 	label?: string;
 	helpText?: string;
@@ -32,7 +22,7 @@ interface SelectComponentProps<T extends boolean> {
 	itemsPerPage?: number;
 }
 
-const SelectComponent = <T extends boolean>({
+export const TableSelectComponent = <T extends boolean>({
 	options,
 	onSelect,
 	onSubmit,
@@ -44,9 +34,10 @@ const SelectComponent = <T extends boolean>({
 	maxSelections = Number.POSITIVE_INFINITY,
 	isFocused = false,
 	isMultiSelect,
-}: SelectComponentProps<T>) => {
+}: TableSelectComponentProps<T>) => {
 	const [searchValue, setSearchValue] = useState("");
 	const [gridFocused, setGridFocused] = useState(isFocused);
+	const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
 	const fuse = useMemo(
 		() =>
@@ -63,12 +54,35 @@ const SelectComponent = <T extends boolean>({
 	}, [searchValue, options, fuse]);
 
 	useInput((input, key) => {
-		if (input === "s" && gridFocused) {
+		if (input === "s") {
 			setGridFocused(false);
 		}
-		if (input === "x" && gridFocused) {
+		if (input === "x") {
 			setSearchValue("");
-			setGridFocused(true);
+		}
+		if (key.return) {
+			if (isMultiSelect) {
+				onSubmit(
+					selectedIndices.map((index) => options[index]) as T extends true
+						? Option[]
+						: Option,
+				);
+			} else if (selectedIndices.length > 0) {
+				onSubmit(
+					options[selectedIndices[0]] as T extends true ? Option[] : Option,
+				);
+			}
+		}
+		if (input === "c" && onCancel) {
+			onCancel();
+		}
+		if (key.upArrow || key.downArrow) {
+			// Handle arrow key navigation
+			const currentIndex = selectedIndices[0] || 0;
+			const newIndex = key.upArrow
+				? Math.max(0, currentIndex - 1)
+				: Math.min(filteredOptions.length - 1, currentIndex + 1);
+			handleSelect(filteredOptions[newIndex]);
 		}
 	});
 
@@ -80,10 +94,27 @@ const SelectComponent = <T extends boolean>({
 		setGridFocused(true);
 	}, []);
 
-	const handleClearSearch = useCallback(() => {
-		setSearchValue("");
-		setGridFocused(true);
-	}, []);
+	const handleSelect = useCallback(
+		(option: Option) => {
+			const index = options.findIndex((o) => o.value === option.value);
+			if (isMultiSelect) {
+				setSelectedIndices((prev) => {
+					const newIndices = prev.includes(index)
+						? prev.filter((i) => i !== index)
+						: [...prev, index];
+					if (newIndices.length > maxSelections) {
+						newIndices.shift();
+					}
+					onSelect(newIndices.map((i) => options[i]) as T extends true ? Option[] : Option);
+					return newIndices;
+				});
+			} else {
+				setSelectedIndices([index]);
+				onSelect(option as T extends true ? Option[] : Option);
+			}
+		},
+		[isMultiSelect, maxSelections, onSelect, options],
+	);
 
 	useEffect(() => {
 		if (searchValue === "") {
@@ -97,8 +128,8 @@ const SelectComponent = <T extends boolean>({
 			{helpText && <Text color={THEME_COLORS.secondary}>{helpText}</Text>}
 			<Text color={THEME_COLORS.secondary}>
 				{isMultiSelect
-					? "Use ↑↓ arrows to move, Space to select, Enter to confirm, C to cancel, ←→ to paginate, S to focus search"
-					: "Use ↑↓ arrows to move, Enter to select, C to cancel, ←→ to paginate, S to focus search"}
+					? "Use ↑↓←→ arrows to move, Space to select, Enter to confirm, C to cancel, S to focus search"
+					: "Use ↑↓←→ arrows to move, Enter to select, C to cancel, S to focus search"}
 			</Text>
 			<Text>{separator.repeat(20)}</Text>
 			<Box>
@@ -110,24 +141,21 @@ const SelectComponent = <T extends boolean>({
 					focus={!gridFocused}
 				/>
 				{searchValue && (
-					<Text color={THEME_COLORS.secondary}>Press 'x' to clear</Text>
+					<Text color={THEME_COLORS.secondary} style={{ marginLeft: 1 }}>
+						Press 'x' to clear
+					</Text>
 				)}
 			</Box>
-			<OptionCardGrid
-				options={filteredOptions}
-				onSelect={onSelect}
-				onSubmit={onSubmit}
-				onCancel={onCancel}
-				isMultiSelect={isMultiSelect}
-				itemsPerPage={itemsPerPage}
-				isFocused={gridFocused}
-				columns={2}
+			<Table
+				data={filteredOptions.map((option, index) => ({
+					...option,
+					selected: selectedIndices.includes(index) ? "✓" : " ",
+				}))}
+				columns={["selected", "label", "value", "description"]}
 			/>
 		</Box>
 	);
 };
-
-export default SelectComponent;
 
 if (import.meta.main) {
 	// Test code
@@ -143,15 +171,15 @@ if (import.meta.main) {
 
 	const TestComponent: React.FC = () => {
 		const handleSelect = (option: Option | Option[]) => {
-			logger.log("Selected:", option);
+			console.log("Selected:", option);
 		};
 
 		const handleSubmit = (option: Option | Option[]) => {
-			logger.log("Submitted:", option);
+			console.log("Submitted:", option);
 		};
 
 		return (
-			<SelectComponent
+			<TableSelectComponent
 				options={testOptions}
 				onSelect={handleSelect}
 				onSubmit={handleSubmit}

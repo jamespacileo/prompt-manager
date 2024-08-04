@@ -13,6 +13,7 @@ import { PromptManager } from "../promptManager";
 import { logger } from "../utils/logger";
 import { renderFullScreen } from "./Fullscreen";
 import PromptManagerUI from "./PromptManagerUI";
+import { generateTypes } from "./commands";
 
 //you need this
 process.stdin.resume();
@@ -51,11 +52,19 @@ async function main() {
 			"Prompt version (optional for detail screen)",
 		)
 		.option("-w, --wizard-step <step>", "Wizard step (for test screen)", "1")
+		.option("-g, --generate-types", "Generate types and exit")
 		.parse(process.argv);
 
 	const options = program.opts();
 
 	await ensureInitialized();
+	
+	if (options.generateTypes) {
+		const result = await generateTypes();
+		console.log(result);
+		process.exit(0);
+	}
+	
 	await renderFullScreen(
 		<PromptManagerUI
 			initialScreen={options.screen}
@@ -68,21 +77,6 @@ async function main() {
 			initialWizardStep={Number.parseInt(options.wizardStep, 10)}
 		/>,
 	);
-
-	// const cleanup = () => {
-	//   clear();
-	//   logger.info("Exiting gracefully...");
-	//   process.exit(0);
-	// };
-
-	// process.on("SIGINT", cleanup);
-	// process.on("SIGTERM", cleanup);
-
-	// try {
-	//   await waitUntilExit();
-	// } finally {
-	//   cleanup();
-	// }
 }
 
 await main().catch((error) => {

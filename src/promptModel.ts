@@ -21,6 +21,30 @@ import { jsonSchemaToZod } from "./utils/jsonSchemaToZod";
 import { logger } from "./utils/logger";
 import { compareVersions, incrementVersion } from "./utils/versionUtils";
 
+interface CamelCaseProps {
+	initialInput?: string;
+	initialCapFirst?: boolean;
+	examples?: string[];
+}
+
+function toCamelCase({
+	str,
+	capFirst = true,
+}: { str: string; capFirst: boolean }): string {
+	const words = str.replace(/[^\w\s-]/g, "").split(/[\s_-]+/);
+
+	return words
+		.map((word, index) => {
+			if (index === 0) {
+				return capFirst
+					? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+					: word.toLowerCase();
+			}
+			return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+		})
+		.join("");
+}
+
 export class PromptModel<
 	TInput extends IPromptInput<Record<string, any>> = IPromptInput<
 		Record<string, any>
@@ -100,13 +124,47 @@ export class PromptModel<
 		this.configuration = this.initializeConfiguration();
 	}
 
+	get cleanName(): string {
+		// camelCase
+		return toCamelCase({
+			str: this.name,
+			capFirst: true,
+		});
+	}
+
+	get cleanCategory(): string {
+		// camelCase
+		return toCamelCase({
+			str: this.category,
+			capFirst: true,
+		});
+	}
+
 	get id(): string {
 		// slug with category and name
-		return `${this.category}/${this.name}`;
+		return `${this.className}`;
 	}
 
 	get key(): string {
 		return this.id;
+	}
+
+	get inputTypeName(): string {
+		return toCamelCase({
+			str: `${this.className} Input`,
+			capFirst: true,
+		});
+	}
+
+	get outputTypeName(): string {
+		return toCamelCase({
+			str: `${this.className} Output`,
+			capFirst: true,
+		});
+	}
+
+	get className(): string {
+		return `${this.cleanCategory}${this.cleanName}`;
 	}
 
 	async getFilePath(): Promise<string> {

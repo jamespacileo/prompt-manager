@@ -9,4 +9,6 @@ export const THEME_COLORS = {
 	highlight: "#3b82f6",
 	deselected: "#1e293b",
 	selected: "#d97706",
+	dimmed: "#64748b",
+	active: "#581c87",
 };

@@ -114,6 +114,7 @@ const PromptCreateScreen: FC = () => {
 			case "type":
 				return (
 					<OptionSelect
+						onSubmit={(option) => {}}
 						options={promptTypeOptions}
 						onSelect={(option) => {
 							setSelectedType(option.value);
@@ -127,6 +128,7 @@ const PromptCreateScreen: FC = () => {
 			case "tags":
 				return (
 					<MultiOptionSelect
+						onSubmit={(options) => {}}
 						options={promptTagOptions}
 						onSelect={(options) => {
 							setSelectedTags(options.map((o) => o.value));

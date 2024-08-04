@@ -44,7 +44,7 @@ const DebugPanel: React.FC = () => {
 			<Text>
 				Screen: {currentScreen} || Wizard Step: {currentWizardStep}
 			</Text>
-			<Text>Selected Prompt: {JSON.stringify(selectedPrompt, null, 2)}</Text>
+			{/* <Text>Selected Prompt: {JSON.stringify(selectedPrompt, null, 2)}</Text> */}
 		</Box>
 	);
 };

@@ -1,0 +1,28 @@
+import { z } from "zod";
+type IAsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
+
+{{ for generatedSchema of generatedSchemas }}
+{{ generatedSchema.inputTs }}
+{{ generatedSchema.outputTs }}
+{{ /for }}
+
+declare module "prompt-manager" {
+  export class IPromptManagerClient {
+
+    {{ for category of categories }}
+    {{ category.name }}: {
+      {{ for prompt of category.prompts }}
+      {{ prompt.className }}: {
+        format: (inputs: {{ prompt.inputTypeName }}) => Promise<string>;
+        execute: (inputs: {{ prompt.inputTypeName }}) => Promise<{{ prompt.outputTypeName }}>;
+        stream: (inputs: {{ prompt.inputTypeName }}) => Promise<IAsyncIterableStream<string>>;
+        description: string;
+        version: string;
+      };
+      {{ /for }}
+    };
+    {{ /for }}
+  }
+
+  export const promptManager: PromptManagerClient;
+}
